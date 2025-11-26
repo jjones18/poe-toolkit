@@ -4,10 +4,11 @@ Main application window with sidebar navigation.
 
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
-    QStackedWidget, QPushButton, QLabel, QFrame, QMessageBox
+    QStackedWidget, QPushButton, QLabel, QFrame, QMessageBox,
+    QMenuBar, QMenu
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QAction
 
 from ui.overlay import OverlayWindow
 from ui.theme import apply_dark_theme
@@ -77,6 +78,9 @@ class MainWindow(QMainWindow):
         
         # Apply dark theme
         apply_dark_theme(self.parent() if self.parent() else self)
+        
+        # Create menu bar
+        self.create_menu_bar()
         
         # Central widget
         central = QWidget()
@@ -150,13 +154,9 @@ class MainWindow(QMainWindow):
         layout.addSpacing(8)
         
         # Overlay controls
-        overlay_btn = SidebarButton("Show Overlay")
-        overlay_btn.clicked.connect(self.toggle_overlay)
-        layout.addWidget(overlay_btn)
-        
-        calibrate_btn = SidebarButton("Calibrate")
-        calibrate_btn.clicked.connect(self.start_calibration)
-        layout.addWidget(calibrate_btn)
+        self.overlay_btn = SidebarButton("Show Overlay")
+        self.overlay_btn.clicked.connect(self.toggle_overlay)
+        layout.addWidget(self.overlay_btn)
         
         # Status label
         self.status_label = QLabel("Ready")
@@ -164,6 +164,19 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.status_label)
         
         return sidebar
+    
+    def create_menu_bar(self):
+        """Create the application menu bar."""
+        menubar = self.menuBar()
+        
+        # Settings menu
+        settings_menu = menubar.addMenu("Settings")
+        
+        # Calibrate Stash action
+        calibrate_action = QAction("Calibrate Stash Grid...", self)
+        calibrate_action.setStatusTip("Calibrate the stash overlay position")
+        calibrate_action.triggered.connect(self.start_calibration)
+        settings_menu.addAction(calibrate_action)
     
     def load_tools(self):
         """Load and initialize tool modules."""
@@ -224,6 +237,7 @@ class MainWindow(QMainWindow):
         """Handle overlay updates from tools."""
         if highlights:
             calibrated_is_quad = self.config.get("overlay", {}).get("is_quad_calibrated", False)
+            self.overlay.clear_calibration_preview()  # Clear preview when showing real highlights
             self.overlay.set_highlights_from_items(
                 highlights, 
                 self.mapper, 
@@ -231,16 +245,31 @@ class MainWindow(QMainWindow):
                 calibrated_is_quad
             )
             self.overlay.show()
+            self.overlay_btn.setChecked(True)
         else:
             self.overlay.set_highlights([])
+            self.overlay.clear_calibration_preview()
             self.overlay.hide()
+            self.overlay_btn.setChecked(False)
     
     def toggle_overlay(self):
         """Toggle overlay visibility."""
         if self.overlay.isVisible():
             self.overlay.hide()
+            self.overlay.clear_calibration_preview()
+            self.overlay_btn.setChecked(False)
         else:
+            # Show calibration preview corners when no highlights are active
+            overlay_config = self.config.get("overlay", {})
+            is_quad = overlay_config.get("is_quad_calibrated", False)
+            self.overlay.set_calibration_preview(
+                self.mapper.offset_x,
+                self.mapper.offset_y,
+                self.mapper.cell_size,
+                is_quad
+            )
             self.overlay.show()
+            self.overlay_btn.setChecked(True)
     
     def start_calibration(self):
         """Start overlay calibration."""
@@ -255,27 +284,45 @@ class MainWindow(QMainWindow):
         if self.calibration_step == 1:
             self.calibration_p1 = (x, y)
             self.calibration_step = 2
-            self.overlay.set_calibration_mode(True, "Click BOTTOM-RIGHT corner of stash grid")
+            self.overlay.set_calibration_mode(True, "Click BOTTOM-RIGHT corner of stash grid\n(Right-click if this is a QUAD tab)")
         elif self.calibration_step == 2:
             self.overlay.set_calibration_mode(False)
             self.overlay.calibration_clicked.disconnect(self.on_calibration_click)
             
             # Calculate calibration
             p2 = (x, y)
+            # Determine if quad tab based on which mouse button was used
+            # Note: Both left and right click come through, we check the event
+            # For now, ask user or detect based on cell size
+            # A quad tab has 24x24 grid, standard has 12x12
+            # If cell size is very small (<30), it's likely a quad tab
             ox, oy, cell = self.mapper.calculate_from_points(self.calibration_p1, p2, False)
+            
+            # Heuristic: if cell size is less than 30, assume quad tab calibration
+            is_quad = cell < 30
+            if is_quad:
+                # Recalculate with quad flag
+                ox, oy, cell = self.mapper.calculate_from_points(self.calibration_p1, p2, True)
             
             # Save to config
             self.config["overlay"]["x_offset"] = ox
             self.config["overlay"]["y_offset"] = oy
             self.config["overlay"]["cell_size"] = cell
+            self.config["overlay"]["is_quad_calibrated"] = is_quad
             
-            self.status_label.setText(f"Calibrated: ({ox}, {oy}), cell={cell}")
+            # Update mapper
+            self.mapper.offset_x = ox
+            self.mapper.offset_y = oy
+            self.mapper.cell_size = cell
+            
+            tab_type = "QUAD" if is_quad else "STANDARD"
+            self.status_label.setText(f"Calibrated: ({ox}, {oy}), cell={cell}, {tab_type}")
             self.calibration_step = 0
             
             QMessageBox.information(
                 self, 
                 "Calibration Complete",
-                f"Offset: ({ox}, {oy})\nCell Size: {cell}"
+                f"Offset: ({ox}, {oy})\nCell Size: {cell}\nTab Type: {tab_type}"
             )
     
     def save_config(self):

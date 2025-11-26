@@ -1,64 +1,162 @@
 # POE Toolkit
 
-A unified Path of Exile helper application combining multiple tools into a single, extensible interface.
+A unified Path of Exile helper application combining multiple tools into a single, modern interface.
 
-## Features
+![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
+![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)
+![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-- **Ultimatum Helper**: Scan stash tabs for profitable Inscribed Ultimatums with poe.ninja pricing
-- **League Vision**: OCR-based screen scanning for Map Safety, Syndicate, Altars, Expedition, and more
-- **Trade Sniper**: Control panel for automated live search monitoring
+---
 
-## Architecture
+## ✨ Features
 
-This project uses a modular plugin architecture where each tool is a self-contained module:
+### 🎰 Ultimatum Helper
+Scan your stash tabs for profitable Inscribed Ultimatums with real-time poe.ninja pricing.
+- Automatic profit calculation
+- Configurable filters (encounter types, rewards, monster life tiers)
+- Visual overlay highlighting profitable items in your stash
+
+### 👁️ League Vision
+OCR-based screen scanning for various league mechanics:
+- **Map Safety Check** - Detect dangerous map mods
+- **Syndicate Board** - Track member positions and goals
+- **Eldritch Altars** - Highlight valuable altar rewards
+- **Expedition** - Warn about dangerous remnant mods
+- **Ritual/Essence** - Detect valuable encounters
+
+### 🎯 Trade Sniper
+Automated live search monitoring with browser integration:
+- Connects to your existing Brave browser session
+- Auto-clicks "Travel to Hideout" on new listings
+- Supports multiple live search tabs simultaneously
+- Pause/resume functionality
+
+---
+
+## 📁 Project Structure
 
 ```
 poe-toolkit/
 ├── src/
 │   ├── main.py                 # Application entry point
-│   ├── api/                    # POE API client, authentication
-│   ├── core/                   # Pricing, parsing, shared logic
-│   ├── services/               # Background services (zone monitor, price cache)
+│   ├── api/                    # POE API client
+│   ├── core/                   # Pricing, parsing, filters
+│   ├── services/               # Background services
 │   ├── ui/
-│   │   ├── main_window.py      # Main application shell with sidebar
-│   │   ├── overlay.py          # Unified overlay system
+│   │   ├── main_window.py      # Main application shell
+│   │   ├── overlay.py          # Transparent overlay system
 │   │   └── components/         # Reusable UI widgets
 │   ├── tools/                  # Tool modules (plugins)
-│   │   ├── base_tool.py        # Base class for tools
 │   │   ├── ultimatum/          # Ultimatum helper
 │   │   ├── league_vision/      # OCR vision tool
-│   │   └── trade_sniper/       # Trade automation control
+│   │   └── trade_sniper/       # Trade automation
 │   └── utils/                  # Config, logging, helpers
-├── trade_service/              # Node.js trade automation service
-├── config/                     # Configuration files
-└── tests/                      # Unit tests
+├── trade_service/              # Node.js trade service
+├── config/
+│   ├── config.json             # Shareable settings (presets, keywords)
+│   ├── user_config.json        # Your PC-specific settings (gitignored)
+│   └── user_config.template.json  # Template for new users
+└── requirements.txt
 ```
 
-## Installation
+---
 
-1. **Python 3.10+** required
-2. Install dependencies:
+## 🚀 Installation
+
+### Prerequisites
+- **Python 3.10+**
+- **Node.js 18+** (for Trade Sniper)
+- **Tesseract OCR** (for League Vision) - [Download](https://github.com/UB-Mannheim/tesseract/wiki)
+- **Brave Browser** (for Trade Sniper)
+
+### Setup
+
+1. **Clone the repository**
+   ```powershell
+   git clone https://github.com/jjones18/poe-toolkit.git
+   cd poe-toolkit
+   ```
+
+2. **Install Python dependencies**
    ```powershell
    pip install -r requirements.txt
    ```
-3. For League Vision OCR features, Tesseract must be installed
-4. For Trade Sniper, Node.js 18+ is required
 
-## Usage
+3. **Create your user config**
+   ```powershell
+   copy config\user_config.template.json config\user_config.json
+   ```
+
+4. **Edit `config/user_config.json`** with your settings:
+   - `session_id` - Your POESESSID cookie from pathofexile.com
+   - `account_name` - Your PoE account name
+   - `league` - Current league name
+   - `client_log_path` - Path to your PoE Client.txt log file
+
+5. **For Trade Sniper** - Install Node.js dependencies:
+   ```powershell
+   cd trade_service
+   npm install
+   cd ..
+   ```
+
+---
+
+## 💻 Usage
 
 ```powershell
 python src/main.py
 ```
 
-## Source Projects
+### First-Time Setup
 
-This toolkit consolidates functionality from:
-- [poe-stash-merchant-helper](../poe-stash-merchant-helper) - Ultimatum stash scanning
-- [poe-league-helper](../poe-league-helper) - OCR vision tool
-- [poe-trade-automation](../poe-trade-automation) - Trade live search automation
+1. **Calibrate Stash Overlay**: Settings menu → "Calibrate Stash"
+   - Click the top-left corner of your stash grid
+   - Click the bottom-right corner
+   
+2. **Configure Filters**: Use the "Configure Filters" button in Ultimatum tab
 
-## Development
+3. **Trade Sniper Setup**:
+   - Click "Launch Brave (Debug Mode)"
+   - Login to pathofexile.com/trade
+   - Open your live search tabs
+   - Click "Start Service"
 
-Each tool module follows the `BaseTool` interface defined in `src/tools/base_tool.py`.
-To add a new tool, create a new folder under `src/tools/` and implement the required interface.
+---
 
+## ⚙️ Configuration
+
+Settings are split into two files:
+
+| File | Purpose | Git Status |
+|------|---------|------------|
+| `config.json` | Shareable presets, keywords, thresholds | ✅ Tracked |
+| `user_config.json` | Personal settings (credentials, paths, calibration) | ❌ Gitignored |
+
+Your personal settings stay private while filter presets can be shared.
+
+---
+
+## 🛠️ Development
+
+Each tool follows the `BaseTool` interface in `src/tools/base_tool.py`.
+
+To add a new tool:
+1. Create a folder under `src/tools/`
+2. Implement the `BaseTool` interface
+3. Register it in `main_window.py`
+
+---
+
+## 📜 License
+
+MIT License - See [LICENSE](LICENSE) for details.
+
+---
+
+## 🙏 Credits
+
+This toolkit consolidates and improves upon:
+- Ultimatum stash scanning logic
+- OCR-based league mechanic detection
+- Trade live search automation

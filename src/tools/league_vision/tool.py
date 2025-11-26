@@ -91,7 +91,26 @@ class LeagueVisionWidget(QWidget):
         self.chk_expedition.setChecked(self.vision_config.get("expedition", {}).get("enabled", True))
         features_layout.addWidget(self.chk_expedition)
         
+        self.chk_syndicate = QCheckBox("Syndicate Member Guidance")
+        self.chk_syndicate.setChecked(len(self.vision_config.get("syndicate_goals", {})) > 0)
+        features_layout.addWidget(self.chk_syndicate)
+        
         layout.addWidget(features_group)
+        
+        # Debug Group
+        debug_group = QGroupBox("Debug")
+        debug_layout = QVBoxLayout(debug_group)
+        
+        self.chk_debug = QCheckBox("Enable Debug Mode (logs OCR output to debug.log)")
+        self.chk_debug.setChecked(self.vision_config.get("debug_mode", False))
+        self.chk_debug.stateChanged.connect(self.on_debug_toggled)
+        debug_layout.addWidget(self.chk_debug)
+        
+        self.ocr_preview_btn = QPushButton("Test OCR on Current Screen")
+        self.ocr_preview_btn.clicked.connect(self.test_ocr)
+        debug_layout.addWidget(self.ocr_preview_btn)
+        
+        layout.addWidget(debug_group)
         
         # Controls
         controls_layout = QHBoxLayout()
@@ -105,6 +124,16 @@ class LeagueVisionWidget(QWidget):
         self.stop_btn.setEnabled(False)
         self.stop_btn.clicked.connect(self.stop_scanner)
         controls_layout.addWidget(self.stop_btn)
+        
+        self.clear_blocker_btn = QPushButton("Clear Blocker")
+        self.clear_blocker_btn.setStyleSheet("background-color: #7a2a2a;")
+        self.clear_blocker_btn.clicked.connect(self.clear_blocker)
+        controls_layout.addWidget(self.clear_blocker_btn)
+        
+        self.toggle_mode_btn = QPushButton("Toggle Mode")
+        self.toggle_mode_btn.setToolTip("Force switch between Mouse and Center scan mode")
+        self.toggle_mode_btn.clicked.connect(self.toggle_scan_mode)
+        controls_layout.addWidget(self.toggle_mode_btn)
         
         layout.addLayout(controls_layout)
         
@@ -197,6 +226,72 @@ class LeagueVisionWidget(QWidget):
             QMessageBox.information(self, "Calibration Complete", 
                                   f"Button position saved!\nRect: {rect}")
     
+    def on_debug_toggled(self, state):
+        """Handle debug checkbox toggle."""
+        enabled = state == 2  # Qt.Checked
+        self.vision_config["debug_mode"] = enabled
+        self.log(f"Debug mode {'enabled' if enabled else 'disabled'}")
+        if enabled:
+            self.log("OCR output will be logged to debug.log and shown in log area")
+    
+    def test_ocr(self):
+        """Perform a single OCR test and show results."""
+        import cv2
+        import pytesseract
+        from tools.league_vision.vision_core import VisionCore
+        
+        tesseract_path = self.vision_config.get("tesseract_path", "C:/Program Files/Tesseract-OCR/tesseract.exe")
+        pytesseract.pytesseract.tesseract_cmd = tesseract_path
+        
+        vision = VisionCore()
+        rect = vision.get_window_rect()
+        
+        if not rect:
+            self.log("ERROR: Could not find Path of Exile window")
+            return
+        
+        self.log(f"Window found: {rect}")
+        
+        # Capture center region
+        region = {
+            "top": int(rect["top"] + (rect["height"] * 0.1)),
+            "left": int(rect["left"] + (rect["width"] * 0.2)),
+            "width": int(rect["width"] * 0.6),
+            "height": int(rect["height"] * 0.8)
+        }
+        
+        img = vision.capture_region(region)
+        if img is None:
+            self.log("ERROR: Failed to capture screen")
+            return
+        
+        self.log(f"Captured region: {region}")
+        
+        # Process OCR
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        thresh_val = self.vision_config.get("ocr_threshold", 70)
+        _, thresh = cv2.threshold(gray, thresh_val, 255, cv2.THRESH_BINARY)
+        
+        try:
+            text = pytesseract.image_to_string(thresh)
+            self.log("=== OCR RESULT ===")
+            self.log(text[:1000] if len(text) > 1000 else text)
+            self.log("=== END OCR ===")
+            
+            # Check for keywords
+            bad_mods = self.vision_config.get("map_check", {}).get("bad_mods", [])
+            for mod in bad_mods:
+                if mod.lower() in text.lower():
+                    self.log(f"FOUND BAD MOD: {mod}")
+            
+            contexts = self.vision_config.get("map_check", {}).get("required_context", [])
+            for ctx in contexts:
+                if ctx.lower() in text.lower():
+                    self.log(f"FOUND CONTEXT: {ctx}")
+                    
+        except Exception as e:
+            self.log(f"OCR Error: {e}")
+
     def get_scanner_config(self):
         """Build scanner config from current settings."""
         config = self.vision_config.copy()
@@ -222,6 +317,10 @@ class LeagueVisionWidget(QWidget):
             config["expedition"] = {}
         config["expedition"]["enabled"] = self.chk_expedition.isChecked()
         
+        # Syndicate - if disabled, clear the goals so scanner skips it
+        if not self.chk_syndicate.isChecked():
+            config["syndicate_goals"] = {}
+        
         return config
     
     def toggle_scanner(self):
@@ -234,10 +333,25 @@ class LeagueVisionWidget(QWidget):
         self.scanner.result_signal.connect(self.on_scan_result)
         self.scanner.status_signal.connect(self.log)
         
+        # Connect debug signals to overlay
+        if self.overlay:
+            if config.get("debug_mode"):
+                self.scanner.debug_rect_signal.connect(self.on_debug_rect)
+                self.scanner.debug_box_signal.connect(self.on_debug_box)
+                self.scanner.clear_debug_signal.connect(self.on_clear_debug)
+        
+        # Connect stop hotkey signal
+        self.scanner.stop_requested_signal.connect(self.on_scanner_stop_requested)
+        
         if self.zone_monitor:
             self.scanner.set_zone(self.zone_monitor.get_current_zone())
         
         self.scanner.start()
+        
+        # Show overlay for debug visualization
+        if self.overlay and config.get("debug_mode"):
+            self.overlay.show()
+            self.log("Debug overlay visible - showing scan region outline")
         
         self.start_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
@@ -250,9 +364,46 @@ class LeagueVisionWidget(QWidget):
             self.scanner.wait(2000)
             self.scanner = None
         
+        # Clear debug rect
+        if self.overlay:
+            self.overlay.clear_debug()
+        
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
         self.log("Scanner stopped.")
+    
+    def on_debug_rect(self, x: int, y: int, w: int, h: int, color: str):
+        """Handle debug rect from scanner."""
+        if self.overlay:
+            self.overlay.set_debug_rect(x, y, w, h, color)
+    
+    def on_debug_box(self, x: int, y: int, w: int, h: int, color: str):
+        """Handle debug box from scanner (keyword highlight)."""
+        if self.overlay:
+            self.overlay.add_debug_box(x, y, w, h, color)
+    
+    def on_clear_debug(self):
+        """Handle clear debug signal from scanner."""
+        if self.overlay:
+            self.overlay.clear_debug()
+    
+    def on_scanner_stop_requested(self):
+        """Handle stop hotkey from scanner."""
+        self.stop_scanner()
+    
+    def clear_blocker(self):
+        """Manually clear any active blocker overlay."""
+        if self.overlay:
+            self.overlay.clear_blockers()
+            self.log("Blocker cleared.")
+    
+    def toggle_scan_mode(self):
+        """Toggle between mouse and center scan mode."""
+        if self.scanner and self.scanner.isRunning():
+            new_mode = self.scanner.toggle_mode()
+            self.log(f"Manual override: {new_mode.upper()} mode")
+        else:
+            self.log("Scanner not running - start scanner first")
     
     def on_scan_result(self, result: ScanResult):
         """Handle scan result."""

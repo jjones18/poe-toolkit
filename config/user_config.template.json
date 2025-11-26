@@ -1,0 +1,45 @@
+{
+    "_comment": "Copy this file to user_config.json and fill in your settings",
+    "_note": "user_config.json is gitignored and will not be uploaded",
+    
+    "credentials": {
+        "session_id": "YOUR_POESESSID_HERE",
+        "account_name": "YOUR_ACCOUNT_NAME",
+        "league": "Settlers"
+    },
+    "overlay": {
+        "x_offset": 18,
+        "y_offset": 160,
+        "cell_size": 53,
+        "is_quad_calibrated": false
+    },
+    "window": {
+        "x": 100,
+        "y": 100,
+        "width": 1100,
+        "height": 800
+    },
+    "league_vision": {
+        "client_log_path": "C:/Path/To/Your/PoE/logs/Client.txt",
+        "tesseract_path": "C:/Program Files/Tesseract-OCR/tesseract.exe",
+        "map_device_button": {
+            "x": 0,
+            "y": 0,
+            "w": 0,
+            "h": 0
+        },
+        "resolution_override": {
+            "enabled": false,
+            "width": 1920,
+            "height": 1080
+        },
+        "scan_region_hover": {
+            "width": 700,
+            "height": 800,
+            "x_offset": -600,
+            "x_offset_right": -100,
+            "y_offset": -800
+        }
+    }
+}
+

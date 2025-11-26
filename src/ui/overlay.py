@@ -33,24 +33,53 @@ class BlockerWindow(QMainWindow):
             Qt.WindowType.WindowStaysOnTopHint |
             Qt.WindowType.Tool
         )
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
         self.setGeometry(x, y, w, h)
         
-        # Red semi-transparent background
-        self.setStyleSheet("background-color: rgba(200, 0, 0, 150);")
+        # Red semi-transparent background - use setWindowOpacity for proper semi-transparency
+        self.setWindowOpacity(0.6)
+        self.setStyleSheet("background-color: red;")
         
-        # Create label
-        label = QLabel(message, self)
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("color: white; font-weight: bold; font-size: 14px;")
-        label.setGeometry(0, 0, w, h)
+        # Create central widget to receive mouse events
+        central = QWidget(self)
+        central.setStyleSheet("background-color: red;")
+        self.setCentralWidget(central)
+        
+        # Warning message window (separate, centered on screen) - CLICK-THROUGH
+        self.warning_window = QMainWindow()
+        self.warning_window.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool |
+            Qt.WindowType.WindowTransparentForInput  # Click-through!
+        )
+        self.warning_window.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.warning_window.setStyleSheet("background-color: rgba(200, 0, 0, 200);")
+        
+        screen = QApplication.primaryScreen().geometry()
+        self.warning_window.setGeometry(
+            screen.width() // 2 - 200,
+            screen.height() // 3,
+            400, 80
+        )
+        
+        warning_label = QLabel("UNSAFE MAP DETECTED\nShift+Click Red Box to Dismiss", self.warning_window)
+        warning_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        warning_label.setStyleSheet("color: white; font-weight: bold; font-size: 16px; background-color: red;")
+        warning_label.setGeometry(0, 0, 400, 80)
+        self.warning_window.show()
     
     def mousePressEvent(self, event):
         """Shift+Click to dismiss."""
         if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
             self.dismissed.emit()
             self.close()
+    
+    def closeEvent(self, event):
+        """Also close the warning window."""
+        if hasattr(self, 'warning_window') and self.warning_window:
+            self.warning_window.close()
+        super().closeEvent(event)
 
 
 class OverlayWindow(QMainWindow):
@@ -96,6 +125,16 @@ class OverlayWindow(QMainWindow):
         
         # Blockers
         self.blockers = []
+        
+        # Debug scan region
+        self.debug_rect = None
+        self.debug_color = QColor(255, 255, 0, 200)  # Yellow
+        
+        # Debug keyword boxes (list of (QRect, QColor))
+        self.debug_boxes = []
+        
+        # Calibration preview (corner markers showing stash grid position)
+        self.calibration_preview = None  # Will be dict with corner rects
         
         # Global click listener
         self.listener = None
@@ -229,6 +268,10 @@ class OverlayWindow(QMainWindow):
         if rect.get('w', 0) <= 0 or rect.get('h', 0) <= 0:
             return
         
+        # Don't create duplicate blockers - if one already exists, skip
+        if self.blockers:
+            return
+        
         blocker = BlockerWindow(rect, message)
         blocker.dismissed.connect(lambda: self.remove_blocker(blocker))
         blocker.show()
@@ -245,6 +288,68 @@ class OverlayWindow(QMainWindow):
         for blocker in self.blockers:
             blocker.close()
         self.blockers.clear()
+    
+    def set_debug_rect(self, x: int, y: int, w: int, h: int, color: str = "yellow"):
+        """Set the debug scan region rectangle."""
+        self.debug_rect = QRect(x, y, w, h)
+        if color == "yellow":
+            self.debug_color = QColor(255, 255, 0, 200)
+        elif color == "cyan":
+            self.debug_color = QColor(0, 255, 255, 200)
+        elif color == "red":
+            self.debug_color = QColor(255, 0, 0, 200)
+        else:
+            self.debug_color = QColor(255, 255, 0, 200)
+        self.update()
+    
+    def clear_debug(self):
+        """Clear the debug scan region rectangle and all debug boxes."""
+        self.debug_rect = None
+        self.debug_boxes = []
+        self.update()
+    
+    def add_debug_box(self, x: int, y: int, w: int, h: int, color: str = "red"):
+        """Add a debug box (for highlighting found keywords)."""
+        rect = QRect(x, y, w, h)
+        if color == "red":
+            qcolor = QColor(255, 0, 0, 200)
+        elif color == "blue":
+            qcolor = QColor(0, 100, 255, 200)
+        elif color == "purple":
+            qcolor = QColor(150, 0, 255, 200)
+        elif color == "green":
+            qcolor = QColor(0, 255, 0, 200)
+        else:
+            qcolor = QColor(255, 0, 0, 200)
+        self.debug_boxes.append((rect, qcolor))
+        self.update()
+    
+    def set_calibration_preview(self, offset_x: int, offset_y: int, cell_size: int, is_quad: bool = False):
+        """
+        Set the calibration preview showing the stash grid boundaries.
+        Shows 4 corner markers to indicate where the overlay is calibrated.
+        """
+        grid_size = 24 if is_quad else 12
+        total_size = grid_size * cell_size
+        corner_size = cell_size  # Each corner marker is 1 cell
+        
+        # Four corners of the stash grid
+        self.calibration_preview = {
+            'top_left': QRect(offset_x, offset_y, corner_size, corner_size),
+            'top_right': QRect(offset_x + total_size - corner_size, offset_y, corner_size, corner_size),
+            'bottom_left': QRect(offset_x, offset_y + total_size - corner_size, corner_size, corner_size),
+            'bottom_right': QRect(offset_x + total_size - corner_size, offset_y + total_size - corner_size, corner_size, corner_size),
+            'grid_size': grid_size,
+            'total_size': total_size,
+            'offset_x': offset_x,
+            'offset_y': offset_y
+        }
+        self.update()
+    
+    def clear_calibration_preview(self):
+        """Clear the calibration preview."""
+        self.calibration_preview = None
+        self.update()
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -275,6 +380,51 @@ class OverlayWindow(QMainWindow):
                     painter.setPen(pen_green)
                     painter.setBrush(brush_green)
                 painter.drawRect(rect)
+        
+        # Draw debug scan region
+        if self.debug_rect:
+            pen_debug = QPen(self.debug_color)
+            pen_debug.setWidth(2)
+            painter.setPen(pen_debug)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRect(self.debug_rect)
+        
+        # Draw debug keyword boxes
+        for rect, color in self.debug_boxes:
+            pen_box = QPen(color)
+            pen_box.setWidth(2)
+            painter.setPen(pen_box)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRect(rect)
+        
+        # Draw calibration preview (corner markers)
+        if self.calibration_preview and not self.highlights:
+            pen_corner = QPen(QColor(0, 255, 0, 200))
+            pen_corner.setWidth(3)
+            brush_corner = QColor(0, 255, 0, 30)
+            
+            painter.setPen(pen_corner)
+            painter.setBrush(brush_corner)
+            
+            # Draw the 4 corner boxes
+            painter.drawRect(self.calibration_preview['top_left'])
+            painter.drawRect(self.calibration_preview['top_right'])
+            painter.drawRect(self.calibration_preview['bottom_left'])
+            painter.drawRect(self.calibration_preview['bottom_right'])
+            
+            # Draw connecting lines (dashed) to show the full grid boundary
+            pen_line = QPen(QColor(0, 255, 0, 100))
+            pen_line.setWidth(1)
+            pen_line.setStyle(Qt.PenStyle.DashLine)
+            painter.setPen(pen_line)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            
+            ox = self.calibration_preview['offset_x']
+            oy = self.calibration_preview['offset_y']
+            ts = self.calibration_preview['total_size']
+            
+            # Draw full grid outline
+            painter.drawRect(QRect(ox, oy, ts, ts))
         
         # Draw calibration message
         if self.calibration_mode and self.calibration_msg:

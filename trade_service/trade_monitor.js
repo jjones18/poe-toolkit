@@ -30,6 +30,10 @@ async function connectToBrowser() {
 }
 
 async function main() {
+    // Check for command line arguments
+    const args = process.argv.slice(2);
+    const autoResumeEnabled = args.includes('--auto-resume');
+    
     console.log('🎮 PoE Trade Auto - Connect to Existing Browser\n');
     console.log('Attempting to connect to your Brave browser on port 9222...\n');
 
@@ -44,19 +48,6 @@ async function main() {
 
     console.log('✅ Connected to your Brave browser!\n');
 
-    // Ask user about auto-resume preference
-    console.log('='.repeat(60));
-    console.log('⏸️  AUTO-RESUME SETTING');
-    console.log('='.repeat(60));
-    console.log('After clicking, the script pauses. Choose resume mode:\n');
-    console.log('1. Manual only - Wait for Enter key (default)');
-    console.log('2. Auto-resume - Resume after 60 seconds automatically\n');
-    console.log('Enter your choice (1 or 2, default: 1): ');
-    console.log('='.repeat(60) + '\n');
-
-    const autoResumeChoice = await getUserChoice();
-    const autoResumeEnabled = autoResumeChoice === '2';
-    
     if (autoResumeEnabled) {
         console.log('✅ Auto-resume enabled - Will resume after 60s\n');
     } else {
@@ -120,18 +111,6 @@ async function main() {
     await startMonitoring(browser, autoResumeEnabled);
 }
 
-async function getUserChoice() {
-    return new Promise((resolve) => {
-        process.stdin.once('data', (data) => {
-            const choice = data.toString().trim();
-            if (choice === '2') {
-                resolve('2');
-            } else {
-                resolve('1'); // Default to manual
-            }
-        });
-    });
-}
 
 async function startMonitoring(browser, autoResumeEnabled) {
     try {
@@ -166,16 +145,10 @@ async function startMonitoring(browser, autoResumeEnabled) {
         console.log('');
 
         console.log('='.repeat(60));
-        console.log('⚠️  MANUAL STEPS:');
+        console.log('✅ STARTING AUTOMATION');
         console.log('='.repeat(60));
-        console.log('  1. You are logged into PoE');
-        console.log('  2. All live search tabs are ready');
-        console.log(`  3. Monitoring ${tradePages.length} tab(s) simultaneously`);
-        console.log('  4. Path of Exile game is RUNNING');
-        console.log('  5. Press ENTER to start automation');
+        console.log(`  Monitoring ${tradePages.length} tab(s) simultaneously`);
         console.log('='.repeat(60) + '\n');
-
-        await waitForEnter();
 
         console.log('✅ Starting multi-tab automation...\n');
 

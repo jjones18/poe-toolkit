@@ -16,6 +16,7 @@ class FilterConfigDialog(QDialog):
         self.setWindowTitle("Filter Configuration")
         self.resize(600, 500)
         
+        # found_data: { 'types': set(), 'rewards': set((name, count, sac_name, sac_count)), 'tiers': set() }
         self.found_data = found_data or {}
         self.config = current_config or {}
         self.price_fetcher = price_fetcher
@@ -33,11 +34,12 @@ class FilterConfigDialog(QDialog):
         
         self.tabs = QTabWidget()
         
+        # Get categories from price fetcher
         categories = {}
         if price_fetcher:
             categories = price_fetcher.categories
         
-        # Encounter Types
+        # 1. Encounter Types
         self.type_tab = self.create_list_tab(
             "Encounter Types", 
             sorted(list(self.found_data.get('types', []))),
@@ -46,24 +48,43 @@ class FilterConfigDialog(QDialog):
         )
         self.tabs.addTab(self.type_tab, "Encounter Types")
         
-        # Categorize Rewards
+        # Categorize Rewards - rewards are tuples of (reward_name, reward_count, sacrifice_name, sacrifice_count)
         currency_list = []
         div_list = []
         unique_list = []
         
-        all_rewards = sorted(list(self.found_data.get('rewards', [])))
+        all_rewards = self.found_data.get('rewards', set())
         
-        for r in all_rewards:
-            cat = categories.get(r, '')
-            if cat in ['Currency', 'Fragment', 'Invitation']:
-                currency_list.append(r)
-            elif cat == 'DivinationCard':
-                div_list.append(r)
+        for reward_tuple in all_rewards:
+            # Handle different tuple formats for backwards compatibility
+            if isinstance(reward_tuple, tuple):
+                if len(reward_tuple) == 4:
+                    reward_name, reward_count, sacrifice_name, sacrifice_count = reward_tuple
+                elif len(reward_tuple) == 2:
+                    reward_name, reward_count = reward_tuple
+                    sacrifice_name, sacrifice_count = None, 0
+                else:
+                    reward_name = reward_tuple[0] if reward_tuple else 'Unknown'
+                    reward_count, sacrifice_name, sacrifice_count = 1, None, 0
             else:
-                unique_list.append(r)
+                reward_name = reward_tuple
+                reward_count, sacrifice_name, sacrifice_count = 1, None, 0
+            
+            cat = categories.get(reward_name, '')
+            if cat in ['Currency', 'Fragment', 'Invitation']:
+                currency_list.append((reward_name, reward_count, sacrifice_name, sacrifice_count))
+            elif cat == 'DivinationCard':
+                div_list.append((reward_name, reward_count, sacrifice_name, sacrifice_count))
+            else:
+                unique_list.append((reward_name, reward_count, sacrifice_name, sacrifice_count))
+        
+        # Sort by name then by count
+        currency_list.sort(key=lambda x: (x[0], x[1]))
+        div_list.sort(key=lambda x: (x[0], x[1]))
+        unique_list.sort(key=lambda x: (x[0], x[1]))
 
-        # Currency Tab
-        self.curr_tab = self.create_list_tab(
+        # 2. Currency Tab - show with quantities and profit
+        self.curr_tab = self.create_reward_list_tab(
             "Currency", 
             currency_list,
             self.excluded_rewards,
@@ -72,8 +93,8 @@ class FilterConfigDialog(QDialog):
         )
         self.tabs.addTab(self.curr_tab, "Currency")
 
-        # Div Cards Tab
-        self.div_tab = self.create_list_tab(
+        # 3. Div Cards Tab
+        self.div_tab = self.create_reward_list_tab(
             "Div Cards", 
             div_list,
             self.excluded_rewards,
@@ -82,19 +103,20 @@ class FilterConfigDialog(QDialog):
         )
         self.tabs.addTab(self.div_tab, "Div Cards")
 
-        # Uniques Tab
-        self.unique_tab = self.create_list_tab(
+        # 4. Uniques/Misc Tab - color code profit
+        self.unique_tab = self.create_reward_list_tab(
             "Uniques", 
             unique_list,
             self.excluded_rewards,
             self.included_rewards,
-            self.price_fetcher
+            self.price_fetcher,
+            color_code_profit=True
         )
         self.tabs.addTab(self.unique_tab, "Uniques")
         
-        # Monster Life
+        # 5. Monster Life
         tiers = sorted(list(self.found_data.get('tiers', [])), 
-                      key=lambda x: int(x) if isinstance(x, int) else 0)
+                      key=lambda x: int(x) if isinstance(x, int) else (int(x) if str(x).isdigit() else 0))
         tier_strs = [str(t) for t in tiers]
         
         self.life_tab = self.create_list_tab(
@@ -119,7 +141,8 @@ class FilterConfigDialog(QDialog):
         
         layout.addLayout(btn_layout)
 
-    def create_list_tab(self, label, items, excluded_set, included_set, price_source=None):
+    def create_list_tab(self, label, items, excluded_set, included_set):
+        """Create a simple list tab for encounter types and monster life (no prices)."""
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
@@ -138,7 +161,7 @@ class FilterConfigDialog(QDialog):
             chk_exclude = QCheckBox("Exclude")
             chk_exclude.setChecked(item_text in excluded_set)
             
-            chk_include = QCheckBox("Require")
+            chk_include = QCheckBox("Include")
             chk_include.setChecked(item_text in included_set)
             
             chk_exclude.toggled.connect(
@@ -146,18 +169,92 @@ class FilterConfigDialog(QDialog):
             chk_include.toggled.connect(
                 lambda c, t=item_text, o=chk_exclude: self.on_check(t, c, o, "include", label))
             
-            lbl = QLabel(item_text)
+            lbl = QLabel(str(item_text))
             lbl.setWordWrap(True)
             row_layout.addWidget(lbl, stretch=1) 
             
+            row_layout.addWidget(chk_exclude)
+            row_layout.addWidget(chk_include)
+            
+            item.setSizeHint(row_widget.sizeHint())
+            list_widget.setItemWidget(item, row_widget)
+            
+        layout.addWidget(list_widget)
+        return widget
+
+    def create_reward_list_tab(self, label, reward_tuples, excluded_set, included_set, 
+                                price_source=None, color_code_profit=False):
+        """
+        Create a reward list tab that shows rewards with quantities and PROFIT values.
+        reward_tuples: list of (reward_name, reward_count, sacrifice_name, sacrifice_count) tuples
+        Filtering is done by reward NAME only (not quantity).
+        color_code_profit: if True, show green for positive and red for negative profit
+        """
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        layout.addWidget(QLabel(f"Available {label}:"))
+        
+        list_widget = QListWidget()
+        list_widget.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        
+        for reward_name, reward_count, sacrifice_name, sacrifice_count in reward_tuples:
+            item = QListWidgetItem(list_widget)
+            
+            row_widget = QWidget()
+            row_layout = QHBoxLayout(row_widget)
+            row_layout.setContentsMargins(2, 2, 2, 2)
+            
+            # Checkboxes filter by NAME only
+            chk_exclude = QCheckBox("Exclude")
+            chk_exclude.setChecked(reward_name in excluded_set)
+            
+            chk_include = QCheckBox("Include")
+            chk_include.setChecked(reward_name in included_set)
+            
+            chk_exclude.toggled.connect(
+                lambda c, t=reward_name, o=chk_include: self.on_check(t, c, o, "exclude", label))
+            chk_include.toggled.connect(
+                lambda c, t=reward_name, o=chk_exclude: self.on_check(t, c, o, "include", label))
+            
+            # Display: "Item Name x10" format
+            if reward_count > 1:
+                display_text = f"{reward_name} x{reward_count}"
+            else:
+                display_text = reward_name
+            
+            lbl = QLabel(display_text)
+            lbl.setWordWrap(True)
+            row_layout.addWidget(lbl, stretch=1) 
+            
+            # Profit Label - show PROFIT (reward_value - sacrifice_value)
             if price_source:
-                price_val = price_source.get_price(item_text)
-                if price_val > 0:
-                    price_lbl = QLabel(f"{price_val:.1f}c")
-                    price_lbl.setFixedWidth(60)
-                    price_lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-                    price_lbl.setStyleSheet("font-weight: bold;") 
-                    row_layout.addWidget(price_lbl)
+                reward_unit_price = price_source.get_price(reward_name)
+                reward_total = reward_unit_price * reward_count
+                
+                sacrifice_unit_price = price_source.get_price(sacrifice_name) if sacrifice_name else 0
+                sacrifice_total = sacrifice_unit_price * sacrifice_count
+                
+                profit = reward_total - sacrifice_total
+                
+                if color_code_profit:
+                    # Color code: green for profit, red for loss
+                    if profit >= 0:
+                        color = "#4CAF50"  # Green
+                        profit_text = f"+{profit:.1f}c"
+                    else:
+                        color = "#F44336"  # Red
+                        profit_text = f"{profit:.1f}c"
+                    style = f"font-weight: bold; color: {color};"
+                else:
+                    profit_text = f"{profit:.1f}c"
+                    style = "font-weight: bold;"
+                
+                price_lbl = QLabel(profit_text)
+                price_lbl.setFixedWidth(80)
+                price_lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                price_lbl.setStyleSheet(style)
+                row_layout.addWidget(price_lbl)
             
             row_layout.addWidget(chk_exclude)
             row_layout.addWidget(chk_include)
@@ -176,9 +273,10 @@ class FilterConfigDialog(QDialog):
             ex_set = self.excluded_types
             in_set = self.included_types
         elif category in ["Currency", "Div Cards", "Uniques"]:
+            # All reward tabs share the same sets
             ex_set = self.excluded_rewards
             in_set = self.included_rewards
-        else:
+        else:  # Monster Life %
             ex_set = self.excluded_tiers
             in_set = self.included_tiers
             
@@ -188,7 +286,7 @@ class FilterConfigDialog(QDialog):
                 in_set.discard(text)
             else:
                 ex_set.discard(text)
-        else:
+        else:  # include
             if checked:
                 in_set.add(text)
                 ex_set.discard(text)
@@ -201,7 +299,6 @@ class FilterConfigDialog(QDialog):
             "included_types": list(self.included_types),
             "excluded_rewards": list(self.excluded_rewards),
             "included_rewards": list(self.included_rewards),
-            "excluded_tiers": [int(x) for x in self.excluded_tiers if x.isdigit()],
-            "included_tiers": [int(x) for x in self.included_tiers if x.isdigit()]
+            "excluded_tiers": [int(x) for x in self.excluded_tiers if str(x).isdigit()],
+            "included_tiers": [int(x) for x in self.included_tiers if str(x).isdigit()]
         }
-

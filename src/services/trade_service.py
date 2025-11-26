@@ -6,7 +6,6 @@ Manages the Node.js trade sniper as a subprocess.
 import os
 import subprocess
 import threading
-import time
 from PyQt6.QtCore import QObject, pyqtSignal
 
 
@@ -19,9 +18,16 @@ class TradeService(QObject):
     status_changed = pyqtSignal(str)  # running, stopped, error
     log_output = pyqtSignal(str)
     
-    def __init__(self, service_dir: str = "trade_service"):
+    def __init__(self, service_dir: str = None):
         super().__init__()
-        self.service_dir = service_dir
+        # Get absolute path to trade_service directory
+        if service_dir is None:
+            # Default: trade_service folder relative to project root
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            self.service_dir = os.path.join(project_root, "trade_service")
+        else:
+            self.service_dir = os.path.abspath(service_dir)
+        
         self.process = None
         self.output_thread = None
         self._running = False
@@ -37,15 +43,15 @@ class TradeService(QObject):
     def check_dependencies(self) -> tuple:
         """Check if Node.js and npm are available."""
         try:
-            result = subprocess.run(["node", "--version"], capture_output=True, text=True)
+            result = subprocess.run("node --version", capture_output=True, text=True, shell=True)
             node_version = result.stdout.strip() if result.returncode == 0 else None
-        except FileNotFoundError:
+        except Exception:
             node_version = None
         
         try:
-            result = subprocess.run(["npm", "--version"], capture_output=True, text=True)
+            result = subprocess.run("npm --version", capture_output=True, text=True, shell=True)
             npm_version = result.stdout.strip() if result.returncode == 0 else None
-        except FileNotFoundError:
+        except Exception:
             npm_version = None
         
         return (node_version, npm_version)
@@ -60,10 +66,11 @@ class TradeService(QObject):
         
         try:
             result = subprocess.run(
-                ["npm", "install"],
+                "npm install",
                 cwd=self.service_dir,
                 capture_output=True,
-                text=True
+                text=True,
+                shell=True  # Use shell to access PATH
             )
             
             if result.returncode == 0:
@@ -95,15 +102,22 @@ class TradeService(QObject):
             return
         
         try:
-            # Start the Node.js process
+            # Build command with optional auto-resume flag
+            cmd = "node trade_monitor.js"
+            if auto_resume:
+                cmd += " --auto-resume"
+            
+            # Start the Node.js process with UTF-8 encoding for emoji support
             self.process = subprocess.Popen(
-                ["node", script_path],
+                cmd,
                 cwd=self.service_dir,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1
+                bufsize=1,
+                shell=True,  # Use shell to access PATH
+                encoding='utf-8',
+                errors='replace'  # Replace undecodable chars instead of crashing
             )
             
             self._running = True
@@ -113,14 +127,6 @@ class TradeService(QObject):
             # Start output reader thread
             self.output_thread = threading.Thread(target=self._read_output, daemon=True)
             self.output_thread.start()
-            
-            # Send auto-resume choice if applicable
-            if auto_resume:
-                time.sleep(0.5)
-                self.send_input("2\n")
-            else:
-                time.sleep(0.5)
-                self.send_input("1\n")
             
         except Exception as e:
             self.log_output.emit(f"Error starting service: {e}")
@@ -133,8 +139,18 @@ class TradeService(QObject):
             return
         
         try:
-            self.process.terminate()
-            self.process.wait(timeout=5)
+            # On Windows with shell=True, we need to kill the entire process tree
+            # Using taskkill to force kill the process and all children
+            import platform
+            if platform.system() == 'Windows':
+                subprocess.run(
+                    f'taskkill /F /T /PID {self.process.pid}',
+                    shell=True,
+                    capture_output=True
+                )
+            else:
+                self.process.terminate()
+                self.process.wait(timeout=5)
         except subprocess.TimeoutExpired:
             self.process.kill()
         except Exception as e:
@@ -163,11 +179,16 @@ class TradeService(QObject):
         """Background thread to read process output."""
         try:
             while self._running and self.process:
-                line = self.process.stdout.readline()
-                if line:
-                    self.log_output.emit(line.rstrip())
-                elif self.process.poll() is not None:
-                    break
+                try:
+                    line = self.process.stdout.readline()
+                    if line:
+                        self.log_output.emit(line.rstrip())
+                    elif self.process.poll() is not None:
+                        break
+                except UnicodeDecodeError as e:
+                    # Skip lines that can't be decoded
+                    self.log_output.emit(f"[decode error: {e}]")
+                    continue
         except Exception as e:
             self.log_output.emit(f"Output reader error: {e}")
         

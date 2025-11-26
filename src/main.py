@@ -17,7 +17,7 @@ from ui.theme import apply_dark_theme
 def main():
     print("Starting POE Toolkit...")
     
-    # Set high DPI scaling
+    # Set high DPI scaling for Qt
     os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
     
     app = QApplication(sys.argv)

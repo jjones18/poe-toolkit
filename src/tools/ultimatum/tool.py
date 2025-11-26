@@ -15,8 +15,10 @@ from api.client import PoEClient
 from core.valuation import NinjaPriceFetcher
 from core.parser import UltimatumParser
 from core.filters import (
-    FilteringRuleEngine, ValueRule, EncounterRule, 
-    RewardRule, MonsterLifeRule
+    FilteringRuleEngine, ValueRule, 
+    EncounterRule, EncounterIncludeOverride,
+    RewardRule, RewardIncludeOverride,
+    MonsterLifeRule, MonsterLifeIncludeOverride
 )
 from ui.components.stash_selector import StashTabSelector
 from ui.components.filter_dialog import FilterConfigDialog
@@ -58,23 +60,25 @@ class ScanWorker(QThread):
         min_profit = self.config.get("min_profit", 20)
         engine.add_rule(ValueRule(min_profit=min_profit))
         
-        if self.config.get("excluded_types") or self.config.get("included_types"):
-            engine.add_rule(EncounterRule(
-                excluded_types=self.config.get("excluded_types"),
-                included_types=self.config.get("included_types")
-            ))
+        # Exclusion rules (standard rules - all must pass)
+        if self.config.get("excluded_types"):
+            engine.add_rule(EncounterRule(excluded_types=self.config.get("excluded_types")))
 
-        if self.config.get("excluded_rewards") or self.config.get("included_rewards"):
-            engine.add_rule(RewardRule(
-                excluded_rewards=self.config.get("excluded_rewards"),
-                included_rewards=self.config.get("included_rewards")
-            ))
+        if self.config.get("excluded_rewards"):
+            engine.add_rule(RewardRule(excluded_rewards=self.config.get("excluded_rewards")))
             
-        if self.config.get("excluded_tiers") or self.config.get("included_tiers"):
-            engine.add_rule(MonsterLifeRule(
-                excluded_pcts=self.config.get("excluded_tiers"),
-                included_pcts=self.config.get("included_tiers")
-            ))
+        if self.config.get("excluded_tiers"):
+            engine.add_rule(MonsterLifeRule(excluded_pcts=self.config.get("excluded_tiers")))
+        
+        # Include overrides (if any match, item is highlighted regardless of other rules)
+        if self.config.get("included_types"):
+            engine.add_override(EncounterIncludeOverride(included_types=self.config.get("included_types")))
+
+        if self.config.get("included_rewards"):
+            engine.add_override(RewardIncludeOverride(included_rewards=self.config.get("included_rewards")))
+            
+        if self.config.get("included_tiers"):
+            engine.add_override(MonsterLifeIncludeOverride(included_pcts=self.config.get("included_tiers")))
 
         all_highlights = []
         all_parsed_items = []
@@ -110,7 +114,14 @@ class ScanWorker(QThread):
                 parsed = parser.parse_item(item)
                 if parsed:
                     found_stats['types'].add(parsed.get('type', 'Unknown'))
-                    found_stats['rewards'].add(parsed.get('reward', 'Unknown'))
+                    # Store reward as tuple: (reward_name, reward_count, sacrifice_name, sacrifice_count)
+                    reward_tuple = (
+                        parsed.get('reward', 'Unknown'),
+                        parsed.get('reward_count', 1),
+                        parsed.get('sacrifice', None),
+                        parsed.get('sacrifice_count', 1)
+                    )
+                    found_stats['rewards'].add(reward_tuple)
                     found_stats['tiers'].add(parsed.get('monster_life_pct', 0))
                     
                     all_parsed_items.append({
@@ -338,23 +349,25 @@ class UltimatumWidget(QWidget):
         min_profit = self.ultimatum_config.get("min_profit", 20)
         engine.add_rule(ValueRule(min_profit=min_profit))
         
-        if self.ultimatum_config.get("excluded_types") or self.ultimatum_config.get("included_types"):
-            engine.add_rule(EncounterRule(
-                excluded_types=self.ultimatum_config.get("excluded_types"),
-                included_types=self.ultimatum_config.get("included_types")
-            ))
+        # Exclusion rules (standard rules - all must pass)
+        if self.ultimatum_config.get("excluded_types"):
+            engine.add_rule(EncounterRule(excluded_types=self.ultimatum_config.get("excluded_types")))
 
-        if self.ultimatum_config.get("excluded_rewards") or self.ultimatum_config.get("included_rewards"):
-            engine.add_rule(RewardRule(
-                excluded_rewards=self.ultimatum_config.get("excluded_rewards"),
-                included_rewards=self.ultimatum_config.get("included_rewards")
-            ))
+        if self.ultimatum_config.get("excluded_rewards"):
+            engine.add_rule(RewardRule(excluded_rewards=self.ultimatum_config.get("excluded_rewards")))
             
-        if self.ultimatum_config.get("excluded_tiers") or self.ultimatum_config.get("included_tiers"):
-            engine.add_rule(MonsterLifeRule(
-                excluded_pcts=self.ultimatum_config.get("excluded_tiers"),
-                included_pcts=self.ultimatum_config.get("included_tiers")
-            ))
+        if self.ultimatum_config.get("excluded_tiers"):
+            engine.add_rule(MonsterLifeRule(excluded_pcts=self.ultimatum_config.get("excluded_tiers")))
+        
+        # Include overrides (if any match, item is highlighted regardless of other rules)
+        if self.ultimatum_config.get("included_types"):
+            engine.add_override(EncounterIncludeOverride(included_types=self.ultimatum_config.get("included_types")))
+
+        if self.ultimatum_config.get("included_rewards"):
+            engine.add_override(RewardIncludeOverride(included_rewards=self.ultimatum_config.get("included_rewards")))
+            
+        if self.ultimatum_config.get("included_tiers"):
+            engine.add_override(MonsterLifeIncludeOverride(included_pcts=self.ultimatum_config.get("included_tiers")))
 
         if not self.price_fetcher:
             self.price_fetcher = NinjaPriceFetcher(self.league_input.text().strip())

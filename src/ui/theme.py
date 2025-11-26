@@ -74,6 +74,23 @@ def apply_dark_theme(app):
             color: #707070;
             border: 1px solid #444;
         }
+        QMessageBox {
+            background-color: #2d2d2d;
+        }
+        QMessageBox QLabel {
+            color: #f0f0f0;
+            font-size: 12px;
+        }
+        QMessageBox QPushButton {
+            min-width: 80px;
+            min-height: 24px;
+        }
+        QDialog {
+            background-color: #2d2d2d;
+        }
+        QDialog QLabel {
+            color: #f0f0f0;
+        }
         QMenuBar {
             background-color: #2d2d2d;
             color: #f0f0f0;
@@ -109,6 +126,20 @@ def apply_dark_theme(app):
             background: #2d2d2d;
             color: white;
             border-bottom: 1px solid #2d2d2d;
+        }
+        QGroupBox {
+            font-weight: bold;
+            border: 1px solid #555;
+            border-radius: 5px;
+            margin-top: 10px;
+            padding-top: 10px;
+        }
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            subcontrol-position: top left;
+            left: 10px;
+            padding: 0 5px;
+            color: #f0f0f0;
         }
         QCheckBox {
             spacing: 5px;

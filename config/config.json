@@ -1,54 +1,123 @@
 {
     "version": "1.0.0",
     "theme": "dark",
-    "credentials": {
-        "session_id": "",
-        "account_name": "",
-        "league": "Settlers"
-    },
-    "overlay": {
-        "x_offset": 18,
-        "y_offset": 160,
-        "cell_size": 53,
-        "is_quad_calibrated": false
-    },
     "ultimatum": {
-        "min_profit": 20,
+        "min_profit": 9,
         "excluded_types": [],
         "included_types": [],
         "excluded_rewards": [],
-        "included_rewards": []
+        "included_rewards": [],
+        "excluded_tiers": [],
+        "included_tiers": [
+            120,
+            200
+        ]
     },
     "league_vision": {
-        "client_log_path": "",
-        "tesseract_path": "C:/Program Files/Tesseract-OCR/tesseract.exe",
         "ocr_threshold": 70,
-        "map_device_button": {
-            "x": 0,
-            "y": 0,
-            "w": 0,
-            "h": 0
+        "debug_mode": false,
+        "scan_mode": "auto",
+        "scan_interval_mouse": 100,
+        "scan_interval_center": 500,
+        "scan_strategy": "center",
+        "scan_region": {
+            "x_offset": 0.2,
+            "y_offset": 0.1,
+            "width_pct": 0.6,
+            "height_pct": 0.8
         },
         "map_check": {
             "enabled": true,
+            "required_context": [
+                "Map Tier",
+                "Item Quantity",
+                "Monster Level",
+                "Rarity"
+            ],
             "bad_mods": [
-                "reflect",
-                "no regen",
-                "no leech"
+                "Reflect",
+                "Cannot Regenerate"
             ]
         },
-        "syndicate_goals": {}
+        "essence": {
+            "enabled": true,
+            "keywords": [
+                "Misery",
+                "Envy",
+                "Dread",
+                "Scorn"
+            ]
+        },
+        "ritual": {
+            "enabled": true,
+            "keywords": [
+                "Opulent",
+                "Apocalyptic",
+                "Glacial",
+                "Volatile",
+                "Malevolent",
+                "Violent",
+                "Nameless",
+                "Sanguine",
+                "Vaal"
+            ]
+        },
+        "eldritch_altars": {
+            "enabled": true,
+            "min_tier_to_highlight": 2,
+            "tiers": {
+                "1": [
+                    "Divine Orb"
+                ],
+                "2": [
+                    "Greater Eldritch Ichor",
+                    "Grand Eldritch Ichor",
+                    "Exalted Orb"
+                ],
+                "3": [
+                    "Chaos Orb",
+                    "Gemcutter's Prism",
+                    "Orb of Unmaking"
+                ]
+            },
+            "bad_mods": [
+                "Meteor",
+                "Chaos Damage during Flask Effect"
+            ]
+        },
+        "expedition": {
+            "enabled": true,
+            "immune_warning": [
+                "Fire"
+            ],
+            "bad_mods": [
+                "Culling Strike"
+            ]
+        },
+        "syndicate_goals": {
+            "Gravicius": "Transportation",
+            "Rin": "Transportation",
+            "Vorici": "Fortification",
+            "Tora": "Fortification",
+            "Vagan": "Fortification",
+            "Guff": "Fortification",
+            "Korell": "Fortification",
+            "Janus": "Research",
+            "Riker": "Research",
+            "Haku": "Intervention",
+            "Leo": "Intervention",
+            "Hillock": "Intervention",
+            "Cameria": "Intervention",
+            "Elreon": "Intervention",
+            "Aisling": "Remove",
+            "It That Fled": "Remove",
+            "Jorgin": "Remove"
+        }
     },
     "trade_sniper": {
         "check_interval_ms": 10,
         "cooldown_ms": 5000,
         "auto_resume": false,
         "auto_resume_delay_ms": 60000
-    },
-    "window": {
-        "x": 175,
-        "y": 928,
-        "width": 1100,
-        "height": 800
     }
 }
