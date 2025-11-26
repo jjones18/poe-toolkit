@@ -1,0 +1,23 @@
+# Core UI
+PyQt6>=6.10.0
+
+# POE API
+requests>=2.31.0
+
+# Overlay click detection
+pynput>=1.7.6
+
+# Windows-specific (for overlay and window detection)
+pywin32>=311
+
+# OCR (League Vision)
+# Note: opencv-python may need --no-deps if numpy version constraint conflicts
+opencv-python>=4.12.0
+pytesseract>=0.3.13
+numpy>=2.3.5
+
+# Hotkeys
+keyboard>=0.13.5
+
+# Image capture
+mss>=10.1.0

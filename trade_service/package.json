@@ -1,0 +1,16 @@
+{
+  "name": "poe-trade-service",
+  "version": "1.0.0",
+  "description": "POE Toolkit Trade Service - Auto-click Travel to Hideout buttons",
+  "main": "trade_monitor.js",
+  "scripts": {
+    "start": "node trade_monitor.js"
+  },
+  "keywords": ["poe", "path-of-exile", "trade", "automation"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer-core": "^24.0.0"
+  }
+}
+

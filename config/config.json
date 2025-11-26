@@ -1,0 +1,54 @@
+{
+    "version": "1.0.0",
+    "theme": "dark",
+    "credentials": {
+        "session_id": "",
+        "account_name": "",
+        "league": "Settlers"
+    },
+    "overlay": {
+        "x_offset": 18,
+        "y_offset": 160,
+        "cell_size": 53,
+        "is_quad_calibrated": false
+    },
+    "ultimatum": {
+        "min_profit": 20,
+        "excluded_types": [],
+        "included_types": [],
+        "excluded_rewards": [],
+        "included_rewards": []
+    },
+    "league_vision": {
+        "client_log_path": "",
+        "tesseract_path": "C:/Program Files/Tesseract-OCR/tesseract.exe",
+        "ocr_threshold": 70,
+        "map_device_button": {
+            "x": 0,
+            "y": 0,
+            "w": 0,
+            "h": 0
+        },
+        "map_check": {
+            "enabled": true,
+            "bad_mods": [
+                "reflect",
+                "no regen",
+                "no leech"
+            ]
+        },
+        "syndicate_goals": {}
+    },
+    "trade_sniper": {
+        "check_interval_ms": 10,
+        "cooldown_ms": 5000,
+        "auto_resume": false,
+        "auto_resume_delay_ms": 60000
+    },
+    "window": {
+        "x": 175,
+        "y": 928,
+        "width": 1100,
+        "height": 800
+    }
+}

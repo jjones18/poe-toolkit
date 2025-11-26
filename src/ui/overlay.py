@@ -1,0 +1,306 @@
+"""
+Unified overlay system for POE Toolkit.
+Supports item highlighting, calibration, and safety blockers.
+"""
+
+from PyQt6.QtWidgets import QMainWindow, QWidget, QApplication, QLabel
+from PyQt6.QtCore import Qt, QRect, pyqtSignal
+from PyQt6.QtGui import QPainter, QColor, QPen, QFont
+
+try:
+    from pynput import mouse
+    HAS_PYNPUT = True
+except ImportError:
+    HAS_PYNPUT = False
+    print("Warning: pynput not found. Overlay click detection will be disabled.")
+
+
+class BlockerWindow(QMainWindow):
+    """
+    A semi-transparent blocking overlay that prevents clicks on dangerous buttons.
+    Used by League Vision for map safety checks.
+    """
+    
+    dismissed = pyqtSignal()
+    
+    def __init__(self, rect: dict, message: str = "BLOCKED"):
+        super().__init__()
+        
+        x, y, w, h = rect.get('x', 0), rect.get('y', 0), rect.get('w', 100), rect.get('h', 50)
+        
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
+        self.setGeometry(x, y, w, h)
+        
+        # Red semi-transparent background
+        self.setStyleSheet("background-color: rgba(200, 0, 0, 150);")
+        
+        # Create label
+        label = QLabel(message, self)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setStyleSheet("color: white; font-weight: bold; font-size: 14px;")
+        label.setGeometry(0, 0, w, h)
+    
+    def mousePressEvent(self, event):
+        """Shift+Click to dismiss."""
+        if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+            self.dismissed.emit()
+            self.close()
+
+
+class OverlayWindow(QMainWindow):
+    """
+    Main overlay window for highlighting items and calibration.
+    Supports multiple modes:
+    - Highlight mode: Shows semi-transparent boxes over items
+    - Calibration mode: Allows clicking to set calibration points
+    - Alert mode: Shows text alerts on screen
+    """
+    
+    toggle_signal = pyqtSignal(int)
+    calibration_clicked = pyqtSignal(int, int)
+    
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("POE Toolkit Overlay")
+        
+        # Start as transparent for input (click-through)
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool | 
+            Qt.WindowType.WindowTransparentForInput
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
+        # Fullscreen geometry
+        screen = QApplication.primaryScreen()
+        self.setGeometry(screen.geometry())
+        
+        self.highlights = []
+        self.highlight_states = []
+        
+        # Alert state
+        self.alert_text = ""
+        self.alert_color = QColor(255, 0, 0)
+        self.alert_visible = False
+        
+        # Calibration state
+        self.calibration_mode = False
+        self.calibration_msg = ""
+        
+        # Blockers
+        self.blockers = []
+        
+        # Global click listener
+        self.listener = None
+        if HAS_PYNPUT:
+            self.listener = mouse.Listener(on_click=self.on_global_click)
+            self.listener.start()
+            
+        self.toggle_signal.connect(self.toggle_highlight_state)
+    
+    def closeEvent(self, event):
+        if self.listener:
+            self.listener.stop()
+        self.clear_blockers()
+        super().closeEvent(event)
+
+    def on_global_click(self, x, y, button, pressed):
+        """Handle global clicks for toggling highlights."""
+        if not pressed or button != mouse.Button.left:
+            return
+            
+        if self.calibration_mode:
+            return
+        
+        geo = self.geometry()
+        local_x = x - geo.x()
+        local_y = y - geo.y()
+        
+        for i, rect in enumerate(self.highlights):
+            if rect.contains(local_x, local_y):
+                self.toggle_signal.emit(i)
+                break
+
+    def set_calibration_mode(self, active: bool, step_msg: str = ""):
+        """Enable/disable calibration mode."""
+        self.calibration_mode = active
+        self.calibration_msg = step_msg
+        
+        if active:
+            # Make window clickable
+            self.setWindowFlags(
+                Qt.WindowType.FramelessWindowHint |
+                Qt.WindowType.WindowStaysOnTopHint |
+                Qt.WindowType.Tool
+            )
+            self.show()
+            self.setCursor(Qt.CursorShape.CrossCursor)
+        else:
+            # Restore click-through
+            self.setWindowFlags(
+                Qt.WindowType.FramelessWindowHint |
+                Qt.WindowType.WindowStaysOnTopHint |
+                Qt.WindowType.Tool | 
+                Qt.WindowType.WindowTransparentForInput
+            )
+            self.show()
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+            
+        self.update()
+
+    def mousePressEvent(self, event):
+        """Handle clicks during calibration."""
+        if self.calibration_mode:
+            if event.button() in (Qt.MouseButton.LeftButton, Qt.MouseButton.RightButton):
+                self.calibration_clicked.emit(int(event.pos().x()), int(event.pos().y()))
+
+    def toggle_highlight_state(self, index):
+        """Toggle a highlight between active and dismissed."""
+        if 0 <= index < len(self.highlight_states):
+            self.highlight_states[index] = not self.highlight_states[index]
+            self.update()
+
+    def set_highlights(self, rects: list):
+        """Set the list of highlight rectangles."""
+        self.highlights = [QRect(*r) if isinstance(r, tuple) else r for r in rects]
+        self.highlight_states = [False] * len(self.highlights)
+        
+        if not self.calibration_mode:
+            self.setWindowFlags(
+                Qt.WindowType.FramelessWindowHint |
+                Qt.WindowType.WindowStaysOnTopHint |
+                Qt.WindowType.Tool | 
+                Qt.WindowType.WindowTransparentForInput
+            )
+            self.show()
+        
+        self.update()
+    
+    def set_highlights_from_items(self, items: list, mapper, base_cell_size: int, calibrated_is_quad: bool = False):
+        """
+        Convert item data to screen rectangles using the coordinate mapper.
+        Handles quad vs standard tab size differences.
+        """
+        rects = []
+        
+        for item in items:
+            item_is_quad = item.get('is_quad', False)
+            current_cell_size = base_cell_size
+            
+            if calibrated_is_quad and not item_is_quad:
+                current_cell_size = base_cell_size * 2
+            elif not calibrated_is_quad and item_is_quad:
+                current_cell_size = base_cell_size / 2
+            
+            pixel_x = mapper.offset_x + (item['x'] * current_cell_size)
+            pixel_y = mapper.offset_y + (item['y'] * current_cell_size)
+            pixel_w = item.get('w', 1) * current_cell_size
+            pixel_h = item.get('h', 1) * current_cell_size
+            
+            rects.append(QRect(int(pixel_x), int(pixel_y), int(pixel_w), int(pixel_h)))
+        
+        self.set_highlights(rects)
+
+    def show_alert(self, message: str, color: str = "red", duration_ms: int = 2000):
+        """Show a temporary alert message."""
+        self.alert_text = message
+        self.alert_color = QColor(color)
+        self.alert_visible = True
+        self.update()
+        
+        # Auto-hide after duration
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(duration_ms, self.hide_alert)
+    
+    def hide_alert(self):
+        """Hide the alert message."""
+        self.alert_visible = False
+        self.update()
+
+    def create_blocker(self, rect: dict, message: str = "UNSAFE"):
+        """Create a blocking overlay at the specified location."""
+        if rect.get('w', 0) <= 0 or rect.get('h', 0) <= 0:
+            return
+        
+        blocker = BlockerWindow(rect, message)
+        blocker.dismissed.connect(lambda: self.remove_blocker(blocker))
+        blocker.show()
+        self.blockers.append(blocker)
+    
+    def remove_blocker(self, blocker):
+        """Remove a specific blocker."""
+        if blocker in self.blockers:
+            self.blockers.remove(blocker)
+            blocker.close()
+    
+    def clear_blockers(self):
+        """Remove all blockers."""
+        for blocker in self.blockers:
+            blocker.close()
+        self.blockers.clear()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Calibration background
+        if self.calibration_mode:
+            painter.fillRect(self.rect(), QColor(0, 0, 0, 1))
+        
+        # Draw highlights
+        pen_green = QPen(QColor(0, 255, 0, 200))
+        pen_green.setWidth(3)
+        brush_green = QColor(0, 255, 0, 50)
+        
+        pen_gray = QPen(QColor(150, 150, 150, 200))
+        pen_gray.setWidth(3)
+        brush_gray = QColor(150, 150, 150, 50)
+
+        if self.highlights:
+            if len(self.highlight_states) != len(self.highlights):
+                self.highlight_states = [False] * len(self.highlights)
+
+            for i, rect in enumerate(self.highlights):
+                if self.highlight_states[i]:
+                    painter.setPen(pen_gray)
+                    painter.setBrush(brush_gray)
+                else:
+                    painter.setPen(pen_green)
+                    painter.setBrush(brush_green)
+                painter.drawRect(rect)
+        
+        # Draw calibration message
+        if self.calibration_mode and self.calibration_msg:
+            painter.setPen(QColor(255, 255, 255))
+            painter.setFont(QFont("Arial", 24, QFont.Weight.Bold))
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self.calibration_msg)
+        
+        # Draw alert
+        if self.alert_visible and self.alert_text:
+            # Background box
+            font = QFont("Arial", 32, QFont.Weight.Bold)
+            painter.setFont(font)
+            
+            text_rect = painter.fontMetrics().boundingRect(self.alert_text)
+            padding = 20
+            
+            box_x = (self.width() - text_rect.width()) // 2 - padding
+            box_y = self.height() // 4 - padding
+            box_w = text_rect.width() + padding * 2
+            box_h = text_rect.height() + padding * 2
+            
+            painter.fillRect(box_x, box_y, box_w, box_h, QColor(32, 32, 32, 220))
+            painter.setPen(self.alert_color)
+            painter.drawText(
+                QRect(box_x, box_y, box_w, box_h),
+                Qt.AlignmentFlag.AlignCenter,
+                self.alert_text
+            )
+
