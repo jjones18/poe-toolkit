@@ -56,6 +56,8 @@ poe-toolkit/
 │   ├── config.json             # Shareable settings (presets, keywords)
 │   ├── user_config.json        # Your PC-specific settings (gitignored)
 │   └── user_config.template.json  # Template for new users
+├── setup.bat                   # Easy setup launcher (double-click)
+├── setup.ps1                   # PowerShell setup script
 └── requirements.txt
 ```
 
@@ -63,13 +65,7 @@ poe-toolkit/
 
 ## 🚀 Installation
 
-### Prerequisites
-- **Python 3.10+**
-- **Node.js 18+** (for Trade Sniper)
-- **Tesseract OCR** (for League Vision) - [Download](https://github.com/UB-Mannheim/tesseract/wiki)
-- **Brave Browser** (for Trade Sniper)
-
-### Setup
+### Quick Setup (Recommended)
 
 1. **Clone the repository**
    ```powershell
@@ -77,28 +73,55 @@ poe-toolkit/
    cd poe-toolkit
    ```
 
-2. **Install Python dependencies**
+2. **Run the setup script** (as Administrator)
    ```powershell
-   pip install -r requirements.txt
+   # Double-click setup.bat, or run:
+   .\setup.bat
    ```
+   
+   The setup script will automatically:
+   - ✅ Check for Python 3.10+, Node.js 18+, Tesseract OCR, Brave Browser
+   - ✅ Install any missing prerequisites via winget
+   - ✅ Create your `user_config.json` from template (won't overwrite existing)
+   - ✅ Install Python dependencies (`pip install`)
+   - ✅ Install Node.js dependencies (`npm install`)
+   
+   > **Note:** Safe to run multiple times - only installs what's missing!
 
-3. **Create your user config**
-   ```powershell
-   copy config\user_config.template.json config\user_config.json
-   ```
-
-4. **Edit `config/user_config.json`** with your settings:
+3. **Edit `config/user_config.json`** with your settings:
    - `session_id` - Your POESESSID cookie from pathofexile.com
-   - `account_name` - Your PoE account name
+   - `account_name` - Your PoE account name  
    - `league` - Current league name
    - `client_log_path` - Path to your PoE Client.txt log file
 
-5. **For Trade Sniper** - Install Node.js dependencies:
-   ```powershell
-   cd trade_service
-   npm install
-   cd ..
-   ```
+### Manual Setup
+
+If you prefer manual installation:
+
+<details>
+<summary>Click to expand manual steps</summary>
+
+**Prerequisites:**
+- [Python 3.10+](https://python.org)
+- [Node.js 18+](https://nodejs.org) (for Trade Sniper)
+- [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki) (for League Vision)
+- [Brave Browser](https://brave.com) (for Trade Sniper)
+
+**Steps:**
+```powershell
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Create user config
+copy config\user_config.template.json config\user_config.json
+
+# Install Node.js dependencies (for Trade Sniper)
+cd trade_service
+npm install
+cd ..
+```
+
+</details>
 
 ---
 
