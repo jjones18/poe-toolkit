@@ -97,20 +97,15 @@ class LeagueVisionWidget(QWidget):
         
         layout.addWidget(features_group)
         
-        # Debug Group
-        debug_group = QGroupBox("Debug")
-        debug_layout = QVBoxLayout(debug_group)
-        
-        self.chk_debug = QCheckBox("Enable Debug Mode (logs OCR output to debug.log)")
-        self.chk_debug.setChecked(self.vision_config.get("debug_mode", False))
-        self.chk_debug.stateChanged.connect(self.on_debug_toggled)
-        debug_layout.addWidget(self.chk_debug)
+        # Debug tools (debug mode is controlled globally via Settings menu)
+        debug_layout = QHBoxLayout()
         
         self.ocr_preview_btn = QPushButton("Test OCR on Current Screen")
         self.ocr_preview_btn.clicked.connect(self.test_ocr)
         debug_layout.addWidget(self.ocr_preview_btn)
+        debug_layout.addStretch()
         
-        layout.addWidget(debug_group)
+        layout.addLayout(debug_layout)
         
         # Controls
         controls_layout = QHBoxLayout()
@@ -138,9 +133,19 @@ class LeagueVisionWidget(QWidget):
         layout.addLayout(controls_layout)
         
         # Status
+        status_layout = QHBoxLayout()
+        
         self.zone_label = QLabel("Zone: Unknown")
         self.zone_label.setStyleSheet("color: #888888;")
-        layout.addWidget(self.zone_label)
+        status_layout.addWidget(self.zone_label)
+        
+        status_layout.addStretch()
+        
+        self.mode_label = QLabel("Mode: Stopped")
+        self.mode_label.setStyleSheet("color: #888888;")
+        status_layout.addWidget(self.mode_label)
+        
+        layout.addLayout(status_layout)
         
         # Log Area
         self.log_area = QTextEdit()
@@ -226,13 +231,16 @@ class LeagueVisionWidget(QWidget):
             QMessageBox.information(self, "Calibration Complete", 
                                   f"Button position saved!\nRect: {rect}")
     
-    def on_debug_toggled(self, state):
-        """Handle debug checkbox toggle."""
-        enabled = state == 2  # Qt.Checked
+    def set_debug_mode(self, enabled: bool):
+        """Set debug mode (called from main window global toggle)."""
         self.vision_config["debug_mode"] = enabled
         self.log(f"Debug mode {'enabled' if enabled else 'disabled'}")
         if enabled:
             self.log("OCR output will be logged to debug.log and shown in log area")
+        
+        # Update running scanner if active
+        if self.scanner and self.scanner.isRunning():
+            self.scanner.debug_mode = enabled
     
     def test_ocr(self):
         """Perform a single OCR test and show results."""
@@ -296,6 +304,9 @@ class LeagueVisionWidget(QWidget):
         """Build scanner config from current settings."""
         config = self.vision_config.copy()
         
+        # Use global debug mode from main config
+        config["debug_mode"] = self.config.get("debug_mode", False)
+        
         # Update enabled states from checkboxes
         if "map_check" not in config:
             config["map_check"] = {}
@@ -332,6 +343,7 @@ class LeagueVisionWidget(QWidget):
         self.scanner = ScannerWorker(config)
         self.scanner.result_signal.connect(self.on_scan_result)
         self.scanner.status_signal.connect(self.log)
+        self.scanner.mode_signal.connect(self.on_mode_changed)
         
         # Connect debug signals to overlay
         if self.overlay:
@@ -368,6 +380,9 @@ class LeagueVisionWidget(QWidget):
         if self.overlay:
             self.overlay.clear_debug()
         
+        self.mode_label.setText("Mode: Stopped")
+        self.mode_label.setStyleSheet("color: #888888;")
+        
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
         self.log("Scanner stopped.")
@@ -391,6 +406,14 @@ class LeagueVisionWidget(QWidget):
         """Handle stop hotkey from scanner."""
         self.stop_scanner()
     
+    def on_mode_changed(self, mode: str):
+        """Handle scanner mode change."""
+        self.mode_label.setText(f"Mode: {mode}")
+        if mode == "MOUSE":
+            self.mode_label.setStyleSheet("color: #00ffff; font-weight: bold;")  # Cyan
+        else:
+            self.mode_label.setStyleSheet("color: #ffff00; font-weight: bold;")  # Yellow
+
     def clear_blocker(self):
         """Manually clear any active blocker overlay."""
         if self.overlay:

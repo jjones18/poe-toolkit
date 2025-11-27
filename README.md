@@ -16,6 +16,13 @@ Scan your stash tabs for profitable Inscribed Ultimatums with real-time poe.ninj
 - Configurable filters (encounter types, rewards, monster life tiers)
 - Visual overlay highlighting profitable items in your stash
 
+### 🏺 Kalguur Dust Helper
+Optimize your Thaumaturgic Dust disenchanting:
+- Scan stash tabs for high-value unique items (Dust/Chaos ratio)
+- **Multi-Tab Support**: Automatically highlights items across multiple tabs
+- **OCR Tab Detection**: Smart detection of your current stash tab
+- **Unique Tab Workflow**: Guided clipboard-based workflow for unique stash tabs
+
 ### 👁️ League Vision
 OCR-based screen scanning for various league mechanics:
 - **Map Safety Check** - Detect dangerous map mods

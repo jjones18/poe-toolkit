@@ -329,7 +329,9 @@ class UltimatumWidget(QWidget):
             "included_tiers": self.ultimatum_config.get("included_tiers", []),
         }
         
-        self.worker = ScanWorker(session_id, account, league, scan_config, selected_indices)
+        # Use global debug mode
+        debug_mode = self.config.get("debug_mode", False)
+        self.worker = ScanWorker(session_id, account, league, scan_config, selected_indices, debug_mode)
         self.worker.log_signal.connect(self.log)
         self.worker.result_signal.connect(self.on_scan_result)
         self.worker.finished.connect(lambda: self.scan_btn.setEnabled(True))

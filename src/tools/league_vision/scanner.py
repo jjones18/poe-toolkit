@@ -5,6 +5,7 @@ OCR Scanner for League Vision tool.
 import re
 import time
 import cv2
+import numpy as np
 import pytesseract
 from PyQt6.QtCore import QObject, pyqtSignal, QThread
 from PyQt6.QtWidgets import QApplication
@@ -40,6 +41,7 @@ class ScannerWorker(QThread):
     
     result_signal = pyqtSignal(object)  # Emits ScanResult
     status_signal = pyqtSignal(str)  # Status updates
+    mode_signal = pyqtSignal(str)  # Emits current scan mode (mouse/center)
     debug_rect_signal = pyqtSignal(int, int, int, int, str)  # x, y, w, h, color
     debug_box_signal = pyqtSignal(int, int, int, int, str)  # For keyword highlight boxes
     clear_debug_signal = pyqtSignal()  # Clear all debug boxes
@@ -60,6 +62,10 @@ class ScannerWorker(QThread):
         
         # Syndicate Memory: { "MemberName": (time_of_last_good_scan, result) }
         self.syndicate_memory = {}
+        
+        # Track if we're in syndicate board mode (for expanded scan region)
+        self.in_syndicate_board = False
+        self.syndicate_board_last_seen = 0
         
         # Initialize vision
         resolution_config = config.get("resolution_override")
@@ -137,8 +143,11 @@ class ScannerWorker(QThread):
         if self.manual_override:
             return self.manual_override
         
-        # Auto logic
-        if "Hideout" in self.current_zone or self.current_zone == "Unknown":
+        # Auto logic based on zone
+        # Mouse mode: Hideout (for map tooltip reading)
+        # Center mode: Maps, acts, and other zones (for in-game mechanics)
+        # Unknown defaults to center since most gameplay happens in maps
+        if "Hideout" in self.current_zone:
             return "mouse"
         return "center"
     
@@ -151,11 +160,21 @@ class ScannerWorker(QThread):
         current = self.get_active_strategy()
         new_mode = "center" if current == "mouse" else "mouse"
         self.manual_override = new_mode
+        self.mode_signal.emit(new_mode.upper())
         return new_mode
     
     def run(self):
         """Main scan loop."""
         self.running = True
+        last_strategy = None
+        
+        # Emit initial mode based on current zone
+        initial_strategy = self.get_active_strategy()
+        self.mode_signal.emit(initial_strategy.upper())
+        last_strategy = initial_strategy
+        
+        if self.debug_mode:
+            DebugLogger.log(f"Scanner started in {initial_strategy.upper()} mode (Zone: {self.current_zone})", "Vision")
         
         while self.running:
             if self.paused or not self.is_poe_focused():
@@ -163,6 +182,10 @@ class ScannerWorker(QThread):
                 continue
             
             strategy = self.get_active_strategy()
+            
+            if strategy != last_strategy:
+                self.mode_signal.emit(strategy.upper())
+                last_strategy = strategy
             
             if strategy == "mouse":
                 interval_ms = self.config.get("scan_interval_mouse", 100)
@@ -176,7 +199,23 @@ class ScannerWorker(QThread):
             region = None
             
             if rect:
-                if strategy == "mouse" and HAS_WIN32:
+                # Check if we should use expanded syndicate board region
+                # Stay in syndicate mode for 3 seconds after last detection
+                use_syndicate_region = (
+                    self.in_syndicate_board and 
+                    (time.time() - self.syndicate_board_last_seen) < 3.0
+                )
+                
+                if use_syndicate_region:
+                    # Expanded region for syndicate board - cover almost full screen
+                    # Leave small margins for UI elements
+                    region = {
+                        "top": int(rect["top"] + (rect["height"] * 0.05)),
+                        "left": int(rect["left"] + (rect["width"] * 0.05)),
+                        "width": int(rect["width"] * 0.90),
+                        "height": int(rect["height"] * 0.85)
+                    }
+                elif strategy == "mouse" and HAS_WIN32:
                     mx, my = win32gui.GetCursorPos()
                     h_cfg = self.config.get("scan_region_hover", {
                         "width": 600, "height": 800, 
@@ -259,6 +298,7 @@ class ScannerWorker(QThread):
         
         # Filter out empty strings and low-confidence results
         full_text = " ".join([t for t in data['text'] if t.strip()])
+        full_text_lower = full_text.lower()
         in_hideout = "Hideout" in self.current_zone
         n_boxes = len(data['text'])
         
@@ -266,19 +306,23 @@ class ScannerWorker(QThread):
         scan_offset_x = region_offset[0] if region_offset else 0
         scan_offset_y = region_offset[1] if region_offset else 0
         
-        # Check for Syndicate Card - re-process with lower threshold for better detection
-        is_syndicate_card = "execute" in full_text.lower() and "interrogate" in full_text.lower()
-        if is_syndicate_card:
-            # Re-process with lower threshold for syndicate cards
-            _, thresh_syndicate = cv2.threshold(gray, 50, 255, cv2.THRESH_BINARY)
-            try:
-                data = pytesseract.image_to_data(thresh_syndicate, output_type=pytesseract.Output.DICT)
-                full_text = " ".join([t for t in data['text'] if t.strip()])
-                n_boxes = len(data['text'])
-                if self.debug_mode:
-                    DebugLogger.log(f"SYNDICATE CARD TEXT: {full_text[:500]}", "Vision")
-            except:
-                pass
+        # Check for Syndicate Board/Card context - use enhanced OCR if detected
+        syndicate_keywords = ["transportation", "fortification", "research", "intervention", 
+                             "execute", "interrogate", "imprisoned", "intelligence"]
+        is_syndicate_context = any(kw in full_text_lower for kw in syndicate_keywords)
+        
+        if is_syndicate_context:
+            # Mark that we're in syndicate board mode - this will expand the scan region
+            self.in_syndicate_board = True
+            self.syndicate_board_last_seen = time.time()
+            
+            # Re-process with enhanced filtering for syndicate board
+            # The syndicate board has specific colors we can target
+            data, full_text, n_boxes = self.process_syndicate_ocr(img, gray)
+            full_text_lower = full_text.lower()
+            
+            if self.debug_mode:
+                DebugLogger.log("Syndicate board detected - using expanded scan region", "Vision")
         
         # Debug: Log OCR output
         if self.debug_mode and full_text.strip():
@@ -322,10 +366,11 @@ class ScannerWorker(QThread):
             if syndicate_result:
                 results.append(syndicate_result)
         
-        # Map Safety Check
-        map_result = self.check_map_safety(full_text)
-        if map_result:
-            results.append(map_result)
+        # Map Safety Check - only in hideout (reading map tooltips before activating)
+        if in_hideout:
+            map_result = self.check_map_safety(full_text)
+            if map_result:
+                results.append(map_result)
         
         # Eldritch Altars
         if not in_hideout:
@@ -349,6 +394,96 @@ class ScannerWorker(QThread):
             return True
         
         return False
+    
+    def process_syndicate_ocr(self, img, gray):
+        """
+        Enhanced OCR processing specifically for the syndicate board.
+        Uses multiple color filters and thresholds to better detect text.
+        """
+        all_texts = []
+        best_data = None
+        best_text = ""
+        best_count = 0
+        
+        # Convert to HSV for color filtering
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        
+        # Method 1: Standard grayscale with lower threshold (for white/light text)
+        _, thresh1 = cv2.threshold(gray, 50, 255, cv2.THRESH_BINARY)
+        
+        # Method 2: Higher threshold for darker backgrounds
+        _, thresh2 = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY)
+        
+        # Method 3: Adaptive threshold (good for varying lighting)
+        thresh3 = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+                                        cv2.THRESH_BINARY, 11, 2)
+        
+        # Method 4: Filter for golden/yellow text (member names on cards)
+        # Yellow/gold hue range: roughly 15-35
+        lower_gold = np.array([15, 80, 80])
+        upper_gold = np.array([35, 255, 255])
+        gold_mask = cv2.inRange(hsv, lower_gold, upper_gold)
+        
+        # Method 5: Filter for white/cream text (card text)
+        lower_white = np.array([0, 0, 180])
+        upper_white = np.array([180, 50, 255])
+        white_mask = cv2.inRange(hsv, lower_white, upper_white)
+        
+        # Method 6: Filter for red text (house names like "Transportation")
+        lower_red1 = np.array([0, 100, 100])
+        upper_red1 = np.array([10, 255, 255])
+        lower_red2 = np.array([160, 100, 100])
+        upper_red2 = np.array([180, 255, 255])
+        red_mask = cv2.inRange(hsv, lower_red1, upper_red1) | cv2.inRange(hsv, lower_red2, upper_red2)
+        
+        # Combine color masks
+        combined_color = cv2.bitwise_or(gold_mask, white_mask)
+        combined_color = cv2.bitwise_or(combined_color, red_mask)
+        
+        # Process each threshold method
+        thresh_methods = [
+            ("low_thresh", thresh1),
+            ("high_thresh", thresh2),
+            ("adaptive", thresh3),
+            ("color_filter", combined_color),
+        ]
+        
+        for method_name, thresh_img in thresh_methods:
+            try:
+                data = pytesseract.image_to_data(thresh_img, output_type=pytesseract.Output.DICT)
+                text = " ".join([t for t in data['text'] if t.strip()])
+                all_texts.append(text)
+                
+                # Count meaningful words (length > 2)
+                word_count = len([t for t in data['text'] if len(t.strip()) > 2])
+                
+                if word_count > best_count:
+                    best_count = word_count
+                    best_data = data
+                    best_text = text
+                    
+                if self.debug_mode:
+                    DebugLogger.log(f"Syndicate OCR [{method_name}]: {text[:200]}", "Vision")
+            except Exception as e:
+                if self.debug_mode:
+                    DebugLogger.log(f"Syndicate OCR [{method_name}] error: {e}", "Vision")
+        
+        # Combine all detected texts for comprehensive matching
+        combined_text = " ".join(all_texts)
+        
+        # Use the best data structure but with combined text for matching
+        if best_data is None:
+            # Fallback to simple threshold
+            _, thresh_fallback = cv2.threshold(gray, 70, 255, cv2.THRESH_BINARY)
+            best_data = pytesseract.image_to_data(thresh_fallback, output_type=pytesseract.Output.DICT)
+            combined_text = " ".join([t for t in best_data['text'] if t.strip()])
+        
+        n_boxes = len(best_data['text'])
+        
+        if self.debug_mode:
+            DebugLogger.log(f"Syndicate OCR COMBINED: {combined_text[:500]}", "Vision")
+        
+        return best_data, combined_text, n_boxes
     
     def check_map_safety(self, text: str):
         """Check for dangerous map mods."""
@@ -453,8 +588,22 @@ class ScannerWorker(QThread):
         if not goals:
             return None
         
-        # Check if we're in a syndicate interaction (must see execute/interrogate buttons)
-        is_syndicate_card = "execute" in full_text.lower() and "interrogate" in full_text.lower()
+        full_text_lower = full_text.lower()
+        
+        # Check if we're in a syndicate interaction context
+        # Can be: execute/interrogate buttons, OR syndicate-specific keywords
+        has_buttons = "execute" in full_text_lower or "interrogate" in full_text_lower or "release" in full_text_lower
+        has_syndicate_context = (
+            "intelligence" in full_text_lower or 
+            "imprisoned" in full_text_lower or
+            "rank" in full_text_lower or
+            "transportation" in full_text_lower or
+            "fortification" in full_text_lower or
+            "research" in full_text_lower or
+            "intervention" in full_text_lower
+        )
+        
+        is_syndicate_card = has_buttons or has_syndicate_context
         if not is_syndicate_card:
             return None
         
@@ -589,10 +738,12 @@ class ScannerWorker(QThread):
             if best_result and best_priority == 3:
                 # High confidence scan! Save it.
                 self.syndicate_memory[current_member_name] = (current_time, best_result)
+                # Also save to a general "last good result" for fallback
+                self.syndicate_memory["_last_good"] = (current_time, best_result, current_member_name)
                 if self.debug_mode:
                     DebugLogger.log(f"Memorized P3 for {current_member_name}", "Syndicate")
             elif best_result and best_priority < 3:
-                # Low confidence scan. Do we have a recent memory?
+                # Low confidence scan. Do we have a recent memory for this member?
                 mem = self.syndicate_memory.get(current_member_name)
                 if mem:
                     last_time, cached_result = mem
@@ -601,6 +752,16 @@ class ScannerWorker(QThread):
                         best_result = cached_result
                         if self.debug_mode:
                             DebugLogger.log(f"Using Cached P3 for {current_member_name} (Age: {current_time - last_time:.1f}s)", "Syndicate")
+        
+        # Fallback: If we have syndicate context but no specific member match, check last good result
+        if not best_result and has_syndicate_context:
+            last_good = self.syndicate_memory.get("_last_good")
+            if last_good:
+                last_time, cached_result, cached_member = last_good
+                if current_time - last_time < 2.0:  # 2 second window for general fallback
+                    best_result = cached_result
+                    if self.debug_mode:
+                        DebugLogger.log(f"Using fallback cache for {cached_member} (Age: {current_time - last_time:.1f}s)", "Syndicate")
         
         if self.debug_mode and candidates_log:
             DebugLogger.log(f"Candidates: {candidates_log}", "Syndicate")

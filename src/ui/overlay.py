@@ -130,6 +130,10 @@ class OverlayWindow(QMainWindow):
         self.debug_rect = None
         self.debug_color = QColor(255, 255, 0, 200)  # Yellow
         
+        # Debug text
+        self.debug_text = ""
+        self.debug_text_pos = (0, 0)
+        
         # Debug keyword boxes (list of (QRect, QColor))
         self.debug_boxes = []
         
@@ -252,6 +256,11 @@ class OverlayWindow(QMainWindow):
         self.alert_text = message
         self.alert_color = QColor(color)
         self.alert_visible = True
+        
+        # Make sure overlay is visible
+        if not self.isVisible():
+            self.show()
+        
         self.update()
         
         # Auto-hide after duration
@@ -262,6 +271,10 @@ class OverlayWindow(QMainWindow):
         """Hide the alert message."""
         self.alert_visible = False
         self.update()
+        
+        # If no other elements are visible, hide the overlay
+        if not self.highlights and not self.debug_rect and not self.debug_boxes and not self.calibration_preview:
+            self.hide()
 
     def create_blocker(self, rect: dict, message: str = "UNSAFE"):
         """Create a blocking overlay at the specified location."""
@@ -300,12 +313,41 @@ class OverlayWindow(QMainWindow):
             self.debug_color = QColor(255, 0, 0, 200)
         else:
             self.debug_color = QColor(255, 255, 0, 200)
+        
+        # Ensure overlay is visible
+        if not self.isVisible():
+            self.setWindowFlags(
+                Qt.WindowType.FramelessWindowHint |
+                Qt.WindowType.WindowStaysOnTopHint |
+                Qt.WindowType.Tool | 
+                Qt.WindowType.WindowTransparentForInput
+            )
+            self.show()
+            
         self.update()
     
+    def set_debug_text(self, text: str, x: int = 10, y: int = 10):
+        """Set persistent debug text."""
+        self.debug_text = text
+        self.debug_text_pos = (x, y)
+        
+        # Ensure overlay is visible
+        if not self.isVisible() and text:
+            self.setWindowFlags(
+                Qt.WindowType.FramelessWindowHint |
+                Qt.WindowType.WindowStaysOnTopHint |
+                Qt.WindowType.Tool | 
+                Qt.WindowType.WindowTransparentForInput
+            )
+            self.show()
+            
+        self.update()
+
     def clear_debug(self):
         """Clear the debug scan region rectangle and all debug boxes."""
         self.debug_rect = None
         self.debug_boxes = []
+        self.debug_text = ""
         self.update()
     
     def add_debug_box(self, x: int, y: int, w: int, h: int, color: str = "red"):
@@ -389,6 +431,28 @@ class OverlayWindow(QMainWindow):
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawRect(self.debug_rect)
         
+        # Draw debug text
+        if self.debug_text:
+            painter.setPen(QColor(255, 255, 0))  # Yellow text
+            painter.setFont(QFont("Consolas", 12, QFont.Weight.Bold))
+            
+            # Draw background for text
+            text_rect = painter.fontMetrics().boundingRect(self.debug_text)
+            padding = 5
+            bg_rect = QRect(
+                self.debug_text_pos[0], 
+                self.debug_text_pos[1],
+                text_rect.width() + padding * 2,
+                text_rect.height() + padding * 2
+            )
+            painter.fillRect(bg_rect, QColor(0, 0, 0, 180))
+            
+            painter.drawText(
+                bg_rect,
+                Qt.AlignmentFlag.AlignCenter,
+                self.debug_text
+            )
+
         # Draw debug keyword boxes
         for rect, color in self.debug_boxes:
             pen_box = QPen(color)

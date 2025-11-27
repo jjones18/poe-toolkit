@@ -119,5 +119,6 @@
         "cooldown_ms": 5000,
         "auto_resume": false,
         "auto_resume_delay_ms": 60000
-    }
+    },
+    "debug_mode": false
 }

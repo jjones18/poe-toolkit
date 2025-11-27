@@ -10,8 +10,12 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QAction
 
-from ui.overlay import OverlayWindow
+from ui.overlay_manager import OverlayManager
 from ui.theme import apply_dark_theme
+from ui.calibration import (
+    CalibrationManager, CalibrationType, CALIBRATION_CONFIGS,
+    get_calibration_status_text
+)
 from utils.config import ConfigManager
 from utils.coordinate_mapper import StashGridMapper
 
@@ -58,15 +62,19 @@ class MainWindow(QMainWindow):
         
         # Restore window geometry
         win_config = self.config.get("window", {})
+        
+        # Ensure window is visible on screen (prevent off-screen title bar)
+        x = win_config.get("x", 100)
+        y = max(30, win_config.get("y", 100))  # Force at least 30px from top
+        
         self.setGeometry(
-            win_config.get("x", 100),
-            win_config.get("y", 100),
+            x, y,
             win_config.get("width", 1100),
             win_config.get("height", 800)
         )
         
         # Create overlay
-        self.overlay = OverlayWindow()
+        self.overlay = OverlayManager()
         
         # Create mapper for overlay
         overlay_config = self.config.get("overlay", {})
@@ -75,6 +83,13 @@ class MainWindow(QMainWindow):
             offset_y=overlay_config.get("y_offset", 160),
             cell_size=overlay_config.get("cell_size", 53)
         )
+        
+        # Create calibration manager
+        self.calibration_manager = CalibrationManager(
+            self.config,
+            save_callback=lambda: ConfigManager.save(self.config)
+        )
+        self.calibration_manager.on_complete = self.on_calibration_complete
         
         # Apply dark theme
         apply_dark_theme(self.parent() if self.parent() else self)
@@ -172,21 +187,63 @@ class MainWindow(QMainWindow):
         # Settings menu
         settings_menu = menubar.addMenu("Settings")
         
-        # Calibrate Stash action
-        calibrate_action = QAction("Calibrate Stash Grid...", self)
-        calibrate_action.setStatusTip("Calibrate the stash overlay position")
-        calibrate_action.triggered.connect(self.start_calibration)
-        settings_menu.addAction(calibrate_action)
+        # Calibration submenu
+        calibration_menu = settings_menu.addMenu("Calibration")
+        
+        # Add action for each calibration type
+        for cal_type in CalibrationType:
+            config = CALIBRATION_CONFIGS[cal_type]
+            action = QAction(f"{config.name}...", self)
+            action.setStatusTip(config.description)
+            # Use lambda with default arg to capture cal_type
+            action.triggered.connect(
+                lambda checked, ct=cal_type: self.start_calibration(ct)
+            )
+            calibration_menu.addAction(action)
+        
+        # Add separator and status action
+        calibration_menu.addSeparator()
+        status_action = QAction("Show Calibration Status", self)
+        status_action.triggered.connect(self.show_calibration_status)
+        calibration_menu.addAction(status_action)
+        
+        # Separator before debug mode
+        settings_menu.addSeparator()
+        
+        # Global debug mode toggle
+        self.debug_mode_action = QAction("Debug Mode", self)
+        self.debug_mode_action.setCheckable(True)
+        self.debug_mode_action.setChecked(self.config.get("debug_mode", False))
+        self.debug_mode_action.setStatusTip("Enable verbose debug logging for all tools")
+        self.debug_mode_action.triggered.connect(self.toggle_debug_mode)
+        settings_menu.addAction(self.debug_mode_action)
+    
+    def toggle_debug_mode(self, checked: bool):
+        """Toggle global debug mode."""
+        self.config["debug_mode"] = checked
+        self.status_label.setText(f"Debug Mode: {'ON' if checked else 'OFF'}")
+        
+        # Notify all tools of debug mode change
+        for tool in self.tools:
+            if hasattr(tool, 'set_debug_mode'):
+                tool.set_debug_mode(checked)
+            if hasattr(tool, 'widget') and tool.widget:
+                if hasattr(tool.widget, 'set_debug_mode'):
+                    tool.widget.set_debug_mode(checked)
+    
+    def is_debug_mode(self) -> bool:
+        """Check if debug mode is enabled."""
+        return self.config.get("debug_mode", False)
     
     def load_tools(self):
         """Load and initialize tool modules."""
-        from tools.ultimatum import UltimatumTool
+        from tools.league_tools import LeagueToolsTool
         from tools.league_vision import LeagueVisionTool
         from tools.trade_sniper import TradeSniperTool
         
         # Create tool instances
         tool_classes = [
-            (UltimatumTool, {"config": self.config}),
+            (LeagueToolsTool, {"config": self.config}),
             (LeagueVisionTool, {"config": self.config, "overlay": self.overlay}),
             (TradeSniperTool, {"config": self.config}),
         ]
@@ -211,6 +268,14 @@ class MainWindow(QMainWindow):
                 # Connect Ultimatum overlay updates
                 if hasattr(widget, 'overlay_update'):
                     widget.overlay_update.connect(self.on_overlay_update)
+                
+                # Connect debug overlay updates
+                if hasattr(widget, 'overlay_debug_text_update'):
+                    widget.overlay_debug_text_update.connect(self.overlay.set_debug_text)
+                if hasattr(widget, 'overlay_debug_rect_update'):
+                    widget.overlay_debug_rect_update.connect(self.overlay.set_debug_rect)
+                if hasattr(widget, 'overlay_guidance_update'):
+                    widget.overlay_guidance_update.connect(self.overlay.set_guidance_text)
                 
             except Exception as e:
                 print(f"Error loading tool {tool_class.__name__}: {e}")
@@ -271,59 +336,104 @@ class MainWindow(QMainWindow):
             self.overlay.show()
             self.overlay_btn.setChecked(True)
     
-    def start_calibration(self):
-        """Start overlay calibration."""
-        self.calibration_step = 1
-        self.calibration_p1 = None
-        self.overlay.set_calibration_mode(True, "Click TOP-LEFT corner of stash grid")
+    def start_calibration(self, cal_type: CalibrationType = CalibrationType.STASH_GRID):
+        """Start calibration for a specific region type."""
+        # Start calibration and get first instruction
+        msg = self.calibration_manager.start_calibration(cal_type)
+        
+        # Enable calibration mode in overlay
+        self.overlay.set_calibration_mode(True, msg)
         self.overlay.calibration_clicked.connect(self.on_calibration_click)
-        self.status_label.setText("Calibrating...")
+        
+        config = CALIBRATION_CONFIGS[cal_type]
+        self.status_label.setText(f"Calibrating: {config.name}")
     
     def on_calibration_click(self, x: int, y: int):
-        """Handle calibration clicks."""
-        if self.calibration_step == 1:
-            self.calibration_p1 = (x, y)
-            self.calibration_step = 2
-            self.overlay.set_calibration_mode(True, "Click BOTTOM-RIGHT corner of stash grid\n(Right-click if this is a QUAD tab)")
-        elif self.calibration_step == 2:
-            self.overlay.set_calibration_mode(False)
-            self.overlay.calibration_clicked.disconnect(self.on_calibration_click)
+        """Handle calibration clicks using CalibrationManager."""
+        next_msg = self.calibration_manager.handle_click(x, y)
+        
+        if next_msg:
+            # More steps needed
+            self.overlay.set_calibration_mode(True, next_msg)
+        else:
+            # Calibration step 2 completed - now SHOW PREVIEW
+            # The calibration manager logic was modified to wait for confirmation
+            # But on_calibration_complete is called from inside the manager.
+            # We need to show preview BEFORE the confirmation dialog.
             
-            # Calculate calibration
-            p2 = (x, y)
-            # Determine if quad tab based on which mouse button was used
-            # Note: Both left and right click come through, we check the event
-            # For now, ask user or detect based on cell size
-            # A quad tab has 24x24 grid, standard has 12x12
-            # If cell size is very small (<30), it's likely a quad tab
-            ox, oy, cell = self.mapper.calculate_from_points(self.calibration_p1, p2, False)
-            
-            # Heuristic: if cell size is less than 30, assume quad tab calibration
-            is_quad = cell < 30
-            if is_quad:
-                # Recalculate with quad flag
-                ox, oy, cell = self.mapper.calculate_from_points(self.calibration_p1, p2, True)
-            
-            # Save to config
-            self.config["overlay"]["x_offset"] = ox
-            self.config["overlay"]["y_offset"] = oy
-            self.config["overlay"]["cell_size"] = cell
-            self.config["overlay"]["is_quad_calibrated"] = is_quad
-            
-            # Update mapper
-            self.mapper.offset_x = ox
-            self.mapper.offset_y = oy
-            self.mapper.cell_size = cell
-            
-            tab_type = "QUAD" if is_quad else "STANDARD"
-            self.status_label.setText(f"Calibrated: ({ox}, {oy}), cell={cell}, {tab_type}")
-            self.calibration_step = 0
-            
-            QMessageBox.information(
-                self, 
-                "Calibration Complete",
-                f"Offset: ({ox}, {oy})\nCell Size: {cell}\nTab Type: {tab_type}"
+            # Since on_calibration_complete is called with the result:
+            pass
+
+    def on_calibration_complete(self, cal_type: CalibrationType, result: dict):
+        """Handle calibration completion."""
+        config = CALIBRATION_CONFIGS[cal_type]
+        
+        # Show preview on overlay
+        if cal_type == CalibrationType.STASH_GRID:
+            is_quad = result.get('is_quad_calibrated', False)
+            self.overlay.set_calibration_preview(
+                result.get('x_offset', result.get('x', 0)),
+                result.get('y_offset', result.get('y', 0)),
+                result.get('cell_size', 52),
+                is_quad
             )
+        else:
+            # For other regions, show a simple rect preview
+            self.overlay.set_calibration_region_preview(
+                result['x'], result['y'], result['width'], result['height']
+            )
+        
+        self.overlay.set_calibration_mode(False)
+        
+        # Update mapper if this was stash grid calibration (so the preview works if we use set_calibration_preview)
+        if cal_type == CalibrationType.STASH_GRID:
+            self.mapper.offset_x = result.get('x_offset', result.get('x', 0))
+            self.mapper.offset_y = result.get('y_offset', result.get('y', 0))
+            self.mapper.cell_size = result.get('cell_size', 52)
+            
+            tab_type = "QUAD" if result.get('is_quad_calibrated', False) else "STANDARD"
+            status_msg = (f"Offset: ({self.mapper.offset_x}, {self.mapper.offset_y})\n"
+                          f"Cell Size: {self.mapper.cell_size}\n"
+                          f"Tab Type: {tab_type}")
+        else:
+            status_msg = (f"Region: ({result['x']}, {result['y']}) - "
+                          f"({result['x2']}, {result['y2']})\n"
+                          f"Size: {result['width']} x {result['height']}")
+
+        # Show blocking dialog
+        reply = QMessageBox.question(
+            self,
+            "Confirm Calibration",
+            f"{config.name} calibrated!\n\n{status_msg}\n\n"
+            "Is the highlighted region correct?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        # Clear preview
+        self.overlay.clear_calibration_preview()
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            # Confirm and save
+            self.calibration_manager.confirm_calibration(result)
+            self.status_label.setText(f"Calibrated: {config.name}")
+        else:
+            # Cancel
+            self.calibration_manager.cancel()
+            self.status_label.setText("Calibration cancelled")
+            
+        try:
+            self.overlay.calibration_clicked.disconnect(self.on_calibration_click)
+        except TypeError:
+            pass
+    
+    def show_calibration_status(self):
+        """Show current calibration status for all regions."""
+        status = get_calibration_status_text(self.calibration_manager)
+        QMessageBox.information(
+            self,
+            "Calibration Status",
+            f"Current calibration status:\n\n{status}"
+        )
     
     def save_config(self):
         """Save current configuration."""

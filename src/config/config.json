@@ -1,0 +1,33 @@
+{
+    "version": "1.0.0",
+    "theme": "dark",
+    "ultimatum": {
+        "min_profit": 20,
+        "excluded_types": [],
+        "included_types": [],
+        "excluded_rewards": [],
+        "included_rewards": [],
+        "excluded_tiers": [],
+        "included_tiers": []
+    },
+    "league_vision": {
+        "ocr_threshold": 70,
+        "debug_mode": false,
+        "scan_mode": "auto",
+        "scan_interval_mouse": 100,
+        "scan_interval_center": 500,
+        "scan_strategy": "center",
+        "scan_region": {
+            "x_offset": 0.2,
+            "y_offset": 0.1,
+            "width_pct": 0.6,
+            "height_pct": 0.8
+        }
+    },
+    "trade_sniper": {
+        "check_interval_ms": 10,
+        "cooldown_ms": 5000,
+        "auto_resume": false,
+        "auto_resume_delay_ms": 60000
+    }
+}

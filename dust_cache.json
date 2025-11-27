@@ -1,0 +1,7138 @@
+{
+  "timestamp": "2025-11-27T08:52:13.071793",
+  "dust_values": {
+    "Original Sin": {
+      "base_dust": 2257780,
+      "dust_ilvl84": 2257780,
+      "dust_ilvl84_q20": 2709336,
+      "item_type": "unknown",
+      "base_type": "Amethyst Ring"
+    },
+    "Headhunter": {
+      "base_dust": 1782320,
+      "dust_ilvl84": 1782320,
+      "dust_ilvl84_q20": 2138784,
+      "item_type": "unknown",
+      "base_type": "Leather Belt"
+    },
+    "Mageblood": {
+      "base_dust": 1782320,
+      "dust_ilvl84": 1782320,
+      "dust_ilvl84_q20": 2138784,
+      "item_type": "unknown",
+      "base_type": "Heavy Belt"
+    },
+    "Defiance of Destiny": {
+      "base_dust": 1782320,
+      "dust_ilvl84": 1782320,
+      "dust_ilvl84_q20": 2138784,
+      "item_type": "unknown",
+      "base_type": "Paua Amulet"
+    },
+    "Reefbane": {
+      "base_dust": 1702480,
+      "dust_ilvl84": 1702480,
+      "dust_ilvl84_q20": 2042976,
+      "item_type": "unknown",
+      "base_type": "Fishing Rod"
+    },
+    "Replica Shroud of the Lightless": {
+      "base_dust": 1583560,
+      "dust_ilvl84": 1583560,
+      "dust_ilvl84_q20": 1900272,
+      "item_type": "unknown",
+      "base_type": "Carnal Armour"
+    },
+    "Stasis Prison": {
+      "base_dust": 1583560,
+      "dust_ilvl84": 1583560,
+      "dust_ilvl84_q20": 1900272,
+      "item_type": "unknown",
+      "base_type": "Carnal Armour"
+    },
+    "The Squire": {
+      "base_dust": 1537440,
+      "dust_ilvl84": 1537440,
+      "dust_ilvl84_q20": 1844928,
+      "item_type": "unknown",
+      "base_type": "Elegant Round Shield"
+    },
+    "Rakiata's Dance": {
+      "base_dust": 1537440,
+      "dust_ilvl84": 1537440,
+      "dust_ilvl84_q20": 1844928,
+      "item_type": "unknown",
+      "base_type": "Engraved Greatsword"
+    },
+    "Angler's Plait": {
+      "base_dust": 1468580,
+      "dust_ilvl84": 1468580,
+      "dust_ilvl84_q20": 1762296,
+      "item_type": "unknown",
+      "base_type": "Unset Ring"
+    },
+    "Starforge": {
+      "base_dust": 1406980,
+      "dust_ilvl84": 1406980,
+      "dust_ilvl84_q20": 1688376,
+      "item_type": "unknown",
+      "base_type": "Infernal Sword"
+    },
+    "Voidforge": {
+      "base_dust": 1406980,
+      "dust_ilvl84": 1406980,
+      "dust_ilvl84_q20": 1688376,
+      "item_type": "unknown",
+      "base_type": "Infernal Sword"
+    },
+    "Replica Kongor's Undying Rage": {
+      "base_dust": 1406980,
+      "dust_ilvl84": 1406980,
+      "dust_ilvl84_q20": 1688376,
+      "item_type": "unknown",
+      "base_type": "Terror Maul"
+    },
+    "Echoforge": {
+      "base_dust": 1406980,
+      "dust_ilvl84": 1406980,
+      "dust_ilvl84_q20": 1688376,
+      "item_type": "unknown",
+      "base_type": "Infernal Sword"
+    },
+    "Lioneye's Glare": {
+      "base_dust": 1366000,
+      "dust_ilvl84": 1366000,
+      "dust_ilvl84_q20": 1639200,
+      "item_type": "unknown",
+      "base_type": "Imperial Bow"
+    },
+    "Divinarius": {
+      "base_dust": 1366000,
+      "dust_ilvl84": 1366000,
+      "dust_ilvl84_q20": 1639200,
+      "item_type": "unknown",
+      "base_type": "Imperial Skean"
+    },
+    "Essentia Sanguis": {
+      "base_dust": 1366000,
+      "dust_ilvl84": 1366000,
+      "dust_ilvl84_q20": 1639200,
+      "item_type": "unknown",
+      "base_type": "Vaal Claw"
+    },
+    "Kingmaker": {
+      "base_dust": 1366000,
+      "dust_ilvl84": 1366000,
+      "dust_ilvl84_q20": 1639200,
+      "item_type": "unknown",
+      "base_type": "Despot Axe"
+    },
+    "Soul Taker": {
+      "base_dust": 1326220,
+      "dust_ilvl84": 1326220,
+      "dust_ilvl84_q20": 1591464,
+      "item_type": "unknown",
+      "base_type": "Siege Axe"
+    },
+    "Voltaxic Rift": {
+      "base_dust": 1287580,
+      "dust_ilvl84": 1287580,
+      "dust_ilvl84_q20": 1545096,
+      "item_type": "unknown",
+      "base_type": "Spine Bow"
+    },
+    "Atziri's Disfavour": {
+      "base_dust": 1287580,
+      "dust_ilvl84": 1287580,
+      "dust_ilvl84_q20": 1545096,
+      "item_type": "unknown",
+      "base_type": "Vaal Axe"
+    },
+    "Replica Duskdawn": {
+      "base_dust": 1287580,
+      "dust_ilvl84": 1287580,
+      "dust_ilvl84_q20": 1545096,
+      "item_type": "unknown",
+      "base_type": "Maelstr\u00f6m Staff"
+    },
+    "Bloodseeker": {
+      "base_dust": 1213680,
+      "dust_ilvl84": 1213680,
+      "dust_ilvl84_q20": 1456416,
+      "item_type": "unknown",
+      "base_type": "Hellion's Paw"
+    },
+    "The Saviour": {
+      "base_dust": 1213680,
+      "dust_ilvl84": 1213680,
+      "dust_ilvl84_q20": 1456416,
+      "item_type": "unknown",
+      "base_type": "Legion Sword"
+    },
+    "Replica Tukohama's Fortress": {
+      "base_dust": 1178320,
+      "dust_ilvl84": 1178320,
+      "dust_ilvl84_q20": 1413984,
+      "item_type": "unknown",
+      "base_type": "Ebony Tower Shield"
+    },
+    "Kalandra's Touch": {
+      "base_dust": 1144000,
+      "dust_ilvl84": 1144000,
+      "dust_ilvl84_q20": 1372800,
+      "item_type": "unknown",
+      "base_type": "Ring"
+    },
+    "Bino's Kitchen Knife": {
+      "base_dust": 1078340,
+      "dust_ilvl84": 1078340,
+      "dust_ilvl84_q20": 1294008,
+      "item_type": "unknown",
+      "base_type": "Slaughter Knife"
+    },
+    "Marohi Erqi": {
+      "base_dust": 1046920,
+      "dust_ilvl84": 1046920,
+      "dust_ilvl84_q20": 1256304,
+      "item_type": "unknown",
+      "base_type": "Karui Maul"
+    },
+    "The Winds of Fate": {
+      "base_dust": 986820,
+      "dust_ilvl84": 986820,
+      "dust_ilvl84_q20": 1184184,
+      "item_type": "unknown",
+      "base_type": "Foul Staff"
+    },
+    "Hateforge": {
+      "base_dust": 779000,
+      "dust_ilvl84": 779000,
+      "dust_ilvl84_q20": 934800,
+      "item_type": "unknown",
+      "base_type": "Ancient Gauntlets"
+    },
+    "Uul-Netol's Vow": {
+      "base_dust": 734300,
+      "dust_ilvl84": 734300,
+      "dust_ilvl84_q20": 881160,
+      "item_type": "unknown",
+      "base_type": "Unset Amulet"
+    },
+    "Soul Ascension": {
+      "base_dust": 635280,
+      "dust_ilvl84": 635280,
+      "dust_ilvl84_q20": 762336,
+      "item_type": "unknown",
+      "base_type": "Carnal Mitts"
+    },
+    "Nimis": {
+      "base_dust": 635280,
+      "dust_ilvl84": 635280,
+      "dust_ilvl84_q20": 762336,
+      "item_type": "unknown",
+      "base_type": "Topaz Ring"
+    },
+    "Replica Headhunter": {
+      "base_dust": 633400,
+      "dust_ilvl84": 633400,
+      "dust_ilvl84_q20": 760080,
+      "item_type": "unknown",
+      "base_type": "Leather Belt"
+    },
+    "Yoke of Suffering": {
+      "base_dust": 472720,
+      "dust_ilvl84": 472720,
+      "dust_ilvl84_q20": 567264,
+      "item_type": "unknown",
+      "base_type": "Onyx Amulet"
+    },
+    "Manastorm": {
+      "base_dust": 420000,
+      "dust_ilvl84": 420000,
+      "dust_ilvl84_q20": 504000,
+      "item_type": "unknown",
+      "base_type": "Lacewood Spirit Shield"
+    },
+    "Replica Bated Breath": {
+      "base_dust": 412000,
+      "dust_ilvl84": 412000,
+      "dust_ilvl84_q20": 494400,
+      "item_type": "unknown",
+      "base_type": "Chain Belt"
+    },
+    "Stranglegasp": {
+      "base_dust": 406560,
+      "dust_ilvl84": 406560,
+      "dust_ilvl84_q20": 487872,
+      "item_type": "unknown",
+      "base_type": "Onyx Amulet"
+    },
+    "Replica Farrul's Fur": {
+      "base_dust": 373160,
+      "dust_ilvl84": 373160,
+      "dust_ilvl84_q20": 447792,
+      "item_type": "unknown",
+      "base_type": "Triumphant Lamellar"
+    },
+    "Kitava's Feast": {
+      "base_dust": 362300,
+      "dust_ilvl84": 362300,
+      "dust_ilvl84_q20": 434760,
+      "item_type": "unknown",
+      "base_type": "Void Axe"
+    },
+    "Replica Nebulis": {
+      "base_dust": 362300,
+      "dust_ilvl84": 362300,
+      "dust_ilvl84_q20": 434760,
+      "item_type": "unknown",
+      "base_type": "Void Sceptre"
+    },
+    "Malachai's Mark": {
+      "base_dust": 351740,
+      "dust_ilvl84": 351740,
+      "dust_ilvl84_q20": 422088,
+      "item_type": "unknown",
+      "base_type": "Murder Mitts"
+    },
+    "Replica Windripper": {
+      "base_dust": 341500,
+      "dust_ilvl84": 341500,
+      "dust_ilvl84_q20": 409800,
+      "item_type": "unknown",
+      "base_type": "Imperial Bow"
+    },
+    "Tidebreaker": {
+      "base_dust": 331560,
+      "dust_ilvl84": 331560,
+      "dust_ilvl84_q20": 397872,
+      "item_type": "unknown",
+      "base_type": "Imperial Maul"
+    },
+    "Replica Eternity Shroud": {
+      "base_dust": 331560,
+      "dust_ilvl84": 331560,
+      "dust_ilvl84_q20": 397872,
+      "item_type": "unknown",
+      "base_type": "Blood Raiment"
+    },
+    "Annihilation's Approach": {
+      "base_dust": 331560,
+      "dust_ilvl84": 331560,
+      "dust_ilvl84_q20": 397872,
+      "item_type": "unknown",
+      "base_type": "Dragonscale Boots"
+    },
+    "Eternal Damnation": {
+      "base_dust": 331560,
+      "dust_ilvl84": 331560,
+      "dust_ilvl84_q20": 397872,
+      "item_type": "unknown",
+      "base_type": "Agate Amulet"
+    },
+    "Duskdawn": {
+      "base_dust": 321900,
+      "dust_ilvl84": 321900,
+      "dust_ilvl84_q20": 386280,
+      "item_type": "unknown",
+      "base_type": "Maelstr\u00f6m Staff"
+    },
+    "The Brine Crown": {
+      "base_dust": 312520,
+      "dust_ilvl84": 312520,
+      "dust_ilvl84_q20": 375024,
+      "item_type": "unknown",
+      "base_type": "Prophet Crown"
+    },
+    "Replica Atziri's Acuity": {
+      "base_dust": 312520,
+      "dust_ilvl84": 312520,
+      "dust_ilvl84_q20": 375024,
+      "item_type": "unknown",
+      "base_type": "Vaal Gauntlets"
+    },
+    "Garukhan's Flight": {
+      "base_dust": 303420,
+      "dust_ilvl84": 303420,
+      "dust_ilvl84_q20": 364104,
+      "item_type": "unknown",
+      "base_type": "Stealth Boots"
+    },
+    "Tukohama's Fortress": {
+      "base_dust": 294580,
+      "dust_ilvl84": 294580,
+      "dust_ilvl84_q20": 353496,
+      "item_type": "unknown",
+      "base_type": "Ebony Tower Shield"
+    },
+    "Entropic Devastation": {
+      "base_dust": 269580,
+      "dust_ilvl84": 269580,
+      "dust_ilvl84_q20": 323496,
+      "item_type": "unknown",
+      "base_type": "Assassin's Mitts"
+    },
+    "Cloak of Tawm'r Isley": {
+      "base_dust": 254100,
+      "dust_ilvl84": 254100,
+      "dust_ilvl84_q20": 304920,
+      "item_type": "unknown",
+      "base_type": "Savant's Robe"
+    },
+    "Arakaali's Fang": {
+      "base_dust": 232540,
+      "dust_ilvl84": 232540,
+      "dust_ilvl84_q20": 279048,
+      "item_type": "unknown",
+      "base_type": "Fiend Dagger"
+    },
+    "Martyr of Innocence": {
+      "base_dust": 225780,
+      "dust_ilvl84": 225780,
+      "dust_ilvl84_q20": 270936,
+      "item_type": "unknown",
+      "base_type": "Highborn Staff"
+    },
+    "Song of the Sirens": {
+      "base_dust": 223900,
+      "dust_ilvl84": 223900,
+      "dust_ilvl84_q20": 268680,
+      "item_type": "unknown",
+      "base_type": "Fishing Rod"
+    },
+    "Replica Alberon's Warpath": {
+      "base_dust": 206620,
+      "dust_ilvl84": 206620,
+      "dust_ilvl84_q20": 247944,
+      "item_type": "unknown",
+      "base_type": "Soldier Boots"
+    },
+    "Replica Maloney's Mechanism": {
+      "base_dust": 183580,
+      "dust_ilvl84": 183580,
+      "dust_ilvl84_q20": 220296,
+      "item_type": "unknown",
+      "base_type": "Ornate Quiver"
+    },
+    "Replica Trypanon": {
+      "base_dust": 158360,
+      "dust_ilvl84": 158360,
+      "dust_ilvl84_q20": 190032,
+      "item_type": "unknown",
+      "base_type": "Great Mallet"
+    },
+    "Gruthkul's Pelt": {
+      "base_dust": 149260,
+      "dust_ilvl84": 149260,
+      "dust_ilvl84_q20": 179112,
+      "item_type": "unknown",
+      "base_type": "Wyrmscale Doublet"
+    },
+    "Dialla's Malefaction": {
+      "base_dust": 144920,
+      "dust_ilvl84": 144920,
+      "dust_ilvl84_q20": 173904,
+      "item_type": "unknown",
+      "base_type": "Sage's Robe"
+    },
+    "Ralakesh's Impatience": {
+      "base_dust": 140700,
+      "dust_ilvl84": 140700,
+      "dust_ilvl84_q20": 168840,
+      "item_type": "unknown",
+      "base_type": "Riveted Boots"
+    },
+    "Skyforth": {
+      "base_dust": 139540,
+      "dust_ilvl84": 139540,
+      "dust_ilvl84_q20": 167448,
+      "item_type": "unknown",
+      "base_type": "Sorcerer Boots"
+    },
+    "Wraithlord": {
+      "base_dust": 132620,
+      "dust_ilvl84": 132620,
+      "dust_ilvl84_q20": 159144,
+      "item_type": "unknown",
+      "base_type": "Bone Circlet"
+    },
+    "Eyes of the Greatwolf": {
+      "base_dust": 131520,
+      "dust_ilvl84": 131520,
+      "dust_ilvl84_q20": 157824,
+      "item_type": "unknown",
+      "base_type": "Greatwolf Talisman"
+    },
+    "The Dark Seer": {
+      "base_dust": 125000,
+      "dust_ilvl84": 125000,
+      "dust_ilvl84_q20": 150000,
+      "item_type": "unknown",
+      "base_type": "Shadow Sceptre"
+    },
+    "Ryslatha's Coil": {
+      "base_dust": 125000,
+      "dust_ilvl84": 125000,
+      "dust_ilvl84_q20": 150000,
+      "item_type": "unknown",
+      "base_type": "Studded Belt"
+    },
+    "Shade of Solaris": {
+      "base_dust": 117820,
+      "dust_ilvl84": 117820,
+      "dust_ilvl84_q20": 141384,
+      "item_type": "unknown",
+      "base_type": "Sage Wand"
+    },
+    "Void Battery": {
+      "base_dust": 113460,
+      "dust_ilvl84": 113460,
+      "dust_ilvl84_q20": 136152,
+      "item_type": "unknown",
+      "base_type": "Prophecy Wand"
+    },
+    "Rigwald's Quills": {
+      "base_dust": 113460,
+      "dust_ilvl84": 113460,
+      "dust_ilvl84_q20": 136152,
+      "item_type": "unknown",
+      "base_type": "Two-Point Arrow Quiver"
+    },
+    "The Brass Dome": {
+      "base_dust": 113460,
+      "dust_ilvl84": 113460,
+      "dust_ilvl84_q20": 136152,
+      "item_type": "unknown",
+      "base_type": "Gladiator Plate"
+    },
+    "Light of Lunaris": {
+      "base_dust": 111060,
+      "dust_ilvl84": 111060,
+      "dust_ilvl84_q20": 133272,
+      "item_type": "unknown",
+      "base_type": "Jingling Spirit Shield"
+    },
+    "Seven-League Step": {
+      "base_dust": 106940,
+      "dust_ilvl84": 106940,
+      "dust_ilvl84_q20": 128328,
+      "item_type": "unknown",
+      "base_type": "Rawhide Boots"
+    },
+    "Warrior's Legacy": {
+      "base_dust": 106940,
+      "dust_ilvl84": 106940,
+      "dust_ilvl84_q20": 128328,
+      "item_type": "unknown",
+      "base_type": "Ruby Ring"
+    },
+    "Astral Projector": {
+      "base_dust": 106940,
+      "dust_ilvl84": 106940,
+      "dust_ilvl84_q20": 128328,
+      "item_type": "unknown",
+      "base_type": "Topaz Ring"
+    },
+    "Aegis Aurora": {
+      "base_dust": 100800,
+      "dust_ilvl84": 100800,
+      "dust_ilvl84_q20": 120960,
+      "item_type": "unknown",
+      "base_type": "Champion Kite Shield"
+    },
+    "Atziri's Splendour": {
+      "base_dust": 97860,
+      "dust_ilvl84": 97860,
+      "dust_ilvl84_q20": 117432,
+      "item_type": "unknown",
+      "base_type": "Sacrificial Garb"
+    },
+    "Shroud of the Lightless": {
+      "base_dust": 95020,
+      "dust_ilvl84": 95020,
+      "dust_ilvl84_q20": 114024,
+      "item_type": "unknown",
+      "base_type": "Carnal Armour"
+    },
+    "Voll's Devotion": {
+      "base_dust": 92240,
+      "dust_ilvl84": 92240,
+      "dust_ilvl84_q20": 110688,
+      "item_type": "unknown",
+      "base_type": "Agate Amulet"
+    },
+    "Shavronne's Revelation": {
+      "base_dust": 92240,
+      "dust_ilvl84": 92240,
+      "dust_ilvl84_q20": 110688,
+      "item_type": "unknown",
+      "base_type": "Moonstone Ring"
+    },
+    "Windripper": {
+      "base_dust": 92240,
+      "dust_ilvl84": 92240,
+      "dust_ilvl84_q20": 110688,
+      "item_type": "unknown",
+      "base_type": "Imperial Bow"
+    },
+    "Magna Eclipsis": {
+      "base_dust": 92240,
+      "dust_ilvl84": 92240,
+      "dust_ilvl84_q20": 110688,
+      "item_type": "unknown",
+      "base_type": "Pinnacle Tower Shield"
+    },
+    "Doryani's Fist": {
+      "base_dust": 89560,
+      "dust_ilvl84": 89560,
+      "dust_ilvl84_q20": 107472,
+      "item_type": "unknown",
+      "base_type": "Vaal Gauntlets"
+    },
+    "Indigon": {
+      "base_dust": 89560,
+      "dust_ilvl84": 89560,
+      "dust_ilvl84_q20": 107472,
+      "item_type": "unknown",
+      "base_type": "Hubris Circlet"
+    },
+    "Farrul's Fur": {
+      "base_dust": 89560,
+      "dust_ilvl84": 89560,
+      "dust_ilvl84_q20": 107472,
+      "item_type": "unknown",
+      "base_type": "Triumphant Lamellar"
+    },
+    "Farrul's Chase": {
+      "base_dust": 89560,
+      "dust_ilvl84": 89560,
+      "dust_ilvl84_q20": 107472,
+      "item_type": "unknown",
+      "base_type": "Slink Boots"
+    },
+    "Kaom's Heart": {
+      "base_dust": 86960,
+      "dust_ilvl84": 86960,
+      "dust_ilvl84_q20": 104352,
+      "item_type": "unknown",
+      "base_type": "Glorious Plate"
+    },
+    "Rathpith Globe": {
+      "base_dust": 86960,
+      "dust_ilvl84": 86960,
+      "dust_ilvl84_q20": 104352,
+      "item_type": "unknown",
+      "base_type": "Titanium Spirit Shield"
+    },
+    "Prism Guardian": {
+      "base_dust": 86960,
+      "dust_ilvl84": 86960,
+      "dust_ilvl84_q20": 104352,
+      "item_type": "unknown",
+      "base_type": "Archon Kite Shield"
+    },
+    "Broken Faith": {
+      "base_dust": 86960,
+      "dust_ilvl84": 86960,
+      "dust_ilvl84_q20": 104352,
+      "item_type": "unknown",
+      "base_type": "Archon Kite Shield"
+    },
+    "Cospri's Malice": {
+      "base_dust": 86960,
+      "dust_ilvl84": 86960,
+      "dust_ilvl84_q20": 104352,
+      "item_type": "unknown",
+      "base_type": "Jewelled Foil"
+    },
+    "Inpulsa's Broken Heart": {
+      "base_dust": 86960,
+      "dust_ilvl84": 86960,
+      "dust_ilvl84_q20": 104352,
+      "item_type": "unknown",
+      "base_type": "Sadist Garb"
+    },
+    "Hand of Wisdom and Action": {
+      "base_dust": 86960,
+      "dust_ilvl84": 86960,
+      "dust_ilvl84_q20": 104352,
+      "item_type": "unknown",
+      "base_type": "Imperial Claw"
+    },
+    "The Red Trail": {
+      "base_dust": 86960,
+      "dust_ilvl84": 86960,
+      "dust_ilvl84_q20": 104352,
+      "item_type": "unknown",
+      "base_type": "Titan Greaves"
+    },
+    "Doryani's Delusion": {
+      "base_dust": 86960,
+      "dust_ilvl84": 86960,
+      "dust_ilvl84_q20": 104352,
+      "item_type": "unknown",
+      "base_type": "Sorcerer Boots"
+    },
+    "The Queen's Hunger": {
+      "base_dust": 86960,
+      "dust_ilvl84": 86960,
+      "dust_ilvl84_q20": 104352,
+      "item_type": "unknown",
+      "base_type": "Vaal Regalia"
+    },
+    "Maloney's Mechanism": {
+      "base_dust": 86960,
+      "dust_ilvl84": 86960,
+      "dust_ilvl84_q20": 104352,
+      "item_type": "unknown",
+      "base_type": "Ornate Quiver"
+    },
+    "Badge of the Brotherhood": {
+      "base_dust": 86960,
+      "dust_ilvl84": 86960,
+      "dust_ilvl84_q20": 104352,
+      "item_type": "unknown",
+      "base_type": "Turquoise Amulet"
+    },
+    "The Immortal Will": {
+      "base_dust": 86960,
+      "dust_ilvl84": 86960,
+      "dust_ilvl84_q20": 104352,
+      "item_type": "unknown",
+      "base_type": "Archon Kite Shield"
+    },
+    "Replica Kaom's Heart": {
+      "base_dust": 86960,
+      "dust_ilvl84": 86960,
+      "dust_ilvl84_q20": 104352,
+      "item_type": "unknown",
+      "base_type": "Glorious Plate"
+    },
+    "Replica Red Trail": {
+      "base_dust": 86960,
+      "dust_ilvl84": 86960,
+      "dust_ilvl84_q20": 104352,
+      "item_type": "unknown",
+      "base_type": "Titan Greaves"
+    },
+    "Viridi's Veil": {
+      "base_dust": 86960,
+      "dust_ilvl84": 86960,
+      "dust_ilvl84_q20": 104352,
+      "item_type": "unknown",
+      "base_type": "Praetor Crown"
+    },
+    "Doppelg\u00e4nger Guise": {
+      "base_dust": 86960,
+      "dust_ilvl84": 86960,
+      "dust_ilvl84_q20": 104352,
+      "item_type": "unknown",
+      "base_type": "Sadist Garb"
+    },
+    "Thunderfist": {
+      "base_dust": 84420,
+      "dust_ilvl84": 84420,
+      "dust_ilvl84_q20": 101304,
+      "item_type": "unknown",
+      "base_type": "Murder Mitts"
+    },
+    "Steppan Eard": {
+      "base_dust": 84420,
+      "dust_ilvl84": 84420,
+      "dust_ilvl84_q20": 101304,
+      "item_type": "unknown",
+      "base_type": "Sorcerer Boots"
+    },
+    "Heretic's Veil": {
+      "base_dust": 84420,
+      "dust_ilvl84": 84420,
+      "dust_ilvl84_q20": 101304,
+      "item_type": "unknown",
+      "base_type": "Deicide Mask"
+    },
+    "Machina Mitts": {
+      "base_dust": 84420,
+      "dust_ilvl84": 84420,
+      "dust_ilvl84_q20": 101304,
+      "item_type": "unknown",
+      "base_type": "Murder Mitts"
+    },
+    "Sporeguard": {
+      "base_dust": 84420,
+      "dust_ilvl84": 84420,
+      "dust_ilvl84_q20": 101304,
+      "item_type": "unknown",
+      "base_type": "Saint's Hauberk"
+    },
+    "Doryani's Prototype": {
+      "base_dust": 84420,
+      "dust_ilvl84": 84420,
+      "dust_ilvl84_q20": 101304,
+      "item_type": "unknown",
+      "base_type": "Saint's Hauberk"
+    },
+    "Paradoxica": {
+      "base_dust": 81960,
+      "dust_ilvl84": 81960,
+      "dust_ilvl84_q20": 98352,
+      "item_type": "unknown",
+      "base_type": "Vaal Rapier"
+    },
+    "The Yielding Mortality": {
+      "base_dust": 81960,
+      "dust_ilvl84": 81960,
+      "dust_ilvl84_q20": 98352,
+      "item_type": "unknown",
+      "base_type": "Imperial Staff"
+    },
+    "Replica Paradoxica": {
+      "base_dust": 81960,
+      "dust_ilvl84": 81960,
+      "dust_ilvl84_q20": 98352,
+      "item_type": "unknown",
+      "base_type": "Vaal Rapier"
+    },
+    "Replica Allure": {
+      "base_dust": 81960,
+      "dust_ilvl84": 81960,
+      "dust_ilvl84_q20": 98352,
+      "item_type": "unknown",
+      "base_type": "Vaal Claw"
+    },
+    "Hyrri's Ire": {
+      "base_dust": 79580,
+      "dust_ilvl84": 79580,
+      "dust_ilvl84_q20": 95496,
+      "item_type": "unknown",
+      "base_type": "Zodiac Leather"
+    },
+    "The Formless Inferno": {
+      "base_dust": 79580,
+      "dust_ilvl84": 79580,
+      "dust_ilvl84_q20": 95496,
+      "item_type": "unknown",
+      "base_type": "Royal Burgonet"
+    },
+    "The Perfect Form": {
+      "base_dust": 79580,
+      "dust_ilvl84": 79580,
+      "dust_ilvl84_q20": 95496,
+      "item_type": "unknown",
+      "base_type": "Zodiac Leather"
+    },
+    "Doedre's Skin": {
+      "base_dust": 79580,
+      "dust_ilvl84": 79580,
+      "dust_ilvl84_q20": 95496,
+      "item_type": "unknown",
+      "base_type": "Widowsilk Robe"
+    },
+    "The Eternity Shroud": {
+      "base_dust": 79580,
+      "dust_ilvl84": 79580,
+      "dust_ilvl84_q20": 95496,
+      "item_type": "unknown",
+      "base_type": "Blood Raiment"
+    },
+    "Replica Perfect Form": {
+      "base_dust": 79580,
+      "dust_ilvl84": 79580,
+      "dust_ilvl84_q20": 95496,
+      "item_type": "unknown",
+      "base_type": "Zodiac Leather"
+    },
+    "Replica Hyrri's Ire": {
+      "base_dust": 79580,
+      "dust_ilvl84": 79580,
+      "dust_ilvl84_q20": 95496,
+      "item_type": "unknown",
+      "base_type": "Zodiac Leather"
+    },
+    "Varunastra": {
+      "base_dust": 77260,
+      "dust_ilvl84": 77260,
+      "dust_ilvl84_q20": 92712,
+      "item_type": "unknown",
+      "base_type": "Vaal Blade"
+    },
+    "Uul-Netol's Embrace": {
+      "base_dust": 77260,
+      "dust_ilvl84": 77260,
+      "dust_ilvl84_q20": 92712,
+      "item_type": "unknown",
+      "base_type": "Vaal Axe"
+    },
+    "The Surrender": {
+      "base_dust": 77260,
+      "dust_ilvl84": 77260,
+      "dust_ilvl84_q20": 92712,
+      "item_type": "unknown",
+      "base_type": "Ezomyte Tower Shield"
+    },
+    "Disintegrator": {
+      "base_dust": 77260,
+      "dust_ilvl84": 77260,
+      "dust_ilvl84_q20": 92712,
+      "item_type": "unknown",
+      "base_type": "Maelstr\u00f6m Staff"
+    },
+    "Loreweave": {
+      "base_dust": 77260,
+      "dust_ilvl84": 77260,
+      "dust_ilvl84_q20": 92712,
+      "item_type": "unknown",
+      "base_type": "Elegant Ringmail"
+    },
+    "Replica Loreweave": {
+      "base_dust": 77260,
+      "dust_ilvl84": 77260,
+      "dust_ilvl84_q20": 92712,
+      "item_type": "unknown",
+      "base_type": "Elegant Ringmail"
+    },
+    "Yaomac's Accord": {
+      "base_dust": 77260,
+      "dust_ilvl84": 77260,
+      "dust_ilvl84_q20": 92712,
+      "item_type": "unknown",
+      "base_type": "Vaal Sceptre"
+    },
+    "Replica Stampede": {
+      "base_dust": 75000,
+      "dust_ilvl84": 75000,
+      "dust_ilvl84_q20": 90000,
+      "item_type": "unknown",
+      "base_type": "Assassin's Boots"
+    },
+    "Shavronne's Wrappings": {
+      "base_dust": 72820,
+      "dust_ilvl84": 72820,
+      "dust_ilvl84_q20": 87384,
+      "item_type": "unknown",
+      "base_type": "Occultist's Vestment"
+    },
+    "Darkscorn": {
+      "base_dust": 72820,
+      "dust_ilvl84": 72820,
+      "dust_ilvl84_q20": 87384,
+      "item_type": "unknown",
+      "base_type": "Assassin Bow"
+    },
+    "Kintsugi": {
+      "base_dust": 72820,
+      "dust_ilvl84": 72820,
+      "dust_ilvl84_q20": 87384,
+      "item_type": "unknown",
+      "base_type": "Exquisite Leather"
+    },
+    "Tulfall": {
+      "base_dust": 72820,
+      "dust_ilvl84": 72820,
+      "dust_ilvl84_q20": 87384,
+      "item_type": "unknown",
+      "base_type": "Opal Wand"
+    },
+    "Esh's Visage": {
+      "base_dust": 72820,
+      "dust_ilvl84": 72820,
+      "dust_ilvl84_q20": 87384,
+      "item_type": "unknown",
+      "base_type": "Vaal Spirit Shield"
+    },
+    "Arborix": {
+      "base_dust": 72820,
+      "dust_ilvl84": 72820,
+      "dust_ilvl84_q20": 87384,
+      "item_type": "unknown",
+      "base_type": "Assassin Bow"
+    },
+    "Apep's Supremacy": {
+      "base_dust": 72820,
+      "dust_ilvl84": 72820,
+      "dust_ilvl84_q20": 87384,
+      "item_type": "unknown",
+      "base_type": "Vaal Spirit Shield"
+    },
+    "The Surging Thoughts": {
+      "base_dust": 72820,
+      "dust_ilvl84": 72820,
+      "dust_ilvl84_q20": 87384,
+      "item_type": "unknown",
+      "base_type": "Legion Sword"
+    },
+    "The Admiral": {
+      "base_dust": 72820,
+      "dust_ilvl84": 72820,
+      "dust_ilvl84_q20": 87384,
+      "item_type": "unknown",
+      "base_type": "Varnished Coat"
+    },
+    "Replica Cold Iron Point": {
+      "base_dust": 72820,
+      "dust_ilvl84": 72820,
+      "dust_ilvl84_q20": 87384,
+      "item_type": "unknown",
+      "base_type": "Ezomyte Dagger"
+    },
+    "Replica Tulfall": {
+      "base_dust": 72820,
+      "dust_ilvl84": 72820,
+      "dust_ilvl84_q20": 87384,
+      "item_type": "unknown",
+      "base_type": "Opal Wand"
+    },
+    "Abberath's Hooves": {
+      "base_dust": 69220,
+      "dust_ilvl84": 69220,
+      "dust_ilvl84_q20": 83064,
+      "item_type": "unknown",
+      "base_type": "Goathide Boots"
+    },
+    "Mj\u00f6lner": {
+      "base_dust": 68640,
+      "dust_ilvl84": 68640,
+      "dust_ilvl84_q20": 82368,
+      "item_type": "unknown",
+      "base_type": "Gavel"
+    },
+    "Replica Abyssus": {
+      "base_dust": 68640,
+      "dust_ilvl84": 68640,
+      "dust_ilvl84_q20": 82368,
+      "item_type": "unknown",
+      "base_type": "Ezomyte Burgonet"
+    },
+    "Replica Mistwall": {
+      "base_dust": 68640,
+      "dust_ilvl84": 68640,
+      "dust_ilvl84_q20": 82368,
+      "item_type": "unknown",
+      "base_type": "Lacquered Buckler"
+    },
+    "The Iron Fortress": {
+      "base_dust": 66640,
+      "dust_ilvl84": 66640,
+      "dust_ilvl84_q20": 79968,
+      "item_type": "unknown",
+      "base_type": "Crusader Plate"
+    },
+    "Farrul's Pounce": {
+      "base_dust": 66640,
+      "dust_ilvl84": 66640,
+      "dust_ilvl84_q20": 79968,
+      "item_type": "unknown",
+      "base_type": "Hydrascale Gauntlets"
+    },
+    "Fleshcrafter": {
+      "base_dust": 66640,
+      "dust_ilvl84": 66640,
+      "dust_ilvl84_q20": 79968,
+      "item_type": "unknown",
+      "base_type": "Necromancer Silks"
+    },
+    "Gravebind": {
+      "base_dust": 66640,
+      "dust_ilvl84": 66640,
+      "dust_ilvl84_q20": 79968,
+      "item_type": "unknown",
+      "base_type": "Hydrascale Gauntlets"
+    },
+    "Xoph's Nurture": {
+      "base_dust": 64700,
+      "dust_ilvl84": 64700,
+      "dust_ilvl84_q20": 77640,
+      "item_type": "unknown",
+      "base_type": "Citadel Bow"
+    },
+    "Crown of the Tyrant": {
+      "base_dust": 64700,
+      "dust_ilvl84": 64700,
+      "dust_ilvl84_q20": 77640,
+      "item_type": "unknown",
+      "base_type": "Magistrate Crown"
+    },
+    "Crest of Desire": {
+      "base_dust": 64700,
+      "dust_ilvl84": 64700,
+      "dust_ilvl84_q20": 77640,
+      "item_type": "unknown",
+      "base_type": "Fluted Bascinet"
+    },
+    "Farrul's Bite": {
+      "base_dust": 62820,
+      "dust_ilvl84": 62820,
+      "dust_ilvl84_q20": 75384,
+      "item_type": "unknown",
+      "base_type": "Harlequin Mask"
+    },
+    "Offering to the Serpent": {
+      "base_dust": 62820,
+      "dust_ilvl84": 62820,
+      "dust_ilvl84_q20": 75384,
+      "item_type": "unknown",
+      "base_type": "Legion Gloves"
+    },
+    "Garb of the Ephemeral": {
+      "base_dust": 60980,
+      "dust_ilvl84": 60980,
+      "dust_ilvl84_q20": 73176,
+      "item_type": "unknown",
+      "base_type": "Savant's Robe"
+    },
+    "Maata's Teaching": {
+      "base_dust": 60980,
+      "dust_ilvl84": 60980,
+      "dust_ilvl84_q20": 73176,
+      "item_type": "unknown",
+      "base_type": "Karui Sceptre"
+    },
+    "Corpsewalker": {
+      "base_dust": 59200,
+      "dust_ilvl84": 59200,
+      "dust_ilvl84_q20": 71040,
+      "item_type": "unknown",
+      "base_type": "Carnal Boots"
+    },
+    "The Fourth Vow": {
+      "base_dust": 59200,
+      "dust_ilvl84": 59200,
+      "dust_ilvl84_q20": 71040,
+      "item_type": "unknown",
+      "base_type": "Devout Chainmail"
+    },
+    "The Devouring Diadem": {
+      "base_dust": 57480,
+      "dust_ilvl84": 57480,
+      "dust_ilvl84_q20": 68976,
+      "item_type": "unknown",
+      "base_type": "Necromancer Circlet"
+    },
+    "Qotra's Regulator": {
+      "base_dust": 57480,
+      "dust_ilvl84": 57480,
+      "dust_ilvl84_q20": 68976,
+      "item_type": "unknown",
+      "base_type": "Sovereign Spiked Shield"
+    },
+    "Atziri's Reflection": {
+      "base_dust": 57480,
+      "dust_ilvl84": 57480,
+      "dust_ilvl84_q20": 68976,
+      "item_type": "unknown",
+      "base_type": "Golden Buckler"
+    },
+    "Sandstorm Visage": {
+      "base_dust": 57480,
+      "dust_ilvl84": 57480,
+      "dust_ilvl84_q20": 68976,
+      "item_type": "unknown",
+      "base_type": "Necromancer Circlet"
+    },
+    "Utula's Hunger": {
+      "base_dust": 55820,
+      "dust_ilvl84": 55820,
+      "dust_ilvl84_q20": 66984,
+      "item_type": "unknown",
+      "base_type": "Majestic Plate"
+    },
+    "Cloak of Defiance": {
+      "base_dust": 54180,
+      "dust_ilvl84": 54180,
+      "dust_ilvl84_q20": 65016,
+      "item_type": "unknown",
+      "base_type": "Lacquered Garb"
+    },
+    "Skin of the Lords": {
+      "base_dust": 53040,
+      "dust_ilvl84": 53040,
+      "dust_ilvl84_q20": 63648,
+      "item_type": "unknown",
+      "base_type": "Simple Robe"
+    },
+    "Zerphi's Heart": {
+      "base_dust": 53040,
+      "dust_ilvl84": 53040,
+      "dust_ilvl84_q20": 63648,
+      "item_type": "unknown",
+      "base_type": "Paua Amulet"
+    },
+    "Replica Frostbreath": {
+      "base_dust": 51080,
+      "dust_ilvl84": 51080,
+      "dust_ilvl84_q20": 61296,
+      "item_type": "unknown",
+      "base_type": "Ornate Mace"
+    },
+    "The Covenant": {
+      "base_dust": 49580,
+      "dust_ilvl84": 49580,
+      "dust_ilvl84_q20": 59496,
+      "item_type": "unknown",
+      "base_type": "Spidersilk Robe"
+    },
+    "Anathema": {
+      "base_dust": 49580,
+      "dust_ilvl84": 49580,
+      "dust_ilvl84_q20": 59496,
+      "item_type": "unknown",
+      "base_type": "Moonstone Ring"
+    },
+    "Replica Covenant": {
+      "base_dust": 49580,
+      "dust_ilvl84": 49580,
+      "dust_ilvl84_q20": 59496,
+      "item_type": "unknown",
+      "base_type": "Spidersilk Robe"
+    },
+    "Winds of Change": {
+      "base_dust": 46740,
+      "dust_ilvl84": 46740,
+      "dust_ilvl84_q20": 56088,
+      "item_type": "unknown",
+      "base_type": "Ancient Gauntlets"
+    },
+    "Death Rush": {
+      "base_dust": 45380,
+      "dust_ilvl84": 45380,
+      "dust_ilvl84_q20": 54456,
+      "item_type": "unknown",
+      "base_type": "Amethyst Ring"
+    },
+    "Emperor's Vigilance": {
+      "base_dust": 45380,
+      "dust_ilvl84": 45380,
+      "dust_ilvl84_q20": 54456,
+      "item_type": "unknown",
+      "base_type": "Steel Kite Shield"
+    },
+    "Mahuxotl's Machination": {
+      "base_dust": 45380,
+      "dust_ilvl84": 45380,
+      "dust_ilvl84_q20": 54456,
+      "item_type": "unknown",
+      "base_type": "Steel Kite Shield"
+    },
+    "The Pariah": {
+      "base_dust": 44060,
+      "dust_ilvl84": 44060,
+      "dust_ilvl84_q20": 52872,
+      "item_type": "unknown",
+      "base_type": "Unset Ring"
+    },
+    "Abhorrent Interrogation": {
+      "base_dust": 44060,
+      "dust_ilvl84": 44060,
+      "dust_ilvl84_q20": 52872,
+      "item_type": "unknown",
+      "base_type": "Ambush Mitts"
+    },
+    "The Tempest's Liberation": {
+      "base_dust": 44060,
+      "dust_ilvl84": 44060,
+      "dust_ilvl84_q20": 52872,
+      "item_type": "unknown",
+      "base_type": "Callous Mask"
+    },
+    "Perfidy": {
+      "base_dust": 43840,
+      "dust_ilvl84": 43840,
+      "dust_ilvl84_q20": 52608,
+      "item_type": "unknown",
+      "base_type": "Glorious Plate"
+    },
+    "Hand of the Fervent": {
+      "base_dust": 41520,
+      "dust_ilvl84": 41520,
+      "dust_ilvl84_q20": 49824,
+      "item_type": "unknown",
+      "base_type": "Zealot Gloves"
+    },
+    "Impresence": {
+      "base_dust": 41320,
+      "dust_ilvl84": 41320,
+      "dust_ilvl84_q20": 49584,
+      "item_type": "unknown",
+      "base_type": "Onyx Amulet"
+    },
+    "Assailum": {
+      "base_dust": 41320,
+      "dust_ilvl84": 41320,
+      "dust_ilvl84_q20": 49584,
+      "item_type": "unknown",
+      "base_type": "Sinner Tricorne"
+    },
+    "Mark of the Elder": {
+      "base_dust": 38960,
+      "dust_ilvl84": 38960,
+      "dust_ilvl84_q20": 46752,
+      "item_type": "unknown",
+      "base_type": "Steel Ring"
+    },
+    "Mark of the Shaper": {
+      "base_dust": 38960,
+      "dust_ilvl84": 38960,
+      "dust_ilvl84_q20": 46752,
+      "item_type": "unknown",
+      "base_type": "Opal Ring"
+    },
+    "Polaric Devastation": {
+      "base_dust": 38960,
+      "dust_ilvl84": 38960,
+      "dust_ilvl84_q20": 46752,
+      "item_type": "unknown",
+      "base_type": "Opal Ring"
+    },
+    "Replica Soul Strike": {
+      "base_dust": 38000,
+      "dust_ilvl84": 38000,
+      "dust_ilvl84_q20": 45600,
+      "item_type": "unknown",
+      "base_type": "Spike-Point Arrow Quiver"
+    },
+    "Replica Midnight Bargain": {
+      "base_dust": 38000,
+      "dust_ilvl84": 38000,
+      "dust_ilvl84_q20": 45600,
+      "item_type": "unknown",
+      "base_type": "Engraved Wand"
+    },
+    "Brain Rattler": {
+      "base_dust": 37820,
+      "dust_ilvl84": 37820,
+      "dust_ilvl84_q20": 45384,
+      "item_type": "unknown",
+      "base_type": "Meatgrinder"
+    },
+    "Razor of the Seventh Sun": {
+      "base_dust": 37820,
+      "dust_ilvl84": 37820,
+      "dust_ilvl84_q20": 45384,
+      "item_type": "unknown",
+      "base_type": "Midnight Blade"
+    },
+    "Snakepit": {
+      "base_dust": 37820,
+      "dust_ilvl84": 37820,
+      "dust_ilvl84_q20": 45384,
+      "item_type": "unknown",
+      "base_type": "Sapphire Ring"
+    },
+    "The Scourge": {
+      "base_dust": 37820,
+      "dust_ilvl84": 37820,
+      "dust_ilvl84_q20": 45384,
+      "item_type": "unknown",
+      "base_type": "Terror Claw"
+    },
+    "Memory Vault": {
+      "base_dust": 37820,
+      "dust_ilvl84": 37820,
+      "dust_ilvl84_q20": 45384,
+      "item_type": "unknown",
+      "base_type": "Praetor Crown"
+    },
+    "Grelwood Shank": {
+      "base_dust": 37820,
+      "dust_ilvl84": 37820,
+      "dust_ilvl84_q20": 45384,
+      "item_type": "unknown",
+      "base_type": "Eternal Sword"
+    },
+    "Beltimber Blade": {
+      "base_dust": 37820,
+      "dust_ilvl84": 37820,
+      "dust_ilvl84_q20": 45384,
+      "item_type": "unknown",
+      "base_type": "Eternal Sword"
+    },
+    "Vulconus": {
+      "base_dust": 37820,
+      "dust_ilvl84": 37820,
+      "dust_ilvl84_q20": 45384,
+      "item_type": "unknown",
+      "base_type": "Demon Dagger"
+    },
+    "Augyre": {
+      "base_dust": 37820,
+      "dust_ilvl84": 37820,
+      "dust_ilvl84_q20": 45384,
+      "item_type": "unknown",
+      "base_type": "Void Sceptre"
+    },
+    "Gloomfang": {
+      "base_dust": 37820,
+      "dust_ilvl84": 37820,
+      "dust_ilvl84_q20": 45384,
+      "item_type": "unknown",
+      "base_type": "Blue Pearl Amulet"
+    },
+    "The Gull": {
+      "base_dust": 35820,
+      "dust_ilvl84": 35820,
+      "dust_ilvl84_q20": 42984,
+      "item_type": "unknown",
+      "base_type": "Raven Mask"
+    },
+    "Severed in Sleep": {
+      "base_dust": 35820,
+      "dust_ilvl84": 35820,
+      "dust_ilvl84_q20": 42984,
+      "item_type": "unknown",
+      "base_type": "Cutlass"
+    },
+    "United in Dream": {
+      "base_dust": 35820,
+      "dust_ilvl84": 35820,
+      "dust_ilvl84_q20": 42984,
+      "item_type": "unknown",
+      "base_type": "Cutlass"
+    },
+    "Blackflame": {
+      "base_dust": 35820,
+      "dust_ilvl84": 35820,
+      "dust_ilvl84_q20": 42984,
+      "item_type": "unknown",
+      "base_type": "Amethyst Ring"
+    },
+    "Maligaro's Virtuosity": {
+      "base_dust": 35640,
+      "dust_ilvl84": 35640,
+      "dust_ilvl84_q20": 42768,
+      "item_type": "unknown",
+      "base_type": "Deerskin Gloves"
+    },
+    "Asenath's Gentle Touch": {
+      "base_dust": 35640,
+      "dust_ilvl84": 35640,
+      "dust_ilvl84_q20": 42768,
+      "item_type": "unknown",
+      "base_type": "Silk Gloves"
+    },
+    "Perandus Signet": {
+      "base_dust": 35640,
+      "dust_ilvl84": 35640,
+      "dust_ilvl84_q20": 42768,
+      "item_type": "unknown",
+      "base_type": "Paua Ring"
+    },
+    "Nebuloch": {
+      "base_dust": 35640,
+      "dust_ilvl84": 35640,
+      "dust_ilvl84_q20": 42768,
+      "item_type": "unknown",
+      "base_type": "Nightmare Mace"
+    },
+    "Hopeshredder": {
+      "base_dust": 35640,
+      "dust_ilvl84": 35640,
+      "dust_ilvl84_q20": 42768,
+      "item_type": "unknown",
+      "base_type": "Ranger Bow"
+    },
+    "Shimmeron": {
+      "base_dust": 35640,
+      "dust_ilvl84": 35640,
+      "dust_ilvl84_q20": 42768,
+      "item_type": "unknown",
+      "base_type": "Tornado Wand"
+    },
+    "Beacon of Madness": {
+      "base_dust": 35640,
+      "dust_ilvl84": 35640,
+      "dust_ilvl84_q20": 42768,
+      "item_type": "unknown",
+      "base_type": "Two-Toned Boots"
+    },
+    "Sunblast": {
+      "base_dust": 34780,
+      "dust_ilvl84": 34780,
+      "dust_ilvl84_q20": 41736,
+      "item_type": "unknown",
+      "base_type": "Cloth Belt"
+    },
+    "Doon Cuebiyari": {
+      "base_dust": 34600,
+      "dust_ilvl84": 34600,
+      "dust_ilvl84_q20": 41520,
+      "item_type": "unknown",
+      "base_type": "Vaal Sceptre"
+    },
+    "Death's Door": {
+      "base_dust": 34600,
+      "dust_ilvl84": 34600,
+      "dust_ilvl84_q20": 41520,
+      "item_type": "unknown",
+      "base_type": "Crusader Boots"
+    },
+    "Auxium": {
+      "base_dust": 33600,
+      "dust_ilvl84": 33600,
+      "dust_ilvl84_q20": 40320,
+      "item_type": "unknown",
+      "base_type": "Crystal Belt"
+    },
+    "Flamesight": {
+      "base_dust": 33600,
+      "dust_ilvl84": 33600,
+      "dust_ilvl84_q20": 40320,
+      "item_type": "unknown",
+      "base_type": "Solaris Circlet"
+    },
+    "Galesight": {
+      "base_dust": 33600,
+      "dust_ilvl84": 33600,
+      "dust_ilvl84_q20": 40320,
+      "item_type": "unknown",
+      "base_type": "Solaris Circlet"
+    },
+    "Thundersight": {
+      "base_dust": 33600,
+      "dust_ilvl84": 33600,
+      "dust_ilvl84_q20": 40320,
+      "item_type": "unknown",
+      "base_type": "Solaris Circlet"
+    },
+    "The Ivory Tower": {
+      "base_dust": 33600,
+      "dust_ilvl84": 33600,
+      "dust_ilvl84_q20": 40320,
+      "item_type": "unknown",
+      "base_type": "Saint's Hauberk"
+    },
+    "Leash of Oblation": {
+      "base_dust": 33600,
+      "dust_ilvl84": 33600,
+      "dust_ilvl84_q20": 40320,
+      "item_type": "unknown",
+      "base_type": "Leather Belt"
+    },
+    "Mistwall": {
+      "base_dust": 33600,
+      "dust_ilvl84": 33600,
+      "dust_ilvl84_q20": 40320,
+      "item_type": "unknown",
+      "base_type": "Lacquered Buckler"
+    },
+    "Maw of Mischief": {
+      "base_dust": 33600,
+      "dust_ilvl84": 33600,
+      "dust_ilvl84_q20": 40320,
+      "item_type": "unknown",
+      "base_type": "Bone Helmet"
+    },
+    "The Burden of Truth": {
+      "base_dust": 33600,
+      "dust_ilvl84": 33600,
+      "dust_ilvl84_q20": 40320,
+      "item_type": "unknown",
+      "base_type": "Crystal Belt"
+    },
+    "Shadowstitch": {
+      "base_dust": 32620,
+      "dust_ilvl84": 32620,
+      "dust_ilvl84_q20": 39144,
+      "item_type": "unknown",
+      "base_type": "Sacrificial Garb"
+    },
+    "Hegemony's Era": {
+      "base_dust": 31680,
+      "dust_ilvl84": 31680,
+      "dust_ilvl84_q20": 38016,
+      "item_type": "unknown",
+      "base_type": "Judgement Staff"
+    },
+    "Replica Restless Ward": {
+      "base_dust": 31680,
+      "dust_ilvl84": 31680,
+      "dust_ilvl84_q20": 38016,
+      "item_type": "unknown",
+      "base_type": "Carnal Armour"
+    },
+    "Lioneye's Remorse": {
+      "base_dust": 30740,
+      "dust_ilvl84": 30740,
+      "dust_ilvl84_q20": 36888,
+      "item_type": "unknown",
+      "base_type": "Pinnacle Tower Shield"
+    },
+    "Incandescent Heart": {
+      "base_dust": 30740,
+      "dust_ilvl84": 30740,
+      "dust_ilvl84_q20": 36888,
+      "item_type": "unknown",
+      "base_type": "Saintly Chainmail"
+    },
+    "The Hungry Loop": {
+      "base_dust": 30740,
+      "dust_ilvl84": 30740,
+      "dust_ilvl84_q20": 36888,
+      "item_type": "unknown",
+      "base_type": "Unset Ring"
+    },
+    "Chains of Command": {
+      "base_dust": 30740,
+      "dust_ilvl84": 30740,
+      "dust_ilvl84_q20": 36888,
+      "item_type": "unknown",
+      "base_type": "Saintly Chainmail"
+    },
+    "Black Zenith": {
+      "base_dust": 30740,
+      "dust_ilvl84": 30740,
+      "dust_ilvl84_q20": 36888,
+      "item_type": "unknown",
+      "base_type": "Fingerless Silk Gloves"
+    },
+    "Crown of Eyes": {
+      "base_dust": 29860,
+      "dust_ilvl84": 29860,
+      "dust_ilvl84_q20": 35832,
+      "item_type": "unknown",
+      "base_type": "Hubris Circlet"
+    },
+    "Ylfeban's Trickery": {
+      "base_dust": 29860,
+      "dust_ilvl84": 29860,
+      "dust_ilvl84_q20": 35832,
+      "item_type": "unknown",
+      "base_type": "Hubris Circlet"
+    },
+    "Voidwalker": {
+      "base_dust": 29860,
+      "dust_ilvl84": 29860,
+      "dust_ilvl84_q20": 35832,
+      "item_type": "unknown",
+      "base_type": "Murder Boots"
+    },
+    "Bubonic Trail": {
+      "base_dust": 29860,
+      "dust_ilvl84": 29860,
+      "dust_ilvl84_q20": 35832,
+      "item_type": "unknown",
+      "base_type": "Murder Boots"
+    },
+    "Craiceann's Pincers": {
+      "base_dust": 29860,
+      "dust_ilvl84": 29860,
+      "dust_ilvl84_q20": 35832,
+      "item_type": "unknown",
+      "base_type": "Titan Gauntlets"
+    },
+    "Usurper's Penance": {
+      "base_dust": 29860,
+      "dust_ilvl84": 29860,
+      "dust_ilvl84_q20": 35832,
+      "item_type": "unknown",
+      "base_type": "Eternal Burgonet"
+    },
+    "Replica Voidwalker": {
+      "base_dust": 29860,
+      "dust_ilvl84": 29860,
+      "dust_ilvl84_q20": 35832,
+      "item_type": "unknown",
+      "base_type": "Murder Boots"
+    },
+    "Vorana's March": {
+      "base_dust": 29860,
+      "dust_ilvl84": 29860,
+      "dust_ilvl84_q20": 35832,
+      "item_type": "unknown",
+      "base_type": "Runic Sabatons"
+    },
+    "Kaom's Spirit": {
+      "base_dust": 29860,
+      "dust_ilvl84": 29860,
+      "dust_ilvl84_q20": 35832,
+      "item_type": "unknown",
+      "base_type": "Titan Gauntlets"
+    },
+    "The Shattered Divinity": {
+      "base_dust": 29120,
+      "dust_ilvl84": 29120,
+      "dust_ilvl84_q20": 34944,
+      "item_type": "unknown",
+      "base_type": "Blunt Arrow Quiver"
+    },
+    "Mon'tregul's Grasp": {
+      "base_dust": 28980,
+      "dust_ilvl84": 28980,
+      "dust_ilvl84_q20": 34776,
+      "item_type": "unknown",
+      "base_type": "Void Sceptre"
+    },
+    "Pledge of Hands": {
+      "base_dust": 28980,
+      "dust_ilvl84": 28980,
+      "dust_ilvl84_q20": 34776,
+      "item_type": "unknown",
+      "base_type": "Judgement Staff"
+    },
+    "Kaom's Roots": {
+      "base_dust": 28980,
+      "dust_ilvl84": 28980,
+      "dust_ilvl84_q20": 34776,
+      "item_type": "unknown",
+      "base_type": "Titan Greaves"
+    },
+    "Voll's Vision": {
+      "base_dust": 28980,
+      "dust_ilvl84": 28980,
+      "dust_ilvl84_q20": 34776,
+      "item_type": "unknown",
+      "base_type": "Praetor Crown"
+    },
+    "Malachai's Vision": {
+      "base_dust": 28980,
+      "dust_ilvl84": 28980,
+      "dust_ilvl84_q20": 34776,
+      "item_type": "unknown",
+      "base_type": "Praetor Crown"
+    },
+    "Cospri's Will": {
+      "base_dust": 28980,
+      "dust_ilvl84": 28980,
+      "dust_ilvl84_q20": 34776,
+      "item_type": "unknown",
+      "base_type": "Assassin's Garb"
+    },
+    "Tinkerskin": {
+      "base_dust": 28980,
+      "dust_ilvl84": 28980,
+      "dust_ilvl84_q20": 34776,
+      "item_type": "unknown",
+      "base_type": "Sadist Garb"
+    },
+    "Hand of Thought and Motion": {
+      "base_dust": 28980,
+      "dust_ilvl84": 28980,
+      "dust_ilvl84_q20": 34776,
+      "item_type": "unknown",
+      "base_type": "Imperial Claw"
+    },
+    "The Infinite Pursuit": {
+      "base_dust": 28980,
+      "dust_ilvl84": 28980,
+      "dust_ilvl84_q20": 34776,
+      "item_type": "unknown",
+      "base_type": "Titan Greaves"
+    },
+    "The Unshattered Will": {
+      "base_dust": 28980,
+      "dust_ilvl84": 28980,
+      "dust_ilvl84_q20": 34776,
+      "item_type": "unknown",
+      "base_type": "Archon Kite Shield"
+    },
+    "Invictus Solaris": {
+      "base_dust": 28980,
+      "dust_ilvl84": 28980,
+      "dust_ilvl84_q20": 34776,
+      "item_type": "unknown",
+      "base_type": "Archon Kite Shield"
+    },
+    "Cyclopean Coil": {
+      "base_dust": 28980,
+      "dust_ilvl84": 28980,
+      "dust_ilvl84_q20": 34776,
+      "item_type": "unknown",
+      "base_type": "Leather Belt"
+    },
+    "Blasphemer's Grasp": {
+      "base_dust": 28980,
+      "dust_ilvl84": 28980,
+      "dust_ilvl84_q20": 34776,
+      "item_type": "unknown",
+      "base_type": "Assassin's Mitts"
+    },
+    "The Grey Spire": {
+      "base_dust": 28980,
+      "dust_ilvl84": 28980,
+      "dust_ilvl84_q20": 34776,
+      "item_type": "unknown",
+      "base_type": "Judgement Staff"
+    },
+    "Bitterbind Point": {
+      "base_dust": 28980,
+      "dust_ilvl84": 28980,
+      "dust_ilvl84_q20": 34776,
+      "item_type": "unknown",
+      "base_type": "Titanium Spirit Shield"
+    },
+    "Nebulis": {
+      "base_dust": 28980,
+      "dust_ilvl84": 28980,
+      "dust_ilvl84_q20": 34776,
+      "item_type": "unknown",
+      "base_type": "Void Sceptre"
+    },
+    "Atziri's Rule": {
+      "base_dust": 28980,
+      "dust_ilvl84": 28980,
+      "dust_ilvl84_q20": 34776,
+      "item_type": "unknown",
+      "base_type": "Judgement Staff"
+    },
+    "Cadigan's Crown": {
+      "base_dust": 28980,
+      "dust_ilvl84": 28980,
+      "dust_ilvl84_q20": 34776,
+      "item_type": "unknown",
+      "base_type": "Runic Crown"
+    },
+    "The Taming": {
+      "base_dust": 28280,
+      "dust_ilvl84": 28280,
+      "dust_ilvl84_q20": 33936,
+      "item_type": "unknown",
+      "base_type": "Prismatic Ring"
+    },
+    "The Bringer of Rain": {
+      "base_dust": 28140,
+      "dust_ilvl84": 28140,
+      "dust_ilvl84_q20": 33768,
+      "item_type": "unknown",
+      "base_type": "Nightmare Bascinet"
+    },
+    "Replica Oro's Sacrifice": {
+      "base_dust": 28140,
+      "dust_ilvl84": 28140,
+      "dust_ilvl84_q20": 33768,
+      "item_type": "unknown",
+      "base_type": "Infernal Sword"
+    },
+    "Dawnbreaker": {
+      "base_dust": 28140,
+      "dust_ilvl84": 28140,
+      "dust_ilvl84_q20": 33768,
+      "item_type": "unknown",
+      "base_type": "Colossal Tower Shield"
+    },
+    "Dreamfeather": {
+      "base_dust": 27320,
+      "dust_ilvl84": 27320,
+      "dust_ilvl84_q20": 32784,
+      "item_type": "unknown",
+      "base_type": "Eternal Sword"
+    },
+    "Repentance": {
+      "base_dust": 27320,
+      "dust_ilvl84": 27320,
+      "dust_ilvl84_q20": 32784,
+      "item_type": "unknown",
+      "base_type": "Crusader Gloves"
+    },
+    "Shaper's Touch": {
+      "base_dust": 27320,
+      "dust_ilvl84": 27320,
+      "dust_ilvl84_q20": 32784,
+      "item_type": "unknown",
+      "base_type": "Crusader Gloves"
+    },
+    "The Enmity Divine": {
+      "base_dust": 27320,
+      "dust_ilvl84": 27320,
+      "dust_ilvl84_q20": 32784,
+      "item_type": "unknown",
+      "base_type": "Imperial Staff"
+    },
+    "Vix Lunaris": {
+      "base_dust": 27320,
+      "dust_ilvl84": 27320,
+      "dust_ilvl84_q20": 32784,
+      "item_type": "unknown",
+      "base_type": "Cardinal Round Shield"
+    },
+    "Voidfletcher": {
+      "base_dust": 27320,
+      "dust_ilvl84": 27320,
+      "dust_ilvl84_q20": 32784,
+      "item_type": "unknown",
+      "base_type": "Primal Arrow Quiver"
+    },
+    "Hands of the High Templar": {
+      "base_dust": 27320,
+      "dust_ilvl84": 27320,
+      "dust_ilvl84_q20": 32784,
+      "item_type": "unknown",
+      "base_type": "Crusader Gloves"
+    },
+    "Font of Thunder": {
+      "base_dust": 27320,
+      "dust_ilvl84": 27320,
+      "dust_ilvl84_q20": 32784,
+      "item_type": "unknown",
+      "base_type": "Mirrored Spiked Shield"
+    },
+    "Replica Dreamfeather": {
+      "base_dust": 27320,
+      "dust_ilvl84": 27320,
+      "dust_ilvl84_q20": 32784,
+      "item_type": "unknown",
+      "base_type": "Eternal Sword"
+    },
+    "The Goddess Scorned": {
+      "base_dust": 26660,
+      "dust_ilvl84": 26660,
+      "dust_ilvl84_q20": 31992,
+      "item_type": "unknown",
+      "base_type": "Elegant Sword"
+    },
+    "Rime Gaze": {
+      "base_dust": 26520,
+      "dust_ilvl84": 26520,
+      "dust_ilvl84_q20": 31824,
+      "item_type": "unknown",
+      "base_type": "Mind Cage"
+    },
+    "Infernal Mantle": {
+      "base_dust": 26520,
+      "dust_ilvl84": 26520,
+      "dust_ilvl84_q20": 31824,
+      "item_type": "unknown",
+      "base_type": "Widowsilk Robe"
+    },
+    "Ming's Heart": {
+      "base_dust": 26520,
+      "dust_ilvl84": 26520,
+      "dust_ilvl84_q20": 31824,
+      "item_type": "unknown",
+      "base_type": "Amethyst Ring"
+    },
+    "Jack, the Axe": {
+      "base_dust": 26520,
+      "dust_ilvl84": 26520,
+      "dust_ilvl84_q20": 31824,
+      "item_type": "unknown",
+      "base_type": "Vaal Hatchet"
+    },
+    "Doomsower": {
+      "base_dust": 26520,
+      "dust_ilvl84": 26520,
+      "dust_ilvl84_q20": 31824,
+      "item_type": "unknown",
+      "base_type": "Lion Sword"
+    },
+    "Scold's Bridle": {
+      "base_dust": 26520,
+      "dust_ilvl84": 26520,
+      "dust_ilvl84_q20": 31824,
+      "item_type": "unknown",
+      "base_type": "Mind Cage"
+    },
+    "The Formless Flame": {
+      "base_dust": 26520,
+      "dust_ilvl84": 26520,
+      "dust_ilvl84_q20": 31824,
+      "item_type": "unknown",
+      "base_type": "Royal Burgonet"
+    },
+    "The Snowblind Grace": {
+      "base_dust": 26520,
+      "dust_ilvl84": 26520,
+      "dust_ilvl84_q20": 31824,
+      "item_type": "unknown",
+      "base_type": "Zodiac Leather"
+    },
+    "Saqawal's Nest": {
+      "base_dust": 26520,
+      "dust_ilvl84": 26520,
+      "dust_ilvl84_q20": 31824,
+      "item_type": "unknown",
+      "base_type": "Blood Raiment"
+    },
+    "Fenumus' Shroud": {
+      "base_dust": 26520,
+      "dust_ilvl84": 26520,
+      "dust_ilvl84_q20": 31824,
+      "item_type": "unknown",
+      "base_type": "Widowsilk Robe"
+    },
+    "Hale Negator": {
+      "base_dust": 26520,
+      "dust_ilvl84": 26520,
+      "dust_ilvl84_q20": 31824,
+      "item_type": "unknown",
+      "base_type": "Mind Cage"
+    },
+    "Echoes of Creation": {
+      "base_dust": 26520,
+      "dust_ilvl84": 26520,
+      "dust_ilvl84_q20": 31824,
+      "item_type": "unknown",
+      "base_type": "Royal Burgonet"
+    },
+    "Taryn's Shiver": {
+      "base_dust": 25760,
+      "dust_ilvl84": 25760,
+      "dust_ilvl84_q20": 30912,
+      "item_type": "unknown",
+      "base_type": "Maelstr\u00f6m Staff"
+    },
+    "Alpha's Howl": {
+      "base_dust": 25760,
+      "dust_ilvl84": 25760,
+      "dust_ilvl84_q20": 30912,
+      "item_type": "unknown",
+      "base_type": "Sinner Tricorne"
+    },
+    "Rebuke of the Vaal": {
+      "base_dust": 25760,
+      "dust_ilvl84": 25760,
+      "dust_ilvl84_q20": 30912,
+      "item_type": "unknown",
+      "base_type": "Vaal Blade"
+    },
+    "Hezmana's Bloodlust": {
+      "base_dust": 25760,
+      "dust_ilvl84": 25760,
+      "dust_ilvl84_q20": 30912,
+      "item_type": "unknown",
+      "base_type": "Vaal Axe"
+    },
+    "Reach of the Council": {
+      "base_dust": 25760,
+      "dust_ilvl84": 25760,
+      "dust_ilvl84_q20": 30912,
+      "item_type": "unknown",
+      "base_type": "Spine Bow"
+    },
+    "Uul-Netol's Kiss": {
+      "base_dust": 25760,
+      "dust_ilvl84": 25760,
+      "dust_ilvl84_q20": 30912,
+      "item_type": "unknown",
+      "base_type": "Vaal Axe"
+    },
+    "The Anticipation": {
+      "base_dust": 25760,
+      "dust_ilvl84": 25760,
+      "dust_ilvl84_q20": 30912,
+      "item_type": "unknown",
+      "base_type": "Ezomyte Tower Shield"
+    },
+    "Replica Alpha's Howl": {
+      "base_dust": 25760,
+      "dust_ilvl84": 25760,
+      "dust_ilvl84_q20": 30912,
+      "item_type": "unknown",
+      "base_type": "Sinner Tricorne"
+    },
+    "Daresso's Defiance": {
+      "base_dust": 25000,
+      "dust_ilvl84": 25000,
+      "dust_ilvl84_q20": 30000,
+      "item_type": "unknown",
+      "base_type": "Full Dragonscale"
+    },
+    "Atziri's Acuity": {
+      "base_dust": 25000,
+      "dust_ilvl84": 25000,
+      "dust_ilvl84_q20": 30000,
+      "item_type": "unknown",
+      "base_type": "Vaal Gauntlets"
+    },
+    "Fenumus' Spinnerets": {
+      "base_dust": 25000,
+      "dust_ilvl84": 25000,
+      "dust_ilvl84_q20": 30000,
+      "item_type": "unknown",
+      "base_type": "Assassin's Boots"
+    },
+    "Crown of the Inward Eye": {
+      "base_dust": 25000,
+      "dust_ilvl84": 25000,
+      "dust_ilvl84_q20": 30000,
+      "item_type": "unknown",
+      "base_type": "Prophet Crown"
+    },
+    "Astramentis": {
+      "base_dust": 24400,
+      "dust_ilvl84": 24400,
+      "dust_ilvl84_q20": 29280,
+      "item_type": "unknown",
+      "base_type": "Onyx Amulet"
+    },
+    "Presence of Chayula": {
+      "base_dust": 24400,
+      "dust_ilvl84": 24400,
+      "dust_ilvl84_q20": 29280,
+      "item_type": "unknown",
+      "base_type": "Onyx Amulet"
+    },
+    "Aul's Uprising": {
+      "base_dust": 24400,
+      "dust_ilvl84": 24400,
+      "dust_ilvl84_q20": 29280,
+      "item_type": "unknown",
+      "base_type": "Onyx Amulet"
+    },
+    "Solstice Vigil": {
+      "base_dust": 24400,
+      "dust_ilvl84": 24400,
+      "dust_ilvl84_q20": 29280,
+      "item_type": "unknown",
+      "base_type": "Onyx Amulet"
+    },
+    "Leadership's Price": {
+      "base_dust": 24400,
+      "dust_ilvl84": 24400,
+      "dust_ilvl84_q20": 29280,
+      "item_type": "unknown",
+      "base_type": "Onyx Amulet"
+    },
+    "Crystallised Omniscience": {
+      "base_dust": 24400,
+      "dust_ilvl84": 24400,
+      "dust_ilvl84_q20": 29280,
+      "item_type": "unknown",
+      "base_type": "Onyx Amulet"
+    },
+    "Ashes of the Stars": {
+      "base_dust": 24400,
+      "dust_ilvl84": 24400,
+      "dust_ilvl84_q20": 29280,
+      "item_type": "unknown",
+      "base_type": "Onyx Amulet"
+    },
+    "Stormfire": {
+      "base_dust": 24340,
+      "dust_ilvl84": 24340,
+      "dust_ilvl84_q20": 29208,
+      "item_type": "unknown",
+      "base_type": "Opal Ring"
+    },
+    "The Searing Touch": {
+      "base_dust": 24280,
+      "dust_ilvl84": 24280,
+      "dust_ilvl84_q20": 29136,
+      "item_type": "unknown",
+      "base_type": "Lathi"
+    },
+    "Carcass Jack": {
+      "base_dust": 24280,
+      "dust_ilvl84": 24280,
+      "dust_ilvl84_q20": 29136,
+      "item_type": "unknown",
+      "base_type": "Varnished Coat"
+    },
+    "Death's Oath": {
+      "base_dust": 24280,
+      "dust_ilvl84": 24280,
+      "dust_ilvl84_q20": 29136,
+      "item_type": "unknown",
+      "base_type": "Astral Plate"
+    },
+    "The Vertex": {
+      "base_dust": 24280,
+      "dust_ilvl84": 24280,
+      "dust_ilvl84_q20": 29136,
+      "item_type": "unknown",
+      "base_type": "Vaal Mask"
+    },
+    "Tulborn": {
+      "base_dust": 24280,
+      "dust_ilvl84": 24280,
+      "dust_ilvl84_q20": 29136,
+      "item_type": "unknown",
+      "base_type": "Opal Wand"
+    },
+    "Esh's Mirror": {
+      "base_dust": 24280,
+      "dust_ilvl84": 24280,
+      "dust_ilvl84_q20": 29136,
+      "item_type": "unknown",
+      "base_type": "Vaal Spirit Shield"
+    },
+    "Yriel's Fostering": {
+      "base_dust": 24280,
+      "dust_ilvl84": 24280,
+      "dust_ilvl84_q20": 29136,
+      "item_type": "unknown",
+      "base_type": "Exquisite Leather"
+    },
+    "The Rippling Thoughts": {
+      "base_dust": 24280,
+      "dust_ilvl84": 24280,
+      "dust_ilvl84_q20": 29136,
+      "item_type": "unknown",
+      "base_type": "Legion Sword"
+    },
+    "Perepiteia": {
+      "base_dust": 24280,
+      "dust_ilvl84": 24280,
+      "dust_ilvl84_q20": 29136,
+      "item_type": "unknown",
+      "base_type": "Ezomyte Spiked Shield"
+    },
+    "Fractal Thoughts": {
+      "base_dust": 24280,
+      "dust_ilvl84": 24280,
+      "dust_ilvl84_q20": 29136,
+      "item_type": "unknown",
+      "base_type": "Vaal Mask"
+    },
+    "Cold Iron Point": {
+      "base_dust": 24280,
+      "dust_ilvl84": 24280,
+      "dust_ilvl84_q20": 29136,
+      "item_type": "unknown",
+      "base_type": "Ezomyte Dagger"
+    },
+    "Law of the Wilds": {
+      "base_dust": 24280,
+      "dust_ilvl84": 24280,
+      "dust_ilvl84_q20": 29136,
+      "item_type": "unknown",
+      "base_type": "Hellion's Paw"
+    },
+    "Blunderbore": {
+      "base_dust": 24280,
+      "dust_ilvl84": 24280,
+      "dust_ilvl84_q20": 29136,
+      "item_type": "unknown",
+      "base_type": "Astral Plate"
+    },
+    "Replica Wings of Entropy": {
+      "base_dust": 24280,
+      "dust_ilvl84": 24280,
+      "dust_ilvl84_q20": 29136,
+      "item_type": "unknown",
+      "base_type": "Ezomyte Axe"
+    },
+    "Glimpse of Chaos": {
+      "base_dust": 24280,
+      "dust_ilvl84": 24280,
+      "dust_ilvl84_q20": 29136,
+      "item_type": "unknown",
+      "base_type": "Vaal Mask"
+    },
+    "Dawnstrider": {
+      "base_dust": 24280,
+      "dust_ilvl84": 24280,
+      "dust_ilvl84_q20": 29136,
+      "item_type": "unknown",
+      "base_type": "Vaal Greaves"
+    },
+    "Rigwald's Savagery": {
+      "base_dust": 23640,
+      "dust_ilvl84": 23640,
+      "dust_ilvl84_q20": 28368,
+      "item_type": "unknown",
+      "base_type": "Royal Axe"
+    },
+    "Rigwald's Command": {
+      "base_dust": 23640,
+      "dust_ilvl84": 23640,
+      "dust_ilvl84_q20": 28368,
+      "item_type": "unknown",
+      "base_type": "Midnight Blade"
+    },
+    "Slivertongue": {
+      "base_dust": 23640,
+      "dust_ilvl84": 23640,
+      "dust_ilvl84_q20": 28368,
+      "item_type": "unknown",
+      "base_type": "Harbinger Bow"
+    },
+    "Obscurantis": {
+      "base_dust": 23640,
+      "dust_ilvl84": 23640,
+      "dust_ilvl84_q20": 28368,
+      "item_type": "unknown",
+      "base_type": "Lion Pelt"
+    },
+    "Inya's Epiphany": {
+      "base_dust": 23560,
+      "dust_ilvl84": 23560,
+      "dust_ilvl84_q20": 28272,
+      "item_type": "unknown",
+      "base_type": "Arcanist Slippers"
+    },
+    "Replica Inya's Epiphany": {
+      "base_dust": 23560,
+      "dust_ilvl84": 23560,
+      "dust_ilvl84_q20": 28272,
+      "item_type": "unknown",
+      "base_type": "Arcanist Slippers"
+    },
+    "Abyssus": {
+      "base_dust": 22880,
+      "dust_ilvl84": 22880,
+      "dust_ilvl84_q20": 27456,
+      "item_type": "unknown",
+      "base_type": "Ezomyte Burgonet"
+    },
+    "Lightning Coil": {
+      "base_dust": 22880,
+      "dust_ilvl84": 22880,
+      "dust_ilvl84_q20": 27456,
+      "item_type": "unknown",
+      "base_type": "Desert Brigandine"
+    },
+    "Null's Inclination": {
+      "base_dust": 22880,
+      "dust_ilvl84": 22880,
+      "dust_ilvl84_q20": 27456,
+      "item_type": "unknown",
+      "base_type": "Ranger Bow"
+    },
+    "Dyadian Dawn": {
+      "base_dust": 22880,
+      "dust_ilvl84": 22880,
+      "dust_ilvl84_q20": 27456,
+      "item_type": "unknown",
+      "base_type": "Heavy Belt"
+    },
+    "Rigwald's Curse": {
+      "base_dust": 22880,
+      "dust_ilvl84": 22880,
+      "dust_ilvl84_q20": 27456,
+      "item_type": "unknown",
+      "base_type": "Wereclaw Talisman"
+    },
+    "Grip of the Council": {
+      "base_dust": 22880,
+      "dust_ilvl84": 22880,
+      "dust_ilvl84_q20": 27456,
+      "item_type": "unknown",
+      "base_type": "Arcanist Gloves"
+    },
+    "Saqawal's Flock": {
+      "base_dust": 22880,
+      "dust_ilvl84": 22880,
+      "dust_ilvl84_q20": 27456,
+      "item_type": "unknown",
+      "base_type": "Silken Hood"
+    },
+    "The Iron Mass": {
+      "base_dust": 22880,
+      "dust_ilvl84": 22880,
+      "dust_ilvl84_q20": 27456,
+      "item_type": "unknown",
+      "base_type": "Gladius"
+    },
+    "The Hidden Blade": {
+      "base_dust": 22880,
+      "dust_ilvl84": 22880,
+      "dust_ilvl84_q20": 27456,
+      "item_type": "unknown",
+      "base_type": "Ambusher"
+    },
+    "The Fulcrum": {
+      "base_dust": 22880,
+      "dust_ilvl84": 22880,
+      "dust_ilvl84_q20": 27456,
+      "item_type": "unknown",
+      "base_type": "Ezomyte Staff"
+    },
+    "Replica Grip of the Council": {
+      "base_dust": 22880,
+      "dust_ilvl84": 22880,
+      "dust_ilvl84_q20": 27456,
+      "item_type": "unknown",
+      "base_type": "Arcanist Gloves"
+    },
+    "Cameria's Avarice": {
+      "base_dust": 22880,
+      "dust_ilvl84": 22880,
+      "dust_ilvl84_q20": 27456,
+      "item_type": "unknown",
+      "base_type": "Gavel"
+    },
+    "Contract: The Twins": {
+      "base_dust": 22580,
+      "dust_ilvl84": 22580,
+      "dust_ilvl84_q20": 27096,
+      "item_type": "unknown",
+      "base_type": "Vengeful Contract"
+    },
+    "Algor Mortis": {
+      "base_dust": 22280,
+      "dust_ilvl84": 22280,
+      "dust_ilvl84_q20": 26736,
+      "item_type": "unknown",
+      "base_type": "Carnal Mitts"
+    },
+    "Saffell's Frame": {
+      "base_dust": 22220,
+      "dust_ilvl84": 22220,
+      "dust_ilvl84_q20": 26664,
+      "item_type": "unknown",
+      "base_type": "Branded Kite Shield"
+    },
+    "Queen of the Forest": {
+      "base_dust": 22220,
+      "dust_ilvl84": 22220,
+      "dust_ilvl84_q20": 26664,
+      "item_type": "unknown",
+      "base_type": "Destiny Leather"
+    },
+    "Saqawal's Talons": {
+      "base_dust": 22220,
+      "dust_ilvl84": 22220,
+      "dust_ilvl84_q20": 26664,
+      "item_type": "unknown",
+      "base_type": "Hydrascale Boots"
+    },
+    "Breathstealer": {
+      "base_dust": 22220,
+      "dust_ilvl84": 22220,
+      "dust_ilvl84_q20": 26664,
+      "item_type": "unknown",
+      "base_type": "Hydrascale Gauntlets"
+    },
+    "Expedition's End": {
+      "base_dust": 22220,
+      "dust_ilvl84": 22220,
+      "dust_ilvl84_q20": 26664,
+      "item_type": "unknown",
+      "base_type": "Sentinel Jacket"
+    },
+    "Wilma's Requital": {
+      "base_dust": 22220,
+      "dust_ilvl84": 22220,
+      "dust_ilvl84_q20": 26664,
+      "item_type": "unknown",
+      "base_type": "Solaris Circlet"
+    },
+    "Gamblesprint": {
+      "base_dust": 22220,
+      "dust_ilvl84": 22220,
+      "dust_ilvl84_q20": 26664,
+      "item_type": "unknown",
+      "base_type": "Hydrascale Boots"
+    },
+    "First Piece of Focus": {
+      "base_dust": 21920,
+      "dust_ilvl84": 21920,
+      "dust_ilvl84_q20": 26304,
+      "item_type": "unknown",
+      "base_type": "Archon Kite Shield Piece"
+    },
+    "Second Piece of Focus": {
+      "base_dust": 21920,
+      "dust_ilvl84": 21920,
+      "dust_ilvl84_q20": 26304,
+      "item_type": "unknown",
+      "base_type": "Archon Kite Shield Piece"
+    },
+    "Third Piece of Focus": {
+      "base_dust": 21920,
+      "dust_ilvl84": 21920,
+      "dust_ilvl84_q20": 26304,
+      "item_type": "unknown",
+      "base_type": "Archon Kite Shield Piece"
+    },
+    "Fourth Piece of Focus": {
+      "base_dust": 21920,
+      "dust_ilvl84": 21920,
+      "dust_ilvl84_q20": 26304,
+      "item_type": "unknown",
+      "base_type": "Archon Kite Shield Piece"
+    },
+    "First Piece of Storms": {
+      "base_dust": 21920,
+      "dust_ilvl84": 21920,
+      "dust_ilvl84_q20": 26304,
+      "item_type": "unknown",
+      "base_type": "Callous Mask Piece"
+    },
+    "Second Piece of Storms": {
+      "base_dust": 21920,
+      "dust_ilvl84": 21920,
+      "dust_ilvl84_q20": 26304,
+      "item_type": "unknown",
+      "base_type": "Callous Mask Piece"
+    },
+    "Third Piece of Storms": {
+      "base_dust": 21920,
+      "dust_ilvl84": 21920,
+      "dust_ilvl84_q20": 26304,
+      "item_type": "unknown",
+      "base_type": "Callous Mask Piece"
+    },
+    "Contract: Death to Darnaw": {
+      "base_dust": 21920,
+      "dust_ilvl84": 21920,
+      "dust_ilvl84_q20": 26304,
+      "item_type": "unknown",
+      "base_type": "Naval Contract"
+    },
+    "Unyielding Flame": {
+      "base_dust": 21640,
+      "dust_ilvl84": 21640,
+      "dust_ilvl84_q20": 25968,
+      "item_type": "unknown",
+      "base_type": "Archon Kite Shield"
+    },
+    "Xoph's Inception": {
+      "base_dust": 21560,
+      "dust_ilvl84": 21560,
+      "dust_ilvl84_q20": 25872,
+      "item_type": "unknown",
+      "base_type": "Citadel Bow"
+    },
+    "Craiceann's Chitin": {
+      "base_dust": 21560,
+      "dust_ilvl84": 21560,
+      "dust_ilvl84_q20": 25872,
+      "item_type": "unknown",
+      "base_type": "Magistrate Crown"
+    },
+    "Mask of the Stitched Demon": {
+      "base_dust": 21560,
+      "dust_ilvl84": 21560,
+      "dust_ilvl84_q20": 25872,
+      "item_type": "unknown",
+      "base_type": "Magistrate Crown"
+    },
+    "Storm's Gift": {
+      "base_dust": 21560,
+      "dust_ilvl84": 21560,
+      "dust_ilvl84_q20": 25872,
+      "item_type": "unknown",
+      "base_type": "Assassin's Mitts"
+    },
+    "Mask of the Tribunal": {
+      "base_dust": 21560,
+      "dust_ilvl84": 21560,
+      "dust_ilvl84_q20": 25872,
+      "item_type": "unknown",
+      "base_type": "Magistrate Crown"
+    },
+    "Contract: Heart of Glory": {
+      "base_dust": 21280,
+      "dust_ilvl84": 21280,
+      "dust_ilvl84_q20": 25536,
+      "item_type": "unknown",
+      "base_type": "Familial Contract"
+    },
+    "The Magnate": {
+      "base_dust": 21040,
+      "dust_ilvl84": 21040,
+      "dust_ilvl84_q20": 25248,
+      "item_type": "unknown",
+      "base_type": "Studded Belt"
+    },
+    "The Torrent's Reclamation": {
+      "base_dust": 21040,
+      "dust_ilvl84": 21040,
+      "dust_ilvl84_q20": 25248,
+      "item_type": "unknown",
+      "base_type": "Cloth Belt"
+    },
+    "Replica Soul Tether": {
+      "base_dust": 21040,
+      "dust_ilvl84": 21040,
+      "dust_ilvl84_q20": 25248,
+      "item_type": "unknown",
+      "base_type": "Cloth Belt"
+    },
+    "Replica Ungil's Gauche": {
+      "base_dust": 21040,
+      "dust_ilvl84": 21040,
+      "dust_ilvl84_q20": 25248,
+      "item_type": "unknown",
+      "base_type": "Boot Knife"
+    },
+    "Replica Badge of the Brotherhood": {
+      "base_dust": 21040,
+      "dust_ilvl84": 21040,
+      "dust_ilvl84_q20": 25248,
+      "item_type": "unknown",
+      "base_type": "Turquoise Amulet"
+    },
+    "Perseverance": {
+      "base_dust": 21000,
+      "dust_ilvl84": 21000,
+      "dust_ilvl84_q20": 25200,
+      "item_type": "unknown",
+      "base_type": "Vanguard Belt"
+    },
+    "The Black Cane": {
+      "base_dust": 21000,
+      "dust_ilvl84": 21000,
+      "dust_ilvl84_q20": 25200,
+      "item_type": "unknown",
+      "base_type": "Royal Sceptre"
+    },
+    "Willowgift": {
+      "base_dust": 21000,
+      "dust_ilvl84": 21000,
+      "dust_ilvl84_q20": 25200,
+      "item_type": "unknown",
+      "base_type": "Jade Amulet"
+    },
+    "Eye of Malice": {
+      "base_dust": 21000,
+      "dust_ilvl84": 21000,
+      "dust_ilvl84_q20": 25200,
+      "item_type": "unknown",
+      "base_type": "Callous Mask"
+    },
+    "Ancient Skull": {
+      "base_dust": 21000,
+      "dust_ilvl84": 21000,
+      "dust_ilvl84_q20": 25200,
+      "item_type": "unknown",
+      "base_type": "Bone Helmet"
+    },
+    "Mind of the Council": {
+      "base_dust": 20940,
+      "dust_ilvl84": 20940,
+      "dust_ilvl84_q20": 25128,
+      "item_type": "unknown",
+      "base_type": "Harlequin Mask"
+    },
+    "The Crimson Storm": {
+      "base_dust": 20940,
+      "dust_ilvl84": 20940,
+      "dust_ilvl84_q20": 25128,
+      "item_type": "unknown",
+      "base_type": "Steelwood Bow"
+    },
+    "Kaom's Binding": {
+      "base_dust": 20940,
+      "dust_ilvl84": 20940,
+      "dust_ilvl84_q20": 25128,
+      "item_type": "unknown",
+      "base_type": "Heavy Belt"
+    },
+    "Contract: Breaking the Unbreakable": {
+      "base_dust": 20660,
+      "dust_ilvl84": 20660,
+      "dust_ilvl84_q20": 24792,
+      "item_type": "unknown",
+      "base_type": "Preventative Contract"
+    },
+    "Contract: The Slaver King": {
+      "base_dust": 20660,
+      "dust_ilvl84": 20660,
+      "dust_ilvl84_q20": 24792,
+      "item_type": "unknown",
+      "base_type": "Vigilante Contract"
+    },
+    "The Rat Cage": {
+      "base_dust": 20320,
+      "dust_ilvl84": 20320,
+      "dust_ilvl84_q20": 24384,
+      "item_type": "unknown",
+      "base_type": "Sharkskin Tunic"
+    },
+    "Craiceann's Carapace": {
+      "base_dust": 20320,
+      "dust_ilvl84": 20320,
+      "dust_ilvl84_q20": 24384,
+      "item_type": "unknown",
+      "base_type": "Golden Plate"
+    },
+    "Fate of the Vaal": {
+      "base_dust": 20320,
+      "dust_ilvl84": 20320,
+      "dust_ilvl84_q20": 24384,
+      "item_type": "unknown",
+      "base_type": "Gemstone Sword"
+    },
+    "Replica Dragonfang's Flight": {
+      "base_dust": 20320,
+      "dust_ilvl84": 20320,
+      "dust_ilvl84_q20": 24384,
+      "item_type": "unknown",
+      "base_type": "Onyx Amulet"
+    },
+    "Lioneye's Vision": {
+      "base_dust": 19800,
+      "dust_ilvl84": 19800,
+      "dust_ilvl84_q20": 23760,
+      "item_type": "unknown",
+      "base_type": "Crusader Plate"
+    },
+    "Brinerot Mark": {
+      "base_dust": 19740,
+      "dust_ilvl84": 19740,
+      "dust_ilvl84_q20": 23688,
+      "item_type": "unknown",
+      "base_type": "Unset Ring"
+    },
+    "Redblade Band": {
+      "base_dust": 19740,
+      "dust_ilvl84": 19740,
+      "dust_ilvl84_q20": 23688,
+      "item_type": "unknown",
+      "base_type": "Unset Ring"
+    },
+    "Mutewind Seal": {
+      "base_dust": 19740,
+      "dust_ilvl84": 19740,
+      "dust_ilvl84_q20": 23688,
+      "item_type": "unknown",
+      "base_type": "Unset Ring"
+    },
+    "Ngamahu's Flame": {
+      "base_dust": 19740,
+      "dust_ilvl84": 19740,
+      "dust_ilvl84_q20": 23688,
+      "item_type": "unknown",
+      "base_type": "Abyssal Axe"
+    },
+    "Omeyocan": {
+      "base_dust": 19740,
+      "dust_ilvl84": 19740,
+      "dust_ilvl84_q20": 23688,
+      "item_type": "unknown",
+      "base_type": "Carnal Boots"
+    },
+    "Tavukai": {
+      "base_dust": 19740,
+      "dust_ilvl84": 19740,
+      "dust_ilvl84_q20": 23688,
+      "item_type": "unknown",
+      "base_type": "Coral Amulet"
+    },
+    "Replica Three-step Assault": {
+      "base_dust": 19740,
+      "dust_ilvl84": 19740,
+      "dust_ilvl84_q20": 23688,
+      "item_type": "unknown",
+      "base_type": "Shagreen Boots"
+    },
+    "Temptation Step": {
+      "base_dust": 19740,
+      "dust_ilvl84": 19740,
+      "dust_ilvl84_q20": 23688,
+      "item_type": "unknown",
+      "base_type": "Shagreen Boots"
+    },
+    "Great Old One's Tentacles": {
+      "base_dust": 19220,
+      "dust_ilvl84": 19220,
+      "dust_ilvl84_q20": 23064,
+      "item_type": "unknown",
+      "base_type": "Eelskin Gloves"
+    },
+    "Ceaseless Feast": {
+      "base_dust": 19220,
+      "dust_ilvl84": 19220,
+      "dust_ilvl84_q20": 23064,
+      "item_type": "unknown",
+      "base_type": "Spiked Gloves"
+    },
+    "Inextricable Fate": {
+      "base_dust": 19220,
+      "dust_ilvl84": 19220,
+      "dust_ilvl84_q20": 23064,
+      "item_type": "unknown",
+      "base_type": "Fugitive Boots"
+    },
+    "Chitus' Apex": {
+      "base_dust": 19160,
+      "dust_ilvl84": 19160,
+      "dust_ilvl84_q20": 22992,
+      "item_type": "unknown",
+      "base_type": "Necromancer Circlet"
+    },
+    "Daresso's Courage": {
+      "base_dust": 19160,
+      "dust_ilvl84": 19160,
+      "dust_ilvl84_q20": 22992,
+      "item_type": "unknown",
+      "base_type": "Baroque Round Shield"
+    },
+    "Craiceann's Tracks": {
+      "base_dust": 19160,
+      "dust_ilvl84": 19160,
+      "dust_ilvl84_q20": 22992,
+      "item_type": "unknown",
+      "base_type": "Goliath Greaves"
+    },
+    "Fenumus' Toxins": {
+      "base_dust": 19160,
+      "dust_ilvl84": 19160,
+      "dust_ilvl84_q20": 22992,
+      "item_type": "unknown",
+      "base_type": "Necromancer Circlet"
+    },
+    "Eye of Innocence": {
+      "base_dust": 18900,
+      "dust_ilvl84": 18900,
+      "dust_ilvl84_q20": 22680,
+      "item_type": "unknown",
+      "base_type": "Citrine Amulet"
+    },
+    "First Piece of Brutality": {
+      "base_dust": 18900,
+      "dust_ilvl84": 18900,
+      "dust_ilvl84_q20": 22680,
+      "item_type": "unknown",
+      "base_type": "Imperial Staff Piece"
+    },
+    "Second Piece of Brutality": {
+      "base_dust": 18900,
+      "dust_ilvl84": 18900,
+      "dust_ilvl84_q20": 22680,
+      "item_type": "unknown",
+      "base_type": "Imperial Staff Piece"
+    },
+    "Third Piece of Brutality": {
+      "base_dust": 18900,
+      "dust_ilvl84": 18900,
+      "dust_ilvl84_q20": 22680,
+      "item_type": "unknown",
+      "base_type": "Imperial Staff Piece"
+    },
+    "First Piece of Directions": {
+      "base_dust": 18900,
+      "dust_ilvl84": 18900,
+      "dust_ilvl84_q20": 22680,
+      "item_type": "unknown",
+      "base_type": "Blunt Arrow Quiver Piece"
+    },
+    "Second Piece of Directions": {
+      "base_dust": 18900,
+      "dust_ilvl84": 18900,
+      "dust_ilvl84_q20": 22680,
+      "item_type": "unknown",
+      "base_type": "Blunt Arrow Quiver Piece"
+    },
+    "Third Piece of Directions": {
+      "base_dust": 18900,
+      "dust_ilvl84": 18900,
+      "dust_ilvl84_q20": 22680,
+      "item_type": "unknown",
+      "base_type": "Blunt Arrow Quiver Piece"
+    },
+    "Leper's Alms": {
+      "base_dust": 18900,
+      "dust_ilvl84": 18900,
+      "dust_ilvl84_q20": 22680,
+      "item_type": "unknown",
+      "base_type": "Mirrored Spiked Shield"
+    },
+    "Atziri's Foible": {
+      "base_dust": 18700,
+      "dust_ilvl84": 18700,
+      "dust_ilvl84_q20": 22440,
+      "item_type": "unknown",
+      "base_type": "Paua Amulet"
+    },
+    "Ahkeli's Meadow": {
+      "base_dust": 18700,
+      "dust_ilvl84": 18700,
+      "dust_ilvl84_q20": 22440,
+      "item_type": "unknown",
+      "base_type": "Ruby Ring"
+    },
+    "Replica Emberwake": {
+      "base_dust": 18700,
+      "dust_ilvl84": 18700,
+      "dust_ilvl84_q20": 22440,
+      "item_type": "unknown",
+      "base_type": "Ruby Ring"
+    },
+    "Dyadus": {
+      "base_dust": 18660,
+      "dust_ilvl84": 18660,
+      "dust_ilvl84_q20": 22392,
+      "item_type": "unknown",
+      "base_type": "Infernal Axe"
+    },
+    "Atziri's Step": {
+      "base_dust": 18660,
+      "dust_ilvl84": 18660,
+      "dust_ilvl84_q20": 22392,
+      "item_type": "unknown",
+      "base_type": "Slink Boots"
+    },
+    "Cherrubim's Maleficence": {
+      "base_dust": 18660,
+      "dust_ilvl84": 18660,
+      "dust_ilvl84_q20": 22392,
+      "item_type": "unknown",
+      "base_type": "Triumphant Lamellar"
+    },
+    "Eber's Unification": {
+      "base_dust": 18660,
+      "dust_ilvl84": 18660,
+      "dust_ilvl84_q20": 22392,
+      "item_type": "unknown",
+      "base_type": "Hubris Circlet"
+    },
+    "Medved's Challenge": {
+      "base_dust": 18660,
+      "dust_ilvl84": 18660,
+      "dust_ilvl84_q20": 22392,
+      "item_type": "unknown",
+      "base_type": "Runic Gauntlets"
+    },
+    "Rainbowstride": {
+      "base_dust": 18600,
+      "dust_ilvl84": 18600,
+      "dust_ilvl84_q20": 22320,
+      "item_type": "unknown",
+      "base_type": "Conjurer Boots"
+    },
+    "Apep's Rage": {
+      "base_dust": 18600,
+      "dust_ilvl84": 18600,
+      "dust_ilvl84_q20": 22320,
+      "item_type": "unknown",
+      "base_type": "Omen Wand"
+    },
+    "Lightpoacher": {
+      "base_dust": 18600,
+      "dust_ilvl84": 18600,
+      "dust_ilvl84_q20": 22320,
+      "item_type": "unknown",
+      "base_type": "Great Crown"
+    },
+    "Forbidden Shako": {
+      "base_dust": 18600,
+      "dust_ilvl84": 18600,
+      "dust_ilvl84_q20": 22320,
+      "item_type": "unknown",
+      "base_type": "Great Crown"
+    },
+    "Replica Infractem": {
+      "base_dust": 18600,
+      "dust_ilvl84": 18600,
+      "dust_ilvl84_q20": 22320,
+      "item_type": "unknown",
+      "base_type": "Decimation Bow"
+    },
+    "The Beast Fur Shawl": {
+      "base_dust": 18120,
+      "dust_ilvl84": 18120,
+      "dust_ilvl84_q20": 21744,
+      "item_type": "unknown",
+      "base_type": "Vaal Regalia"
+    },
+    "Touch of Anguish": {
+      "base_dust": 18120,
+      "dust_ilvl84": 18120,
+      "dust_ilvl84_q20": 21744,
+      "item_type": "unknown",
+      "base_type": "Imperial Claw"
+    },
+    "Ahn's Contempt": {
+      "base_dust": 18120,
+      "dust_ilvl84": 18120,
+      "dust_ilvl84_q20": 21744,
+      "item_type": "unknown",
+      "base_type": "Praetor Crown"
+    },
+    "Ahn's Might": {
+      "base_dust": 18120,
+      "dust_ilvl84": 18120,
+      "dust_ilvl84_q20": 21744,
+      "item_type": "unknown",
+      "base_type": "Midnight Blade"
+    },
+    "Gorgon's Gaze": {
+      "base_dust": 18060,
+      "dust_ilvl84": 18060,
+      "dust_ilvl84_q20": 21672,
+      "item_type": "unknown",
+      "base_type": "Regicide Mask"
+    },
+    "Profane Proxy": {
+      "base_dust": 18060,
+      "dust_ilvl84": 18060,
+      "dust_ilvl84_q20": 21672,
+      "item_type": "unknown",
+      "base_type": "Unset Ring"
+    },
+    "Witchhunter's Judgment": {
+      "base_dust": 18060,
+      "dust_ilvl84": 18060,
+      "dust_ilvl84_q20": 21672,
+      "item_type": "unknown",
+      "base_type": "Highborn Staff"
+    },
+    "Akoya's Gaze": {
+      "base_dust": 18060,
+      "dust_ilvl84": 18060,
+      "dust_ilvl84_q20": 21672,
+      "item_type": "unknown",
+      "base_type": "Regicide Mask"
+    },
+    "The Ephemeral Bond": {
+      "base_dust": 17820,
+      "dust_ilvl84": 17820,
+      "dust_ilvl84_q20": 21384,
+      "item_type": "unknown",
+      "base_type": "Lapis Amulet"
+    },
+    "Kongor's Undying Rage": {
+      "base_dust": 17580,
+      "dust_ilvl84": 17580,
+      "dust_ilvl84_q20": 21096,
+      "item_type": "unknown",
+      "base_type": "Terror Maul"
+    },
+    "Ahn's Heritage": {
+      "base_dust": 17580,
+      "dust_ilvl84": 17580,
+      "dust_ilvl84_q20": 21096,
+      "item_type": "unknown",
+      "base_type": "Colossal Tower Shield"
+    },
+    "Saqawal's Winds": {
+      "base_dust": 17540,
+      "dust_ilvl84": 17540,
+      "dust_ilvl84_q20": 21048,
+      "item_type": "unknown",
+      "base_type": "Soldier Gloves"
+    },
+    "Legacy of Fury": {
+      "base_dust": 17540,
+      "dust_ilvl84": 17540,
+      "dust_ilvl84_q20": 21048,
+      "item_type": "unknown",
+      "base_type": "Wyrmscale Boots"
+    },
+    "Devoto's Devotion": {
+      "base_dust": 17300,
+      "dust_ilvl84": 17300,
+      "dust_ilvl84_q20": 20760,
+      "item_type": "unknown",
+      "base_type": "Nightmare Bascinet"
+    },
+    "Bloodgrip": {
+      "base_dust": 17300,
+      "dust_ilvl84": 17300,
+      "dust_ilvl84_q20": 20760,
+      "item_type": "unknown",
+      "base_type": "Marble Amulet"
+    },
+    "Agnerod East": {
+      "base_dust": 17080,
+      "dust_ilvl84": 17080,
+      "dust_ilvl84_q20": 20496,
+      "item_type": "unknown",
+      "base_type": "Imperial Staff"
+    },
+    "Agnerod North": {
+      "base_dust": 17080,
+      "dust_ilvl84": 17080,
+      "dust_ilvl84_q20": 20496,
+      "item_type": "unknown",
+      "base_type": "Imperial Staff"
+    },
+    "Agnerod South": {
+      "base_dust": 17080,
+      "dust_ilvl84": 17080,
+      "dust_ilvl84_q20": 20496,
+      "item_type": "unknown",
+      "base_type": "Imperial Staff"
+    },
+    "Agnerod West": {
+      "base_dust": 17080,
+      "dust_ilvl84": 17080,
+      "dust_ilvl84_q20": 20496,
+      "item_type": "unknown",
+      "base_type": "Imperial Staff"
+    },
+    "Breath of the Council": {
+      "base_dust": 17080,
+      "dust_ilvl84": 17080,
+      "dust_ilvl84_q20": 20496,
+      "item_type": "unknown",
+      "base_type": "Carnal Sceptre"
+    },
+    "The Poised Prism": {
+      "base_dust": 17080,
+      "dust_ilvl84": 17080,
+      "dust_ilvl84_q20": 20496,
+      "item_type": "unknown",
+      "base_type": "Primal Arrow Quiver"
+    },
+    "Andvarius": {
+      "base_dust": 17020,
+      "dust_ilvl84": 17020,
+      "dust_ilvl84_q20": 20424,
+      "item_type": "unknown",
+      "base_type": "Gold Ring"
+    },
+    "Star of Wraeclast": {
+      "base_dust": 17020,
+      "dust_ilvl84": 17020,
+      "dust_ilvl84_q20": 20424,
+      "item_type": "unknown",
+      "base_type": "Ruby Amulet"
+    },
+    "Fenumus' Weave": {
+      "base_dust": 17020,
+      "dust_ilvl84": 17020,
+      "dust_ilvl84_q20": 20424,
+      "item_type": "unknown",
+      "base_type": "Carnal Mitts"
+    },
+    "Replica Victario's Charity": {
+      "base_dust": 17020,
+      "dust_ilvl84": 17020,
+      "dust_ilvl84_q20": 20424,
+      "item_type": "unknown",
+      "base_type": "Laminated Kite Shield"
+    },
+    "Replica Heartbreaker": {
+      "base_dust": 17020,
+      "dust_ilvl84": 17020,
+      "dust_ilvl84_q20": 20424,
+      "item_type": "unknown",
+      "base_type": "Royal Skean"
+    },
+    "Worldcarver": {
+      "base_dust": 16800,
+      "dust_ilvl84": 16800,
+      "dust_ilvl84_q20": 20160,
+      "item_type": "unknown",
+      "base_type": "Dragonscale Gauntlets"
+    },
+    "Painseeker": {
+      "base_dust": 16800,
+      "dust_ilvl84": 16800,
+      "dust_ilvl84_q20": 20160,
+      "item_type": "unknown",
+      "base_type": "Shagreen Gloves"
+    },
+    "The Poet's Pen": {
+      "base_dust": 16620,
+      "dust_ilvl84": 16620,
+      "dust_ilvl84_q20": 19944,
+      "item_type": "unknown",
+      "base_type": "Carved Wand"
+    },
+    "Putembo's Mountain": {
+      "base_dust": 16620,
+      "dust_ilvl84": 16620,
+      "dust_ilvl84_q20": 19944,
+      "item_type": "unknown",
+      "base_type": "Topaz Ring"
+    },
+    "Rise of the Phoenix": {
+      "base_dust": 16580,
+      "dust_ilvl84": 16580,
+      "dust_ilvl84_q20": 19896,
+      "item_type": "unknown",
+      "base_type": "Mosaic Kite Shield"
+    },
+    "Darkray Vectors": {
+      "base_dust": 16580,
+      "dust_ilvl84": 16580,
+      "dust_ilvl84_q20": 19896,
+      "item_type": "unknown",
+      "base_type": "Dragonscale Boots"
+    },
+    "Vis Mortis": {
+      "base_dust": 16580,
+      "dust_ilvl84": 16580,
+      "dust_ilvl84_q20": 19896,
+      "item_type": "unknown",
+      "base_type": "Necromancer Silks"
+    },
+    "Ventor's Gamble": {
+      "base_dust": 16580,
+      "dust_ilvl84": 16580,
+      "dust_ilvl84_q20": 19896,
+      "item_type": "unknown",
+      "base_type": "Gold Ring"
+    },
+    "Malachai's Loop": {
+      "base_dust": 16580,
+      "dust_ilvl84": 16580,
+      "dust_ilvl84_q20": 19896,
+      "item_type": "unknown",
+      "base_type": "Harmonic Spirit Shield"
+    },
+    "Cane of Kulemak": {
+      "base_dust": 16520,
+      "dust_ilvl84": 16520,
+      "dust_ilvl84_q20": 19824,
+      "item_type": "unknown",
+      "base_type": "Serpentine Staff"
+    },
+    "The Scales of Justice": {
+      "base_dust": 16520,
+      "dust_ilvl84": 16520,
+      "dust_ilvl84_q20": 19824,
+      "item_type": "unknown",
+      "base_type": "Chiming Spirit Shield"
+    },
+    "Bound Fate": {
+      "base_dust": 16520,
+      "dust_ilvl84": 16520,
+      "dust_ilvl84_q20": 19824,
+      "item_type": "unknown",
+      "base_type": "Cloth Belt"
+    },
+    "Death's Hand": {
+      "base_dust": 16320,
+      "dust_ilvl84": 16320,
+      "dust_ilvl84_q20": 19584,
+      "item_type": "unknown",
+      "base_type": "Karui Sceptre"
+    },
+    "Doryani's Catalyst": {
+      "base_dust": 16100,
+      "dust_ilvl84": 16100,
+      "dust_ilvl84_q20": 19320,
+      "item_type": "unknown",
+      "base_type": "Vaal Sceptre"
+    },
+    "Soul Strike": {
+      "base_dust": 16100,
+      "dust_ilvl84": 16100,
+      "dust_ilvl84_q20": 19320,
+      "item_type": "unknown",
+      "base_type": "Spike-Point Arrow Quiver"
+    },
+    "Geofri's Sanctuary": {
+      "base_dust": 16100,
+      "dust_ilvl84": 16100,
+      "dust_ilvl84_q20": 19320,
+      "item_type": "unknown",
+      "base_type": "Elegant Ringmail"
+    },
+    "Hyrri's Truth": {
+      "base_dust": 16100,
+      "dust_ilvl84": 16100,
+      "dust_ilvl84_q20": 19320,
+      "item_type": "unknown",
+      "base_type": "Jade Amulet"
+    },
+    "Rashkaldor's Patience": {
+      "base_dust": 16040,
+      "dust_ilvl84": 16040,
+      "dust_ilvl84_q20": 19248,
+      "item_type": "unknown",
+      "base_type": "Jade Amulet"
+    },
+    "Maw of Conquest": {
+      "base_dust": 16040,
+      "dust_ilvl84": 16040,
+      "dust_ilvl84_q20": 19248,
+      "item_type": "unknown",
+      "base_type": "Steel Circlet"
+    },
+    "The Jinxed Juju": {
+      "base_dust": 16040,
+      "dust_ilvl84": 16040,
+      "dust_ilvl84_q20": 19248,
+      "item_type": "unknown",
+      "base_type": "Citrine Amulet"
+    },
+    "The Restless Ward": {
+      "base_dust": 15840,
+      "dust_ilvl84": 15840,
+      "dust_ilvl84_q20": 19008,
+      "item_type": "unknown",
+      "base_type": "Carnal Armour"
+    },
+    "Replica Siegebreaker": {
+      "base_dust": 15660,
+      "dust_ilvl84": 15660,
+      "dust_ilvl84_q20": 18792,
+      "item_type": "unknown",
+      "base_type": "Heavy Belt"
+    },
+    "Speaker's Wreath": {
+      "base_dust": 15620,
+      "dust_ilvl84": 15620,
+      "dust_ilvl84_q20": 18744,
+      "item_type": "unknown",
+      "base_type": "Prophet Crown"
+    },
+    "The Stampede": {
+      "base_dust": 15620,
+      "dust_ilvl84": 15620,
+      "dust_ilvl84_q20": 18744,
+      "item_type": "unknown",
+      "base_type": "Assassin's Boots"
+    },
+    "Actum": {
+      "base_dust": 15620,
+      "dust_ilvl84": 15620,
+      "dust_ilvl84_q20": 18744,
+      "item_type": "unknown",
+      "base_type": "Butcher Axe"
+    },
+    "Cerberus Limb": {
+      "base_dust": 15580,
+      "dust_ilvl84": 15580,
+      "dust_ilvl84_q20": 18696,
+      "item_type": "unknown",
+      "base_type": "Blood Sceptre"
+    },
+    "Replica Kalisa's Grace": {
+      "base_dust": 15580,
+      "dust_ilvl84": 15580,
+      "dust_ilvl84_q20": 18696,
+      "item_type": "unknown",
+      "base_type": "Samite Gloves"
+    },
+    "Replica Innsbury Edge": {
+      "base_dust": 15580,
+      "dust_ilvl84": 15580,
+      "dust_ilvl84_q20": 18696,
+      "item_type": "unknown",
+      "base_type": "Elder Sword"
+    },
+    "Jaws of Agony": {
+      "base_dust": 15380,
+      "dust_ilvl84": 15380,
+      "dust_ilvl84_q20": 18456,
+      "item_type": "unknown",
+      "base_type": "Supreme Spiked Shield"
+    },
+    "Rive": {
+      "base_dust": 15380,
+      "dust_ilvl84": 15380,
+      "dust_ilvl84_q20": 18456,
+      "item_type": "unknown",
+      "base_type": "Terror Claw"
+    },
+    "Mercenary's Lot": {
+      "base_dust": 15380,
+      "dust_ilvl84": 15380,
+      "dust_ilvl84_q20": 18456,
+      "item_type": "unknown",
+      "base_type": "Slink Gloves"
+    },
+    "The Oppressor": {
+      "base_dust": 15380,
+      "dust_ilvl84": 15380,
+      "dust_ilvl84_q20": 18456,
+      "item_type": "unknown",
+      "base_type": "Elegant Round Shield"
+    },
+    "Hyaon's Fury": {
+      "base_dust": 15180,
+      "dust_ilvl84": 15180,
+      "dust_ilvl84_q20": 18216,
+      "item_type": "unknown",
+      "base_type": "Legion Sword"
+    },
+    "Singularity": {
+      "base_dust": 15180,
+      "dust_ilvl84": 15180,
+      "dust_ilvl84_q20": 18216,
+      "item_type": "unknown",
+      "base_type": "Platinum Sceptre"
+    },
+    "Apep's Slumber": {
+      "base_dust": 15180,
+      "dust_ilvl84": 15180,
+      "dust_ilvl84_q20": 18216,
+      "item_type": "unknown",
+      "base_type": "Vaal Spirit Shield"
+    },
+    "Belly of the Beast": {
+      "base_dust": 15120,
+      "dust_ilvl84": 15120,
+      "dust_ilvl84_q20": 18144,
+      "item_type": "unknown",
+      "base_type": "Full Wyrmscale"
+    },
+    "Redblade Tramplers": {
+      "base_dust": 15120,
+      "dust_ilvl84": 15120,
+      "dust_ilvl84_q20": 18144,
+      "item_type": "unknown",
+      "base_type": "Ancient Greaves"
+    },
+    "Veruso's Battering Rams": {
+      "base_dust": 14920,
+      "dust_ilvl84": 14920,
+      "dust_ilvl84_q20": 17904,
+      "item_type": "unknown",
+      "base_type": "Titan Gauntlets"
+    },
+    "Asenath's Mark": {
+      "base_dust": 14760,
+      "dust_ilvl84": 14760,
+      "dust_ilvl84_q20": 17712,
+      "item_type": "unknown",
+      "base_type": "Iron Circlet"
+    },
+    "Uzaza's Valley": {
+      "base_dust": 14760,
+      "dust_ilvl84": 14760,
+      "dust_ilvl84_q20": 17712,
+      "item_type": "unknown",
+      "base_type": "Sapphire Ring"
+    },
+    "Scorpion's Call": {
+      "base_dust": 14720,
+      "dust_ilvl84": 14720,
+      "dust_ilvl84_q20": 17664,
+      "item_type": "unknown",
+      "base_type": "Heavy Arrow Quiver"
+    },
+    "Soulthirst": {
+      "base_dust": 14680,
+      "dust_ilvl84": 14680,
+      "dust_ilvl84_q20": 17616,
+      "item_type": "unknown",
+      "base_type": "Cloth Belt"
+    },
+    "The Tempest's Binding": {
+      "base_dust": 14680,
+      "dust_ilvl84": 14680,
+      "dust_ilvl84_q20": 17616,
+      "item_type": "unknown",
+      "base_type": "Callous Mask"
+    },
+    "Slavedriver's Hand": {
+      "base_dust": 14680,
+      "dust_ilvl84": 14680,
+      "dust_ilvl84_q20": 17616,
+      "item_type": "unknown",
+      "base_type": "Ambush Mitts"
+    },
+    "Vivinsect": {
+      "base_dust": 14680,
+      "dust_ilvl84": 14680,
+      "dust_ilvl84_q20": 17616,
+      "item_type": "unknown",
+      "base_type": "Unset Ring"
+    },
+    "Replica Malachai's Artifice": {
+      "base_dust": 14680,
+      "dust_ilvl84": 14680,
+      "dust_ilvl84_q20": 17616,
+      "item_type": "unknown",
+      "base_type": "Unset Ring"
+    },
+    "Replica Voideye": {
+      "base_dust": 14680,
+      "dust_ilvl84": 14680,
+      "dust_ilvl84_q20": 17616,
+      "item_type": "unknown",
+      "base_type": "Unset Ring"
+    },
+    "Rotblood Promise": {
+      "base_dust": 14680,
+      "dust_ilvl84": 14680,
+      "dust_ilvl84_q20": 17616,
+      "item_type": "unknown",
+      "base_type": "Unset Ring"
+    },
+    "Triumvirate Authority": {
+      "base_dust": 14680,
+      "dust_ilvl84": 14680,
+      "dust_ilvl84_q20": 17616,
+      "item_type": "unknown",
+      "base_type": "Unset Ring"
+    },
+    "Izaro's Dilemma": {
+      "base_dust": 14500,
+      "dust_ilvl84": 14500,
+      "dust_ilvl84_q20": 17400,
+      "item_type": "unknown",
+      "base_type": "Imperial Claw"
+    },
+    "Nuro's Harp": {
+      "base_dust": 14500,
+      "dust_ilvl84": 14500,
+      "dust_ilvl84_q20": 17400,
+      "item_type": "unknown",
+      "base_type": "Harbinger Bow"
+    },
+    "Xoph's Blood": {
+      "base_dust": 14320,
+      "dust_ilvl84": 14320,
+      "dust_ilvl84_q20": 17184,
+      "item_type": "unknown",
+      "base_type": "Amber Amulet"
+    },
+    "The Pandemonius": {
+      "base_dust": 14320,
+      "dust_ilvl84": 14320,
+      "dust_ilvl84_q20": 17184,
+      "item_type": "unknown",
+      "base_type": "Jade Amulet"
+    },
+    "Choir of the Storm": {
+      "base_dust": 14320,
+      "dust_ilvl84": 14320,
+      "dust_ilvl84_q20": 17184,
+      "item_type": "unknown",
+      "base_type": "Lapis Amulet"
+    },
+    "Replica Hyrri's Truth": {
+      "base_dust": 14320,
+      "dust_ilvl84": 14320,
+      "dust_ilvl84_q20": 17184,
+      "item_type": "unknown",
+      "base_type": "Jade Amulet"
+    },
+    "Starkonja's Head": {
+      "base_dust": 14300,
+      "dust_ilvl84": 14300,
+      "dust_ilvl84_q20": 17160,
+      "item_type": "unknown",
+      "base_type": "Silken Hood"
+    },
+    "Romira's Banquet": {
+      "base_dust": 14300,
+      "dust_ilvl84": 14300,
+      "dust_ilvl84_q20": 17160,
+      "item_type": "unknown",
+      "base_type": "Diamond Ring"
+    },
+    "Scaeva": {
+      "base_dust": 14300,
+      "dust_ilvl84": 14300,
+      "dust_ilvl84_q20": 17160,
+      "item_type": "unknown",
+      "base_type": "Gladius"
+    },
+    "Cane of Unravelling": {
+      "base_dust": 14300,
+      "dust_ilvl84": 14300,
+      "dust_ilvl84_q20": 17160,
+      "item_type": "unknown",
+      "base_type": "Ezomyte Staff"
+    },
+    "Soulwrest": {
+      "base_dust": 14300,
+      "dust_ilvl84": 14300,
+      "dust_ilvl84_q20": 17160,
+      "item_type": "unknown",
+      "base_type": "Ezomyte Staff"
+    },
+    "Cowl of the Thermophile": {
+      "base_dust": 14300,
+      "dust_ilvl84": 14300,
+      "dust_ilvl84_q20": 17160,
+      "item_type": "unknown",
+      "base_type": "Ezomyte Burgonet"
+    },
+    "Cowl of the Cryophile": {
+      "base_dust": 14300,
+      "dust_ilvl84": 14300,
+      "dust_ilvl84_q20": 17160,
+      "item_type": "unknown",
+      "base_type": "Silken Hood"
+    },
+    "The Blood Dance": {
+      "base_dust": 14260,
+      "dust_ilvl84": 14260,
+      "dust_ilvl84_q20": 17112,
+      "item_type": "unknown",
+      "base_type": "Sharkskin Boots"
+    },
+    "Hinekora's Sight": {
+      "base_dust": 14260,
+      "dust_ilvl84": 14260,
+      "dust_ilvl84_q20": 17112,
+      "item_type": "unknown",
+      "base_type": "Onyx Amulet"
+    },
+    "Replica Hinekora's Sight": {
+      "base_dust": 14260,
+      "dust_ilvl84": 14260,
+      "dust_ilvl84_q20": 17112,
+      "item_type": "unknown",
+      "base_type": "Onyx Amulet"
+    },
+    "Oro's Sacrifice": {
+      "base_dust": 14060,
+      "dust_ilvl84": 14060,
+      "dust_ilvl84_q20": 16872,
+      "item_type": "unknown",
+      "base_type": "Infernal Sword"
+    },
+    "Surgebinders": {
+      "base_dust": 14060,
+      "dust_ilvl84": 14060,
+      "dust_ilvl84_q20": 16872,
+      "item_type": "unknown",
+      "base_type": "Dragonscale Gauntlets"
+    },
+    "Piscator's Vigil": {
+      "base_dust": 13880,
+      "dust_ilvl84": 13880,
+      "dust_ilvl84_q20": 16656,
+      "item_type": "unknown",
+      "base_type": "Imbued Wand"
+    },
+    "The Dancing Dervish": {
+      "base_dust": 13880,
+      "dust_ilvl84": 13880,
+      "dust_ilvl84_q20": 16656,
+      "item_type": "unknown",
+      "base_type": "Reaver Sword"
+    },
+    "Hiltless": {
+      "base_dust": 13880,
+      "dust_ilvl84": 13880,
+      "dust_ilvl84_q20": 16656,
+      "item_type": "unknown",
+      "base_type": "Reaver Sword"
+    },
+    "Dendrobate": {
+      "base_dust": 13880,
+      "dust_ilvl84": 13880,
+      "dust_ilvl84_q20": 16656,
+      "item_type": "unknown",
+      "base_type": "Sentinel Jacket"
+    },
+    "Cowl of the Ceraunophile": {
+      "base_dust": 13880,
+      "dust_ilvl84": 13880,
+      "dust_ilvl84_q20": 16656,
+      "item_type": "unknown",
+      "base_type": "Solaris Circlet"
+    },
+    "Haemophilia": {
+      "base_dust": 13840,
+      "dust_ilvl84": 13840,
+      "dust_ilvl84_q20": 16608,
+      "item_type": "unknown",
+      "base_type": "Serpentscale Gauntlets"
+    },
+    "Volkuur's Guidance": {
+      "base_dust": 13840,
+      "dust_ilvl84": 13840,
+      "dust_ilvl84_q20": 16608,
+      "item_type": "unknown",
+      "base_type": "Zealot Gloves"
+    },
+    "Replica Volkuur's Guidance": {
+      "base_dust": 13840,
+      "dust_ilvl84": 13840,
+      "dust_ilvl84_q20": 16608,
+      "item_type": "unknown",
+      "base_type": "Zealot Gloves"
+    },
+    "Callinellus Malleus": {
+      "base_dust": 13660,
+      "dust_ilvl84": 13660,
+      "dust_ilvl84_q20": 16392,
+      "item_type": "unknown",
+      "base_type": "Auric Mace"
+    },
+    "The Goddess Unleashed": {
+      "base_dust": 13660,
+      "dust_ilvl84": 13660,
+      "dust_ilvl84_q20": 16392,
+      "item_type": "unknown",
+      "base_type": "Eternal Sword"
+    },
+    "Allure": {
+      "base_dust": 13660,
+      "dust_ilvl84": 13660,
+      "dust_ilvl84_q20": 16392,
+      "item_type": "unknown",
+      "base_type": "Vaal Claw"
+    },
+    "Debeon's Dirge": {
+      "base_dust": 13660,
+      "dust_ilvl84": 13660,
+      "dust_ilvl84_q20": 16392,
+      "item_type": "unknown",
+      "base_type": "Despot Axe"
+    },
+    "White Wind": {
+      "base_dust": 13660,
+      "dust_ilvl84": 13660,
+      "dust_ilvl84_q20": 16392,
+      "item_type": "unknown",
+      "base_type": "Imperial Skean"
+    },
+    "Kaom's Primacy": {
+      "base_dust": 13480,
+      "dust_ilvl84": 13480,
+      "dust_ilvl84_q20": 16176,
+      "item_type": "unknown",
+      "base_type": "Karui Chopper"
+    },
+    "Snakebite": {
+      "base_dust": 13480,
+      "dust_ilvl84": 13480,
+      "dust_ilvl84_q20": 16176,
+      "item_type": "unknown",
+      "base_type": "Assassin's Mitts"
+    },
+    "Ichimonji": {
+      "base_dust": 13480,
+      "dust_ilvl84": 13480,
+      "dust_ilvl84_q20": 16176,
+      "item_type": "unknown",
+      "base_type": "Corsair Sword"
+    },
+    "Mask of the Spirit Drinker": {
+      "base_dust": 13480,
+      "dust_ilvl84": 13480,
+      "dust_ilvl84_q20": 16176,
+      "item_type": "unknown",
+      "base_type": "Magistrate Crown"
+    },
+    "The Ghastly Theatre": {
+      "base_dust": 13480,
+      "dust_ilvl84": 13480,
+      "dust_ilvl84_q20": 16176,
+      "item_type": "unknown",
+      "base_type": "Teak Round Shield"
+    },
+    "The Gluttonous Tide": {
+      "base_dust": 13480,
+      "dust_ilvl84": 13480,
+      "dust_ilvl84_q20": 16176,
+      "item_type": "unknown",
+      "base_type": "Citadel Bow"
+    },
+    "Mutewind Pennant": {
+      "base_dust": 13440,
+      "dust_ilvl84": 13440,
+      "dust_ilvl84_q20": 16128,
+      "item_type": "unknown",
+      "base_type": "Enameled Buckler"
+    },
+    "Mutewind Whispersteps": {
+      "base_dust": 13440,
+      "dust_ilvl84": 13440,
+      "dust_ilvl84_q20": 16128,
+      "item_type": "unknown",
+      "base_type": "Serpentscale Boots"
+    },
+    "Tainted Pact": {
+      "base_dust": 13440,
+      "dust_ilvl84": 13440,
+      "dust_ilvl84_q20": 16128,
+      "item_type": "unknown",
+      "base_type": "Coral Amulet"
+    },
+    "Null and Void": {
+      "base_dust": 13080,
+      "dust_ilvl84": 13080,
+      "dust_ilvl84_q20": 15696,
+      "item_type": "unknown",
+      "base_type": "Legion Gloves"
+    },
+    "Kiloava's Bluster": {
+      "base_dust": 13080,
+      "dust_ilvl84": 13080,
+      "dust_ilvl84_q20": 15696,
+      "item_type": "unknown",
+      "base_type": "Ironwood Buckler"
+    },
+    "The Supreme Truth": {
+      "base_dust": 13040,
+      "dust_ilvl84": 13040,
+      "dust_ilvl84_q20": 15648,
+      "item_type": "unknown",
+      "base_type": "Crystal Sceptre"
+    },
+    "Nycta's Lantern": {
+      "base_dust": 13040,
+      "dust_ilvl84": 13040,
+      "dust_ilvl84_q20": 15648,
+      "item_type": "unknown",
+      "base_type": "Crystal Sceptre"
+    },
+    "Tremor Rod": {
+      "base_dust": 13040,
+      "dust_ilvl84": 13040,
+      "dust_ilvl84_q20": 15648,
+      "item_type": "unknown",
+      "base_type": "Military Staff"
+    },
+    "Brinerot Whalers": {
+      "base_dust": 13040,
+      "dust_ilvl84": 13040,
+      "dust_ilvl84_q20": 15648,
+      "item_type": "unknown",
+      "base_type": "Trapper Boots"
+    },
+    "Allelopathy": {
+      "base_dust": 13040,
+      "dust_ilvl84": 13040,
+      "dust_ilvl84_q20": 15648,
+      "item_type": "unknown",
+      "base_type": "Satin Gloves"
+    },
+    "Replica Allelopathy": {
+      "base_dust": 13040,
+      "dust_ilvl84": 13040,
+      "dust_ilvl84_q20": 15648,
+      "item_type": "unknown",
+      "base_type": "Satin Gloves"
+    },
+    "Mark of the Doubting Knight": {
+      "base_dust": 12880,
+      "dust_ilvl84": 12880,
+      "dust_ilvl84_q20": 15456,
+      "item_type": "unknown",
+      "base_type": "Platinum Kris"
+    },
+    "Skin of the Loyal": {
+      "base_dust": 12740,
+      "dust_ilvl84": 12740,
+      "dust_ilvl84_q20": 15288,
+      "item_type": "unknown",
+      "base_type": "Simple Robe"
+    },
+    "Replica Atziri's Foible": {
+      "base_dust": 12740,
+      "dust_ilvl84": 12740,
+      "dust_ilvl84_q20": 15288,
+      "item_type": "unknown",
+      "base_type": "Paua Amulet"
+    },
+    "Greed's Embrace": {
+      "base_dust": 12700,
+      "dust_ilvl84": 12700,
+      "dust_ilvl84_q20": 15240,
+      "item_type": "unknown",
+      "base_type": "Golden Plate"
+    },
+    "Story of the Vaal": {
+      "base_dust": 12700,
+      "dust_ilvl84": 12700,
+      "dust_ilvl84_q20": 15240,
+      "item_type": "unknown",
+      "base_type": "Gemstone Sword"
+    },
+    "Storm Secret": {
+      "base_dust": 12700,
+      "dust_ilvl84": 12700,
+      "dust_ilvl84_q20": 15240,
+      "item_type": "unknown",
+      "base_type": "Topaz Ring"
+    },
+    "Ahuana's Bite": {
+      "base_dust": 12700,
+      "dust_ilvl84": 12700,
+      "dust_ilvl84_q20": 15240,
+      "item_type": "unknown",
+      "base_type": "Sharktooth Arrow Quiver"
+    },
+    "Marylene's Fallacy": {
+      "base_dust": 12660,
+      "dust_ilvl84": 12660,
+      "dust_ilvl84_q20": 15192,
+      "item_type": "unknown",
+      "base_type": "Lapis Amulet"
+    },
+    "Call of the Brotherhood": {
+      "base_dust": 12660,
+      "dust_ilvl84": 12660,
+      "dust_ilvl84_q20": 15192,
+      "item_type": "unknown",
+      "base_type": "Two-Stone Ring"
+    },
+    "Emberwake": {
+      "base_dust": 12660,
+      "dust_ilvl84": 12660,
+      "dust_ilvl84_q20": 15192,
+      "item_type": "unknown",
+      "base_type": "Ruby Ring"
+    },
+    "Trypanon": {
+      "base_dust": 12660,
+      "dust_ilvl84": 12660,
+      "dust_ilvl84_q20": 15192,
+      "item_type": "unknown",
+      "base_type": "Great Mallet"
+    },
+    "Voice of the Storm": {
+      "base_dust": 12660,
+      "dust_ilvl84": 12660,
+      "dust_ilvl84_q20": 15192,
+      "item_type": "unknown",
+      "base_type": "Lapis Amulet"
+    },
+    "Fury Valve": {
+      "base_dust": 12660,
+      "dust_ilvl84": 12660,
+      "dust_ilvl84_q20": 15192,
+      "item_type": "unknown",
+      "base_type": "Turquoise Amulet"
+    },
+    "Mother's Embrace": {
+      "base_dust": 12660,
+      "dust_ilvl84": 12660,
+      "dust_ilvl84_q20": 15192,
+      "item_type": "unknown",
+      "base_type": "Heavy Belt"
+    },
+    "Blood Price": {
+      "base_dust": 12660,
+      "dust_ilvl84": 12660,
+      "dust_ilvl84_q20": 15192,
+      "item_type": "unknown",
+      "base_type": "Reaver Helmet"
+    },
+    "Thousand Teeth Temu": {
+      "base_dust": 12500,
+      "dust_ilvl84": 12500,
+      "dust_ilvl84_q20": 15000,
+      "item_type": "unknown",
+      "base_type": "Vaal Buckler"
+    },
+    "The Broken Crown": {
+      "base_dust": 12500,
+      "dust_ilvl84": 12500,
+      "dust_ilvl84_q20": 15000,
+      "item_type": "unknown",
+      "base_type": "Prophet Crown"
+    },
+    "The Retch": {
+      "base_dust": 12360,
+      "dust_ilvl84": 12360,
+      "dust_ilvl84_q20": 14832,
+      "item_type": "unknown",
+      "base_type": "Rustic Sash"
+    },
+    "Voidbringer": {
+      "base_dust": 12340,
+      "dust_ilvl84": 12340,
+      "dust_ilvl84_q20": 14808,
+      "item_type": "unknown",
+      "base_type": "Conjurer Gloves"
+    },
+    "Dance of the Offered": {
+      "base_dust": 12340,
+      "dust_ilvl84": 12340,
+      "dust_ilvl84_q20": 14808,
+      "item_type": "unknown",
+      "base_type": "Carnal Boots"
+    },
+    "Sin Trek": {
+      "base_dust": 12140,
+      "dust_ilvl84": 12140,
+      "dust_ilvl84_q20": 14568,
+      "item_type": "unknown",
+      "base_type": "Stealth Boots"
+    },
+    "Chin Sol": {
+      "base_dust": 12140,
+      "dust_ilvl84": 12140,
+      "dust_ilvl84_q20": 14568,
+      "item_type": "unknown",
+      "base_type": "Assassin Bow"
+    },
+    "Wings of Entropy": {
+      "base_dust": 12140,
+      "dust_ilvl84": 12140,
+      "dust_ilvl84_q20": 14568,
+      "item_type": "unknown",
+      "base_type": "Ezomyte Axe"
+    },
+    "Sinvicta's Mettle": {
+      "base_dust": 12140,
+      "dust_ilvl84": 12140,
+      "dust_ilvl84_q20": 14568,
+      "item_type": "unknown",
+      "base_type": "Ezomyte Axe"
+    },
+    "Voidhome": {
+      "base_dust": 11980,
+      "dust_ilvl84": 11980,
+      "dust_ilvl84_q20": 14376,
+      "item_type": "unknown",
+      "base_type": "Dread Maul"
+    },
+    "Pyroshock Clasp": {
+      "base_dust": 11980,
+      "dust_ilvl84": 11980,
+      "dust_ilvl84_q20": 14376,
+      "item_type": "unknown",
+      "base_type": "Leather Belt"
+    },
+    "Circle of Nostalgia": {
+      "base_dust": 11940,
+      "dust_ilvl84": 11940,
+      "dust_ilvl84_q20": 14328,
+      "item_type": "unknown",
+      "base_type": "Amethyst Ring"
+    },
+    "Chernobog's Pillar": {
+      "base_dust": 11780,
+      "dust_ilvl84": 11780,
+      "dust_ilvl84_q20": 14136,
+      "item_type": "unknown",
+      "base_type": "Ebony Tower Shield"
+    },
+    "Kingsguard": {
+      "base_dust": 11780,
+      "dust_ilvl84": 11780,
+      "dust_ilvl84_q20": 14136,
+      "item_type": "unknown",
+      "base_type": "Conquest Chainmail"
+    },
+    "Kondo's Pride": {
+      "base_dust": 11780,
+      "dust_ilvl84": 11780,
+      "dust_ilvl84_q20": 14136,
+      "item_type": "unknown",
+      "base_type": "Ezomyte Blade"
+    },
+    "Geofri's Crest": {
+      "base_dust": 11620,
+      "dust_ilvl84": 11620,
+      "dust_ilvl84_q20": 13944,
+      "item_type": "unknown",
+      "base_type": "Great Crown"
+    },
+    "Bronn's Lithe": {
+      "base_dust": 11620,
+      "dust_ilvl84": 11620,
+      "dust_ilvl84_q20": 13944,
+      "item_type": "unknown",
+      "base_type": "Cutthroat's Garb"
+    },
+    "The Consuming Dark": {
+      "base_dust": 11620,
+      "dust_ilvl84": 11620,
+      "dust_ilvl84_q20": 13944,
+      "item_type": "unknown",
+      "base_type": "Fiend Dagger"
+    },
+    "The Coming Calamity": {
+      "base_dust": 11620,
+      "dust_ilvl84": 11620,
+      "dust_ilvl84_q20": 13944,
+      "item_type": "unknown",
+      "base_type": "Destroyer Regalia"
+    },
+    "Command of the Pit": {
+      "base_dust": 11600,
+      "dust_ilvl84": 11600,
+      "dust_ilvl84_q20": 13920,
+      "item_type": "unknown",
+      "base_type": "Riveted Gloves"
+    },
+    "Replica Harvest": {
+      "base_dust": 11600,
+      "dust_ilvl84": 11600,
+      "dust_ilvl84_q20": 13920,
+      "item_type": "unknown",
+      "base_type": "Jasper Chopper"
+    },
+    "Cameria's Maul": {
+      "base_dust": 11440,
+      "dust_ilvl84": 11440,
+      "dust_ilvl84_q20": 13728,
+      "item_type": "unknown",
+      "base_type": "Gavel"
+    },
+    "Balefire": {
+      "base_dust": 11440,
+      "dust_ilvl84": 11440,
+      "dust_ilvl84_q20": 13728,
+      "item_type": "unknown",
+      "base_type": "Opal Sceptre"
+    },
+    "The Wasp Nest": {
+      "base_dust": 11440,
+      "dust_ilvl84": 11440,
+      "dust_ilvl84_q20": 13728,
+      "item_type": "unknown",
+      "base_type": "Throat Stabber"
+    },
+    "Taproot": {
+      "base_dust": 11440,
+      "dust_ilvl84": 11440,
+      "dust_ilvl84_q20": 13728,
+      "item_type": "unknown",
+      "base_type": "Ambusher"
+    },
+    "The Druggery": {
+      "base_dust": 11440,
+      "dust_ilvl84": 11440,
+      "dust_ilvl84_q20": 13728,
+      "item_type": "unknown",
+      "base_type": "Cloth Belt"
+    },
+    "Goblinedge": {
+      "base_dust": 11440,
+      "dust_ilvl84": 11440,
+      "dust_ilvl84_q20": 13728,
+      "item_type": "unknown",
+      "base_type": "Ambusher"
+    },
+    "The Redblade": {
+      "base_dust": 11440,
+      "dust_ilvl84": 11440,
+      "dust_ilvl84_q20": 13728,
+      "item_type": "unknown",
+      "base_type": "Gladius"
+    },
+    "Victario's Influence": {
+      "base_dust": 11280,
+      "dust_ilvl84": 11280,
+      "dust_ilvl84_q20": 13536,
+      "item_type": "unknown",
+      "base_type": "Lacquered Garb"
+    },
+    "Crown of the Pale King": {
+      "base_dust": 11280,
+      "dust_ilvl84": 11280,
+      "dust_ilvl84_q20": 13536,
+      "item_type": "unknown",
+      "base_type": "Regicide Mask"
+    },
+    "Oskarm": {
+      "base_dust": 11280,
+      "dust_ilvl84": 11280,
+      "dust_ilvl84_q20": 13536,
+      "item_type": "unknown",
+      "base_type": "Nubuck Gloves"
+    },
+    "Aurseize": {
+      "base_dust": 11260,
+      "dust_ilvl84": 11260,
+      "dust_ilvl84_q20": 13512,
+      "item_type": "unknown",
+      "base_type": "Steelscale Gauntlets"
+    },
+    "Tombfist": {
+      "base_dust": 11260,
+      "dust_ilvl84": 11260,
+      "dust_ilvl84_q20": 13512,
+      "item_type": "unknown",
+      "base_type": "Steelscale Gauntlets"
+    },
+    "Vixen's Entrapment": {
+      "base_dust": 11260,
+      "dust_ilvl84": 11260,
+      "dust_ilvl84_q20": 13512,
+      "item_type": "unknown",
+      "base_type": "Embroidered Gloves"
+    },
+    "Moonsorrow": {
+      "base_dust": 11100,
+      "dust_ilvl84": 11100,
+      "dust_ilvl84_q20": 13320,
+      "item_type": "unknown",
+      "base_type": "Imbued Wand"
+    },
+    "Obliteration": {
+      "base_dust": 11100,
+      "dust_ilvl84": 11100,
+      "dust_ilvl84_q20": 13320,
+      "item_type": "unknown",
+      "base_type": "Imbued Wand"
+    },
+    "Replica Soul Taker": {
+      "base_dust": 11100,
+      "dust_ilvl84": 11100,
+      "dust_ilvl84_q20": 13320,
+      "item_type": "unknown",
+      "base_type": "Siege Axe"
+    },
+    "The Dancing Duo": {
+      "base_dust": 11100,
+      "dust_ilvl84": 11100,
+      "dust_ilvl84_q20": 13320,
+      "item_type": "unknown",
+      "base_type": "Reaver Sword"
+    },
+    "The Fledgling": {
+      "base_dust": 10960,
+      "dust_ilvl84": 10960,
+      "dust_ilvl84_q20": 13152,
+      "item_type": "unknown",
+      "base_type": "Lacquered Helmet"
+    },
+    "Voll's Protector": {
+      "base_dust": 10920,
+      "dust_ilvl84": 10920,
+      "dust_ilvl84_q20": 13104,
+      "item_type": "unknown",
+      "base_type": "Holy Chainmail"
+    },
+    "Meginord's Vise": {
+      "base_dust": 10920,
+      "dust_ilvl84": 10920,
+      "dust_ilvl84_q20": 13104,
+      "item_type": "unknown",
+      "base_type": "Steel Gauntlets"
+    },
+    "Redblade Banner": {
+      "base_dust": 10920,
+      "dust_ilvl84": 10920,
+      "dust_ilvl84_q20": 13104,
+      "item_type": "unknown",
+      "base_type": "Painted Tower Shield"
+    },
+    "Xoph's Heart": {
+      "base_dust": 10920,
+      "dust_ilvl84": 10920,
+      "dust_ilvl84_q20": 13104,
+      "item_type": "unknown",
+      "base_type": "Amber Amulet"
+    },
+    "The Halcyon": {
+      "base_dust": 10920,
+      "dust_ilvl84": 10920,
+      "dust_ilvl84_q20": 13104,
+      "item_type": "unknown",
+      "base_type": "Jade Amulet"
+    },
+    "Replica Earendel's Embrace": {
+      "base_dust": 10920,
+      "dust_ilvl84": 10920,
+      "dust_ilvl84_q20": 13104,
+      "item_type": "unknown",
+      "base_type": "Grinning Fetish"
+    },
+    "Gang's Momentum": {
+      "base_dust": 10780,
+      "dust_ilvl84": 10780,
+      "dust_ilvl84_q20": 12936,
+      "item_type": "unknown",
+      "base_type": "Legion Boots"
+    },
+    "Femurs of the Saints": {
+      "base_dust": 10780,
+      "dust_ilvl84": 10780,
+      "dust_ilvl84_q20": 12936,
+      "item_type": "unknown",
+      "base_type": "Primordial Staff"
+    },
+    "March of the Legion": {
+      "base_dust": 10780,
+      "dust_ilvl84": 10780,
+      "dust_ilvl84_q20": 12936,
+      "item_type": "unknown",
+      "base_type": "Legion Boots"
+    },
+    "Sign of the Sin Eater": {
+      "base_dust": 10780,
+      "dust_ilvl84": 10780,
+      "dust_ilvl84_q20": 12936,
+      "item_type": "unknown",
+      "base_type": "Tyrant's Sekhem"
+    },
+    "Rotting Legion": {
+      "base_dust": 10780,
+      "dust_ilvl84": 10780,
+      "dust_ilvl84_q20": 12936,
+      "item_type": "unknown",
+      "base_type": "Loricated Ringmail"
+    },
+    "The Burden of Shadows": {
+      "base_dust": 10780,
+      "dust_ilvl84": 10780,
+      "dust_ilvl84_q20": 12936,
+      "item_type": "unknown",
+      "base_type": "Primordial Staff"
+    },
+    "Warped Timepiece": {
+      "base_dust": 10640,
+      "dust_ilvl84": 10640,
+      "dust_ilvl84_q20": 12768,
+      "item_type": "unknown",
+      "base_type": "Turquoise Amulet"
+    },
+    "Heartbound Loop": {
+      "base_dust": 10640,
+      "dust_ilvl84": 10640,
+      "dust_ilvl84_q20": 12768,
+      "item_type": "unknown",
+      "base_type": "Moonstone Ring"
+    },
+    "Frostbreath": {
+      "base_dust": 10640,
+      "dust_ilvl84": 10640,
+      "dust_ilvl84_q20": 12768,
+      "item_type": "unknown",
+      "base_type": "Ornate Mace"
+    },
+    "Darkness Enthroned": {
+      "base_dust": 10640,
+      "dust_ilvl84": 10640,
+      "dust_ilvl84_q20": 12768,
+      "item_type": "unknown",
+      "base_type": "Stygian Vise"
+    },
+    "Perquil's Toe": {
+      "base_dust": 10640,
+      "dust_ilvl84": 10640,
+      "dust_ilvl84_q20": 12768,
+      "item_type": "unknown",
+      "base_type": "Gold Amulet"
+    },
+    "Nametaker": {
+      "base_dust": 10640,
+      "dust_ilvl84": 10640,
+      "dust_ilvl84_q20": 12768,
+      "item_type": "unknown",
+      "base_type": "Graceful Sword"
+    },
+    "Soul Mantle": {
+      "base_dust": 10340,
+      "dust_ilvl84": 10340,
+      "dust_ilvl84_q20": 12408,
+      "item_type": "unknown",
+      "base_type": "Spidersilk Robe"
+    },
+    "Alberon's Warpath": {
+      "base_dust": 10340,
+      "dust_ilvl84": 10340,
+      "dust_ilvl84_q20": 12408,
+      "item_type": "unknown",
+      "base_type": "Soldier Boots"
+    },
+    "Sire of Shards": {
+      "base_dust": 10340,
+      "dust_ilvl84": 10340,
+      "dust_ilvl84_q20": 12408,
+      "item_type": "unknown",
+      "base_type": "Serpentine Staff"
+    },
+    "Wyrmsign": {
+      "base_dust": 10340,
+      "dust_ilvl84": 10340,
+      "dust_ilvl84_q20": 12408,
+      "item_type": "unknown",
+      "base_type": "Wyrmscale Gauntlets"
+    },
+    "Venopuncture": {
+      "base_dust": 10340,
+      "dust_ilvl84": 10340,
+      "dust_ilvl84_q20": 12408,
+      "item_type": "unknown",
+      "base_type": "Iron Ring"
+    },
+    "Icefang Orbit": {
+      "base_dust": 10340,
+      "dust_ilvl84": 10340,
+      "dust_ilvl84_q20": 12408,
+      "item_type": "unknown",
+      "base_type": "Iron Ring"
+    },
+    "Shattershard": {
+      "base_dust": 10340,
+      "dust_ilvl84": 10340,
+      "dust_ilvl84_q20": 12408,
+      "item_type": "unknown",
+      "base_type": "Crimson Round Shield"
+    },
+    "Steelworm": {
+      "base_dust": 10340,
+      "dust_ilvl84": 10340,
+      "dust_ilvl84_q20": 12408,
+      "item_type": "unknown",
+      "base_type": "Broadhead Arrow Quiver"
+    },
+    "Tanu Ahi": {
+      "base_dust": 10340,
+      "dust_ilvl84": 10340,
+      "dust_ilvl84_q20": 12408,
+      "item_type": "unknown",
+      "base_type": "Wyrmscale Gauntlets"
+    },
+    "Bloodsoaked Medallion": {
+      "base_dust": 10340,
+      "dust_ilvl84": 10340,
+      "dust_ilvl84_q20": 12408,
+      "item_type": "unknown",
+      "base_type": "Amber Amulet"
+    },
+    "Windscream": {
+      "base_dust": 10300,
+      "dust_ilvl84": 10300,
+      "dust_ilvl84_q20": 12360,
+      "item_type": "unknown",
+      "base_type": "Reinforced Greaves"
+    },
+    "Deidbell": {
+      "base_dust": 10300,
+      "dust_ilvl84": 10300,
+      "dust_ilvl84_q20": 12360,
+      "item_type": "unknown",
+      "base_type": "Gilded Sallet"
+    },
+    "The Whispering Ice": {
+      "base_dust": 10300,
+      "dust_ilvl84": 10300,
+      "dust_ilvl84_q20": 12360,
+      "item_type": "unknown",
+      "base_type": "Vile Staff"
+    },
+    "Gluttony": {
+      "base_dust": 10020,
+      "dust_ilvl84": 10020,
+      "dust_ilvl84_q20": 12024,
+      "item_type": "unknown",
+      "base_type": "Leather Belt"
+    },
+    "Nightgrip": {
+      "base_dust": 10020,
+      "dust_ilvl84": 10020,
+      "dust_ilvl84_q20": 12024,
+      "item_type": "unknown",
+      "base_type": "Runic Gages"
+    },
+    "Olroth's Charge": {
+      "base_dust": 10020,
+      "dust_ilvl84": 10020,
+      "dust_ilvl84_q20": 12024,
+      "item_type": "unknown",
+      "base_type": "Runic Sollerets"
+    },
+    "Sudden Dawn": {
+      "base_dust": 10020,
+      "dust_ilvl84": 10020,
+      "dust_ilvl84_q20": 12024,
+      "item_type": "unknown",
+      "base_type": "Steel Circlet"
+    },
+    "Ephemeral Edge": {
+      "base_dust": 10000,
+      "dust_ilvl84": 10000,
+      "dust_ilvl84_q20": 12000,
+      "item_type": "unknown",
+      "base_type": "Dusk Blade"
+    },
+    "Death's Harp": {
+      "base_dust": 10000,
+      "dust_ilvl84": 10000,
+      "dust_ilvl84_q20": 12000,
+      "item_type": "unknown",
+      "base_type": "Death Bow"
+    },
+    "Bitterdream": {
+      "base_dust": 10000,
+      "dust_ilvl84": 10000,
+      "dust_ilvl84_q20": 12000,
+      "item_type": "unknown",
+      "base_type": "Shadow Sceptre"
+    },
+    "Replica Iron Commander": {
+      "base_dust": 10000,
+      "dust_ilvl84": 10000,
+      "dust_ilvl84_q20": 12000,
+      "item_type": "unknown",
+      "base_type": "Death Bow"
+    },
+    "Hrimnor's Resolve": {
+      "base_dust": 9860,
+      "dust_ilvl84": 9860,
+      "dust_ilvl84_q20": 11832,
+      "item_type": "unknown",
+      "base_type": "Samnite Helmet"
+    },
+    "Rat's Nest": {
+      "base_dust": 9860,
+      "dust_ilvl84": 9860,
+      "dust_ilvl84_q20": 11832,
+      "item_type": "unknown",
+      "base_type": "Ursine Pelt"
+    },
+    "Maloney's Nightfall": {
+      "base_dust": 9860,
+      "dust_ilvl84": 9860,
+      "dust_ilvl84_q20": 11832,
+      "item_type": "unknown",
+      "base_type": "Vile Arrow Quiver"
+    },
+    "Three-step Assault": {
+      "base_dust": 9860,
+      "dust_ilvl84": 9860,
+      "dust_ilvl84_q20": 11832,
+      "item_type": "unknown",
+      "base_type": "Shagreen Boots"
+    },
+    "The Ascetic": {
+      "base_dust": 9860,
+      "dust_ilvl84": 9860,
+      "dust_ilvl84_q20": 11832,
+      "item_type": "unknown",
+      "base_type": "Gold Amulet"
+    },
+    "The Highwayman": {
+      "base_dust": 9860,
+      "dust_ilvl84": 9860,
+      "dust_ilvl84_q20": 11832,
+      "item_type": "unknown",
+      "base_type": "Gold Ring"
+    },
+    "Innsbury Edge": {
+      "base_dust": 9740,
+      "dust_ilvl84": 9740,
+      "dust_ilvl84_q20": 11688,
+      "item_type": "unknown",
+      "base_type": "Elder Sword"
+    },
+    "The Fracturing Spinner": {
+      "base_dust": 9700,
+      "dust_ilvl84": 9700,
+      "dust_ilvl84_q20": 11640,
+      "item_type": "unknown",
+      "base_type": "Blunt Arrow Quiver"
+    },
+    "Atziri's Mirror": {
+      "base_dust": 9580,
+      "dust_ilvl84": 9580,
+      "dust_ilvl84_q20": 11496,
+      "item_type": "unknown",
+      "base_type": "Golden Buckler"
+    },
+    "Great Old One's Ward": {
+      "base_dust": 9460,
+      "dust_ilvl84": 9460,
+      "dust_ilvl84_q20": 11352,
+      "item_type": "unknown",
+      "base_type": "Corrugated Buckler"
+    },
+    "Replica Advancing Fortress": {
+      "base_dust": 9460,
+      "dust_ilvl84": 9460,
+      "dust_ilvl84_q20": 11352,
+      "item_type": "unknown",
+      "base_type": "Gut Ripper"
+    },
+    "Kahuturoa's Certainty": {
+      "base_dust": 9460,
+      "dust_ilvl84": 9460,
+      "dust_ilvl84_q20": 11352,
+      "item_type": "unknown",
+      "base_type": "Ancient Greaves"
+    },
+    "Umbilicus Immortalis": {
+      "base_dust": 9420,
+      "dust_ilvl84": 9420,
+      "dust_ilvl84_q20": 11304,
+      "item_type": "unknown",
+      "base_type": "Leather Belt"
+    },
+    "Xirgil's Crank": {
+      "base_dust": 9420,
+      "dust_ilvl84": 9420,
+      "dust_ilvl84_q20": 11304,
+      "item_type": "unknown",
+      "base_type": "Coiled Staff"
+    },
+    "Bisco's Collar": {
+      "base_dust": 9420,
+      "dust_ilvl84": 9420,
+      "dust_ilvl84_q20": 11304,
+      "item_type": "unknown",
+      "base_type": "Gold Amulet"
+    },
+    "Bisco's Leash": {
+      "base_dust": 9420,
+      "dust_ilvl84": 9420,
+      "dust_ilvl84_q20": 11304,
+      "item_type": "unknown",
+      "base_type": "Heavy Belt"
+    },
+    "Replica Lioneye's Paws": {
+      "base_dust": 9420,
+      "dust_ilvl84": 9420,
+      "dust_ilvl84_q20": 11304,
+      "item_type": "unknown",
+      "base_type": "Bronzescale Boots"
+    },
+    "Relic of the Pact": {
+      "base_dust": 9420,
+      "dust_ilvl84": 9420,
+      "dust_ilvl84_q20": 11304,
+      "item_type": "unknown",
+      "base_type": "Sage Wand"
+    },
+    "Infractem": {
+      "base_dust": 9300,
+      "dust_ilvl84": 9300,
+      "dust_ilvl84_q20": 11160,
+      "item_type": "unknown",
+      "base_type": "Decimation Bow"
+    },
+    "Prismatic Eclipse": {
+      "base_dust": 9300,
+      "dust_ilvl84": 9300,
+      "dust_ilvl84_q20": 11160,
+      "item_type": "unknown",
+      "base_type": "Twilight Blade"
+    },
+    "Empire's Grasp": {
+      "base_dust": 9300,
+      "dust_ilvl84": 9300,
+      "dust_ilvl84_q20": 11160,
+      "item_type": "unknown",
+      "base_type": "Goliath Gauntlets"
+    },
+    "Replica Forbidden Shako": {
+      "base_dust": 9300,
+      "dust_ilvl84": 9300,
+      "dust_ilvl84_q20": 11160,
+      "item_type": "unknown",
+      "base_type": "Great Crown"
+    },
+    "Geofri's Legacy": {
+      "base_dust": 9300,
+      "dust_ilvl84": 9300,
+      "dust_ilvl84_q20": 11160,
+      "item_type": "unknown",
+      "base_type": "Great Crown"
+    },
+    "Voideye": {
+      "base_dust": 9180,
+      "dust_ilvl84": 9180,
+      "dust_ilvl84_q20": 11016,
+      "item_type": "unknown",
+      "base_type": "Unset Ring"
+    },
+    "Malachai's Artifice": {
+      "base_dust": 9180,
+      "dust_ilvl84": 9180,
+      "dust_ilvl84_q20": 11016,
+      "item_type": "unknown",
+      "base_type": "Unset Ring"
+    },
+    "Kongming's Stratagem": {
+      "base_dust": 9180,
+      "dust_ilvl84": 9180,
+      "dust_ilvl84_q20": 11016,
+      "item_type": "unknown",
+      "base_type": "Ancient Spirit Shield"
+    },
+    "Essence Worm": {
+      "base_dust": 9180,
+      "dust_ilvl84": 9180,
+      "dust_ilvl84_q20": 11016,
+      "item_type": "unknown",
+      "base_type": "Unset Ring"
+    },
+    "Architect's Hand": {
+      "base_dust": 9180,
+      "dust_ilvl84": 9180,
+      "dust_ilvl84_q20": 11016,
+      "item_type": "unknown",
+      "base_type": "Ambush Mitts"
+    },
+    "The Annihilating Light": {
+      "base_dust": 9180,
+      "dust_ilvl84": 9180,
+      "dust_ilvl84_q20": 11016,
+      "item_type": "unknown",
+      "base_type": "Quarterstaff"
+    },
+    "Stormseeker": {
+      "base_dust": 9180,
+      "dust_ilvl84": 9180,
+      "dust_ilvl84_q20": 11016,
+      "item_type": "unknown",
+      "base_type": "Ambush Mitts"
+    },
+    "The Geomantic Gyre": {
+      "base_dust": 9040,
+      "dust_ilvl84": 9040,
+      "dust_ilvl84_q20": 10848,
+      "item_type": "unknown",
+      "base_type": "Highborn Staff"
+    },
+    "Maligaro's Restraint": {
+      "base_dust": 8920,
+      "dust_ilvl84": 8920,
+      "dust_ilvl84_q20": 10704,
+      "item_type": "unknown",
+      "base_type": "Chain Belt"
+    },
+    "Jorrhast's Blacksteel": {
+      "base_dust": 8920,
+      "dust_ilvl84": 8920,
+      "dust_ilvl84_q20": 10704,
+      "item_type": "unknown",
+      "base_type": "Steelhead"
+    },
+    "Natural Hierarchy": {
+      "base_dust": 8920,
+      "dust_ilvl84": 8920,
+      "dust_ilvl84_q20": 10704,
+      "item_type": "unknown",
+      "base_type": "Rotfeather Talisman"
+    },
+    "Ascent From Flesh": {
+      "base_dust": 8920,
+      "dust_ilvl84": 8920,
+      "dust_ilvl84_q20": 10704,
+      "item_type": "unknown",
+      "base_type": "Chain Belt"
+    },
+    "Kitava's Thirst": {
+      "base_dust": 8920,
+      "dust_ilvl84": 8920,
+      "dust_ilvl84_q20": 10704,
+      "item_type": "unknown",
+      "base_type": "Zealot Helmet"
+    },
+    "Soulbound": {
+      "base_dust": 8920,
+      "dust_ilvl84": 8920,
+      "dust_ilvl84_q20": 10704,
+      "item_type": "unknown",
+      "base_type": "Paua Ring"
+    },
+    "Doomfletch": {
+      "base_dust": 8880,
+      "dust_ilvl84": 8880,
+      "dust_ilvl84_q20": 10656,
+      "item_type": "unknown",
+      "base_type": "Royal Bow"
+    },
+    "Brutus' Lead Sprinkler": {
+      "base_dust": 8880,
+      "dust_ilvl84": 8880,
+      "dust_ilvl84_q20": 10656,
+      "item_type": "unknown",
+      "base_type": "Ritual Sceptre"
+    },
+    "Terminus Est": {
+      "base_dust": 8760,
+      "dust_ilvl84": 8760,
+      "dust_ilvl84_q20": 10512,
+      "item_type": "unknown",
+      "base_type": "Tiger Sword"
+    },
+    "Black Sun Crest": {
+      "base_dust": 8760,
+      "dust_ilvl84": 8760,
+      "dust_ilvl84_q20": 10512,
+      "item_type": "unknown",
+      "base_type": "Lacquered Helmet"
+    },
+    "Southbound": {
+      "base_dust": 8760,
+      "dust_ilvl84": 8760,
+      "dust_ilvl84_q20": 10512,
+      "item_type": "unknown",
+      "base_type": "Soldier Gloves"
+    },
+    "Ambu's Charge": {
+      "base_dust": 8660,
+      "dust_ilvl84": 8660,
+      "dust_ilvl84_q20": 10392,
+      "item_type": "unknown",
+      "base_type": "Crusader Chainmail"
+    },
+    "Replica Ambu's Charge": {
+      "base_dust": 8660,
+      "dust_ilvl84": 8660,
+      "dust_ilvl84_q20": 10392,
+      "item_type": "unknown",
+      "base_type": "Crusader Chainmail"
+    },
+    "Vaal Caress": {
+      "base_dust": 8620,
+      "dust_ilvl84": 8620,
+      "dust_ilvl84_q20": 10344,
+      "item_type": "unknown",
+      "base_type": "Bronzescale Gauntlets"
+    },
+    "Heartbreaker": {
+      "base_dust": 8520,
+      "dust_ilvl84": 8520,
+      "dust_ilvl84_q20": 10224,
+      "item_type": "unknown",
+      "base_type": "Royal Skean"
+    },
+    "Immortal Flesh": {
+      "base_dust": 8520,
+      "dust_ilvl84": 8520,
+      "dust_ilvl84_q20": 10224,
+      "item_type": "unknown",
+      "base_type": "Leather Belt"
+    },
+    "Victario's Charity": {
+      "base_dust": 8520,
+      "dust_ilvl84": 8520,
+      "dust_ilvl84_q20": 10224,
+      "item_type": "unknown",
+      "base_type": "Laminated Kite Shield"
+    },
+    "The Embalmer": {
+      "base_dust": 8520,
+      "dust_ilvl84": 8520,
+      "dust_ilvl84_q20": 10224,
+      "item_type": "unknown",
+      "base_type": "Carnal Mitts"
+    },
+    "Zeel's Amplifier": {
+      "base_dust": 8260,
+      "dust_ilvl84": 8260,
+      "dust_ilvl84_q20": 9912,
+      "item_type": "unknown",
+      "base_type": "Polished Spiked Shield"
+    },
+    "The Eternal Apple": {
+      "base_dust": 8260,
+      "dust_ilvl84": 8260,
+      "dust_ilvl84_q20": 9912,
+      "item_type": "unknown",
+      "base_type": "Chiming Spirit Shield"
+    },
+    "Pragmatism": {
+      "base_dust": 8260,
+      "dust_ilvl84": 8260,
+      "dust_ilvl84_q20": 9912,
+      "item_type": "unknown",
+      "base_type": "Colosseum Plate"
+    },
+    "Demon Stitcher": {
+      "base_dust": 8160,
+      "dust_ilvl84": 8160,
+      "dust_ilvl84_q20": 9792,
+      "item_type": "unknown",
+      "base_type": "Satin Gloves"
+    },
+    "Eye of Chayula": {
+      "base_dust": 8140,
+      "dust_ilvl84": 8140,
+      "dust_ilvl84_q20": 9768,
+      "item_type": "unknown",
+      "base_type": "Onyx Amulet"
+    },
+    "The Eternal Struggle": {
+      "base_dust": 8140,
+      "dust_ilvl84": 8140,
+      "dust_ilvl84_q20": 9768,
+      "item_type": "unknown",
+      "base_type": "Onyx Amulet"
+    },
+    "Midnight Bargain": {
+      "base_dust": 7920,
+      "dust_ilvl84": 7920,
+      "dust_ilvl84_q20": 9504,
+      "item_type": "unknown",
+      "base_type": "Engraved Wand"
+    },
+    "Ceinture of Benevolence": {
+      "base_dust": 7920,
+      "dust_ilvl84": 7920,
+      "dust_ilvl84_q20": 9504,
+      "item_type": "unknown",
+      "base_type": "Cloth Belt"
+    },
+    "Dream Fragments": {
+      "base_dust": 7900,
+      "dust_ilvl84": 7900,
+      "dust_ilvl84_q20": 9480,
+      "item_type": "unknown",
+      "base_type": "Sapphire Ring"
+    },
+    "Reverberation Rod": {
+      "base_dust": 7900,
+      "dust_ilvl84": 7900,
+      "dust_ilvl84_q20": 9480,
+      "item_type": "unknown",
+      "base_type": "Spiraled Wand"
+    },
+    "Winterweave": {
+      "base_dust": 7900,
+      "dust_ilvl84": 7900,
+      "dust_ilvl84_q20": 9480,
+      "item_type": "unknown",
+      "base_type": "Coral Ring"
+    },
+    "Doedre's Tongue": {
+      "base_dust": 7900,
+      "dust_ilvl84": 7900,
+      "dust_ilvl84_q20": 9480,
+      "item_type": "unknown",
+      "base_type": "Lapis Amulet"
+    },
+    "Kalisa's Grace": {
+      "base_dust": 7800,
+      "dust_ilvl84": 7800,
+      "dust_ilvl84_q20": 9360,
+      "item_type": "unknown",
+      "base_type": "Samite Gloves"
+    },
+    "Lightbane Raiment": {
+      "base_dust": 7800,
+      "dust_ilvl84": 7800,
+      "dust_ilvl84_q20": 9360,
+      "item_type": "unknown",
+      "base_type": "Ornate Ringmail"
+    },
+    "Doedre's Scorn": {
+      "base_dust": 7680,
+      "dust_ilvl84": 7680,
+      "dust_ilvl84_q20": 9216,
+      "item_type": "unknown",
+      "base_type": "Lunaris Circlet"
+    },
+    "Moonbender's Wing": {
+      "base_dust": 7680,
+      "dust_ilvl84": 7680,
+      "dust_ilvl84_q20": 9216,
+      "item_type": "unknown",
+      "base_type": "Tomahawk"
+    },
+    "The Flawed Refuge": {
+      "base_dust": 7680,
+      "dust_ilvl84": 7680,
+      "dust_ilvl84_q20": 9216,
+      "item_type": "unknown",
+      "base_type": "Maple Round Shield"
+    },
+    "Ungil's Harmony": {
+      "base_dust": 7660,
+      "dust_ilvl84": 7660,
+      "dust_ilvl84_q20": 9192,
+      "item_type": "unknown",
+      "base_type": "Turquoise Amulet"
+    },
+    "Brinerot Flag": {
+      "base_dust": 7660,
+      "dust_ilvl84": 7660,
+      "dust_ilvl84_q20": 9192,
+      "item_type": "unknown",
+      "base_type": "Tarnished Spirit Shield"
+    },
+    "Ornament of the East": {
+      "base_dust": 7560,
+      "dust_ilvl84": 7560,
+      "dust_ilvl84_q20": 9072,
+      "item_type": "unknown",
+      "base_type": "Gut Ripper"
+    },
+    "Advancing Fortress": {
+      "base_dust": 7560,
+      "dust_ilvl84": 7560,
+      "dust_ilvl84_q20": 9072,
+      "item_type": "unknown",
+      "base_type": "Gut Ripper"
+    },
+    "Valako's Sign": {
+      "base_dust": 7460,
+      "dust_ilvl84": 7460,
+      "dust_ilvl84_q20": 8952,
+      "item_type": "unknown",
+      "base_type": "Topaz Ring"
+    },
+    "Replica Bones of Ullr": {
+      "base_dust": 7440,
+      "dust_ilvl84": 7440,
+      "dust_ilvl84_q20": 8928,
+      "item_type": "unknown",
+      "base_type": "Silk Slippers"
+    },
+    "The Blood Reaper": {
+      "base_dust": 7340,
+      "dust_ilvl84": 7340,
+      "dust_ilvl84_q20": 8808,
+      "item_type": "unknown",
+      "base_type": "Headsman Axe"
+    },
+    "Sibyl's Lament": {
+      "base_dust": 7340,
+      "dust_ilvl84": 7340,
+      "dust_ilvl84_q20": 8808,
+      "item_type": "unknown",
+      "base_type": "Coral Ring"
+    },
+    "The Anvil": {
+      "base_dust": 7340,
+      "dust_ilvl84": 7340,
+      "dust_ilvl84_q20": 8808,
+      "item_type": "unknown",
+      "base_type": "Amber Amulet"
+    },
+    "Maligaro's Lens": {
+      "base_dust": 7340,
+      "dust_ilvl84": 7340,
+      "dust_ilvl84_q20": 8808,
+      "item_type": "unknown",
+      "base_type": "Compound Spiked Shield"
+    },
+    "Mark of Submission": {
+      "base_dust": 7340,
+      "dust_ilvl84": 7340,
+      "dust_ilvl84_q20": 8808,
+      "item_type": "unknown",
+      "base_type": "Unset Ring"
+    },
+    "The Signal Fire": {
+      "base_dust": 7340,
+      "dust_ilvl84": 7340,
+      "dust_ilvl84_q20": 8808,
+      "item_type": "unknown",
+      "base_type": "Blazing Arrow Quiver"
+    },
+    "Corona Solaris": {
+      "base_dust": 7340,
+      "dust_ilvl84": 7340,
+      "dust_ilvl84_q20": 8808,
+      "item_type": "unknown",
+      "base_type": "Crystal Wand"
+    },
+    "The Harvest": {
+      "base_dust": 7240,
+      "dust_ilvl84": 7240,
+      "dust_ilvl84_q20": 8688,
+      "item_type": "unknown",
+      "base_type": "Jasper Chopper"
+    },
+    "Rigwald's Charge": {
+      "base_dust": 7120,
+      "dust_ilvl84": 7120,
+      "dust_ilvl84_q20": 8544,
+      "item_type": "unknown",
+      "base_type": "Highland Blade"
+    },
+    "Widowmaker": {
+      "base_dust": 7120,
+      "dust_ilvl84": 7120,
+      "dust_ilvl84_q20": 8544,
+      "item_type": "unknown",
+      "base_type": "Boot Blade"
+    },
+    "Siegebreaker": {
+      "base_dust": 7120,
+      "dust_ilvl84": 7120,
+      "dust_ilvl84_q20": 8544,
+      "item_type": "unknown",
+      "base_type": "Heavy Belt"
+    },
+    "Tawhanuku's Timing": {
+      "base_dust": 7120,
+      "dust_ilvl84": 7120,
+      "dust_ilvl84_q20": 8544,
+      "item_type": "unknown",
+      "base_type": "Moonstone Ring"
+    },
+    "Heatshiver": {
+      "base_dust": 7020,
+      "dust_ilvl84": 7020,
+      "dust_ilvl84_q20": 8424,
+      "item_type": "unknown",
+      "base_type": "Leather Hood"
+    },
+    "Berek's Respite": {
+      "base_dust": 7020,
+      "dust_ilvl84": 7020,
+      "dust_ilvl84_q20": 8424,
+      "item_type": "unknown",
+      "base_type": "Two-Stone Ring"
+    },
+    "Rigwald's Crest": {
+      "base_dust": 7020,
+      "dust_ilvl84": 7020,
+      "dust_ilvl84_q20": 8424,
+      "item_type": "unknown",
+      "base_type": "Two-Stone Ring"
+    },
+    "The Flow Untethered": {
+      "base_dust": 7020,
+      "dust_ilvl84": 7020,
+      "dust_ilvl84_q20": 8424,
+      "item_type": "unknown",
+      "base_type": "Cloth Belt"
+    },
+    "Replica Tempestuous Steel": {
+      "base_dust": 7020,
+      "dust_ilvl84": 7020,
+      "dust_ilvl84_q20": 8424,
+      "item_type": "unknown",
+      "base_type": "War Sword"
+    },
+    "Arn's Anguish": {
+      "base_dust": 7020,
+      "dust_ilvl84": 7020,
+      "dust_ilvl84_q20": 8424,
+      "item_type": "unknown",
+      "base_type": "Cloth Belt"
+    },
+    "Olesya's Delight": {
+      "base_dust": 7020,
+      "dust_ilvl84": 7020,
+      "dust_ilvl84_q20": 8424,
+      "item_type": "unknown",
+      "base_type": "Cloth Belt"
+    },
+    "Graven's Secret": {
+      "base_dust": 7020,
+      "dust_ilvl84": 7020,
+      "dust_ilvl84_q20": 8424,
+      "item_type": "unknown",
+      "base_type": "Cloth Belt"
+    },
+    "Ixchel's Temptation": {
+      "base_dust": 7020,
+      "dust_ilvl84": 7020,
+      "dust_ilvl84_q20": 8424,
+      "item_type": "unknown",
+      "base_type": "Gold Ring"
+    },
+    "Replica Heatshiver": {
+      "base_dust": 7020,
+      "dust_ilvl84": 7020,
+      "dust_ilvl84_q20": 8424,
+      "item_type": "unknown",
+      "base_type": "Leather Hood"
+    },
+    "Daresso's Passion": {
+      "base_dust": 6920,
+      "dust_ilvl84": 6920,
+      "dust_ilvl84_q20": 8304,
+      "item_type": "unknown",
+      "base_type": "Estoc"
+    },
+    "El'Abin's Visage": {
+      "base_dust": 6920,
+      "dust_ilvl84": 6920,
+      "dust_ilvl84_q20": 8304,
+      "item_type": "unknown",
+      "base_type": "Fencer Helm"
+    },
+    "Bloodbond": {
+      "base_dust": 6820,
+      "dust_ilvl84": 6820,
+      "dust_ilvl84_q20": 8184,
+      "item_type": "unknown",
+      "base_type": "Bone Armour"
+    },
+    "Wurm's Molt": {
+      "base_dust": 6720,
+      "dust_ilvl84": 6720,
+      "dust_ilvl84_q20": 8064,
+      "item_type": "unknown",
+      "base_type": "Leather Belt"
+    },
+    "Winterheart": {
+      "base_dust": 6720,
+      "dust_ilvl84": 6720,
+      "dust_ilvl84_q20": 8064,
+      "item_type": "unknown",
+      "base_type": "Gold Amulet"
+    },
+    "Goldwyrm": {
+      "base_dust": 6640,
+      "dust_ilvl84": 6640,
+      "dust_ilvl84_q20": 7968,
+      "item_type": "unknown",
+      "base_type": "Nubuck Boots"
+    },
+    "The Primordial Chain": {
+      "base_dust": 6640,
+      "dust_ilvl84": 6640,
+      "dust_ilvl84_q20": 7968,
+      "item_type": "unknown",
+      "base_type": "Coral Amulet"
+    },
+    "Plume of Pursuit": {
+      "base_dust": 6640,
+      "dust_ilvl84": 6640,
+      "dust_ilvl84_q20": 7968,
+      "item_type": "unknown",
+      "base_type": "Bone Circlet"
+    },
+    "Cloak of Flame": {
+      "base_dust": 6620,
+      "dust_ilvl84": 6620,
+      "dust_ilvl84_q20": 7944,
+      "item_type": "unknown",
+      "base_type": "Scholar's Robe"
+    },
+    "Clayshaper": {
+      "base_dust": 6520,
+      "dust_ilvl84": 6520,
+      "dust_ilvl84_q20": 7824,
+      "item_type": "unknown",
+      "base_type": "Rock Breaker"
+    },
+    "Sentari's Answer": {
+      "base_dust": 6440,
+      "dust_ilvl84": 6440,
+      "dust_ilvl84_q20": 7728,
+      "item_type": "unknown",
+      "base_type": "Brass Spirit Shield"
+    },
+    "Chober Chaber": {
+      "base_dust": 6340,
+      "dust_ilvl84": 6340,
+      "dust_ilvl84_q20": 7608,
+      "item_type": "unknown",
+      "base_type": "Great Mallet"
+    },
+    "Eclipse Solaris": {
+      "base_dust": 6340,
+      "dust_ilvl84": 6340,
+      "dust_ilvl84_q20": 7608,
+      "item_type": "unknown",
+      "base_type": "Engraved Wand"
+    },
+    "Chaber Cairn": {
+      "base_dust": 6340,
+      "dust_ilvl84": 6340,
+      "dust_ilvl84_q20": 7608,
+      "item_type": "unknown",
+      "base_type": "Great Mallet"
+    },
+    "The Aylardex": {
+      "base_dust": 6260,
+      "dust_ilvl84": 6260,
+      "dust_ilvl84_q20": 7512,
+      "item_type": "unknown",
+      "base_type": "Agate Amulet"
+    },
+    "Iron Commander": {
+      "base_dust": 6260,
+      "dust_ilvl84": 6260,
+      "dust_ilvl84_q20": 7512,
+      "item_type": "unknown",
+      "base_type": "Death Bow"
+    },
+    "Replica Bitterdream": {
+      "base_dust": 6260,
+      "dust_ilvl84": 6260,
+      "dust_ilvl84_q20": 7512,
+      "item_type": "unknown",
+      "base_type": "Shadow Sceptre"
+    },
+    "Ahkeli's Valley": {
+      "base_dust": 6240,
+      "dust_ilvl84": 6240,
+      "dust_ilvl84_q20": 7488,
+      "item_type": "unknown",
+      "base_type": "Ruby Ring"
+    },
+    "Precursor's Emblem": {
+      "base_dust": 6240,
+      "dust_ilvl84": 6240,
+      "dust_ilvl84_q20": 7488,
+      "item_type": "unknown",
+      "base_type": "Ruby Ring"
+    },
+    "Circle of Anguish": {
+      "base_dust": 6240,
+      "dust_ilvl84": 6240,
+      "dust_ilvl84_q20": 7488,
+      "item_type": "unknown",
+      "base_type": "Ruby Ring"
+    },
+    "Icetomb": {
+      "base_dust": 6140,
+      "dust_ilvl84": 6140,
+      "dust_ilvl84_q20": 7368,
+      "item_type": "unknown",
+      "base_type": "Latticed Ringmail"
+    },
+    "Crystal Vault": {
+      "base_dust": 6140,
+      "dust_ilvl84": 6140,
+      "dust_ilvl84_q20": 7368,
+      "item_type": "unknown",
+      "base_type": "Latticed Ringmail"
+    },
+    "Orbala's Stand": {
+      "base_dust": 6140,
+      "dust_ilvl84": 6140,
+      "dust_ilvl84_q20": 7368,
+      "item_type": "unknown",
+      "base_type": "Eelskin Boots"
+    },
+    "Rearguard": {
+      "base_dust": 6060,
+      "dust_ilvl84": 6060,
+      "dust_ilvl84_q20": 7272,
+      "item_type": "unknown",
+      "base_type": "Blunt Arrow Quiver"
+    },
+    "Shadows and Dust": {
+      "base_dust": 6060,
+      "dust_ilvl84": 6060,
+      "dust_ilvl84_q20": 7272,
+      "item_type": "unknown",
+      "base_type": "Clasped Mitts"
+    },
+    "Demigod's Beacon": {
+      "base_dust": 6060,
+      "dust_ilvl84": 6060,
+      "dust_ilvl84_q20": 7272,
+      "item_type": "unknown",
+      "base_type": "Golden Flame"
+    },
+    "Aukuna's Will": {
+      "base_dust": 6060,
+      "dust_ilvl84": 6060,
+      "dust_ilvl84_q20": 7272,
+      "item_type": "unknown",
+      "base_type": "Clasped Mitts"
+    },
+    "Replica Winterheart": {
+      "base_dust": 6060,
+      "dust_ilvl84": 6060,
+      "dust_ilvl84_q20": 7272,
+      "item_type": "unknown",
+      "base_type": "Gold Amulet"
+    },
+    "Valyrium": {
+      "base_dust": 5980,
+      "dust_ilvl84": 5980,
+      "dust_ilvl84_q20": 7176,
+      "item_type": "unknown",
+      "base_type": "Moonstone Ring"
+    },
+    "Lioneye's Paws": {
+      "base_dust": 5900,
+      "dust_ilvl84": 5900,
+      "dust_ilvl84_q20": 7080,
+      "item_type": "unknown",
+      "base_type": "Bronzescale Boots"
+    },
+    "Thief's Torment": {
+      "base_dust": 5900,
+      "dust_ilvl84": 5900,
+      "dust_ilvl84_q20": 7080,
+      "item_type": "unknown",
+      "base_type": "Prismatic Ring"
+    },
+    "Lori's Lantern": {
+      "base_dust": 5900,
+      "dust_ilvl84": 5900,
+      "dust_ilvl84_q20": 7080,
+      "item_type": "unknown",
+      "base_type": "Prismatic Ring"
+    },
+    "Replica Twyzel": {
+      "base_dust": 5900,
+      "dust_ilvl84": 5900,
+      "dust_ilvl84_q20": 7080,
+      "item_type": "unknown",
+      "base_type": "Sage Wand"
+    },
+    "Zahndethus' Cassock": {
+      "base_dust": 5800,
+      "dust_ilvl84": 5800,
+      "dust_ilvl84_q20": 6960,
+      "item_type": "unknown",
+      "base_type": "Sage's Robe"
+    },
+    "Mindspiral": {
+      "base_dust": 5800,
+      "dust_ilvl84": 5800,
+      "dust_ilvl84_q20": 6960,
+      "item_type": "unknown",
+      "base_type": "Aventail Helmet"
+    },
+    "Cybil's Paw": {
+      "base_dust": 5800,
+      "dust_ilvl84": 5800,
+      "dust_ilvl84_q20": 6960,
+      "item_type": "unknown",
+      "base_type": "Thresher Claw"
+    },
+    "Torchoak Step": {
+      "base_dust": 5800,
+      "dust_ilvl84": 5800,
+      "dust_ilvl84_q20": 6960,
+      "item_type": "unknown",
+      "base_type": "Antique Greaves"
+    },
+    "Chalice of Horrors": {
+      "base_dust": 5720,
+      "dust_ilvl84": 5720,
+      "dust_ilvl84_q20": 6864,
+      "item_type": "unknown",
+      "base_type": "War Buckler"
+    },
+    "Ngamahu's Sign": {
+      "base_dust": 5720,
+      "dust_ilvl84": 5720,
+      "dust_ilvl84_q20": 6864,
+      "item_type": "unknown",
+      "base_type": "Ruby Ring"
+    },
+    "Skullhead": {
+      "base_dust": 5620,
+      "dust_ilvl84": 5620,
+      "dust_ilvl84_q20": 6744,
+      "item_type": "unknown",
+      "base_type": "Secutor Helm"
+    },
+    "Skirmish": {
+      "base_dust": 5620,
+      "dust_ilvl84": 5620,
+      "dust_ilvl84_q20": 6744,
+      "item_type": "unknown",
+      "base_type": "Two-Point Arrow Quiver"
+    },
+    "Gifts from Above": {
+      "base_dust": 5560,
+      "dust_ilvl84": 5560,
+      "dust_ilvl84_q20": 6672,
+      "item_type": "unknown",
+      "base_type": "Diamond Ring"
+    },
+    "Blightwell": {
+      "base_dust": 5560,
+      "dust_ilvl84": 5560,
+      "dust_ilvl84_q20": 6672,
+      "item_type": "unknown",
+      "base_type": "Clutching Talisman"
+    },
+    "Replica Leer Cast": {
+      "base_dust": 5560,
+      "dust_ilvl84": 5560,
+      "dust_ilvl84_q20": 6672,
+      "item_type": "unknown",
+      "base_type": "Festival Mask"
+    },
+    "Putembo's Meadow": {
+      "base_dust": 5540,
+      "dust_ilvl84": 5540,
+      "dust_ilvl84_q20": 6648,
+      "item_type": "unknown",
+      "base_type": "Topaz Ring"
+    },
+    "Circle of Regret": {
+      "base_dust": 5540,
+      "dust_ilvl84": 5540,
+      "dust_ilvl84_q20": 6648,
+      "item_type": "unknown",
+      "base_type": "Topaz Ring"
+    },
+    "The Three Dragons": {
+      "base_dust": 5460,
+      "dust_ilvl84": 5460,
+      "dust_ilvl84_q20": 6552,
+      "item_type": "unknown",
+      "base_type": "Golden Mask"
+    },
+    "Earendel's Embrace": {
+      "base_dust": 5460,
+      "dust_ilvl84": 5460,
+      "dust_ilvl84_q20": 6552,
+      "item_type": "unknown",
+      "base_type": "Grinning Fetish"
+    },
+    "Willclash": {
+      "base_dust": 5460,
+      "dust_ilvl84": 5460,
+      "dust_ilvl84_q20": 6552,
+      "item_type": "unknown",
+      "base_type": "Golden Mask"
+    },
+    "Lycosidae": {
+      "base_dust": 5380,
+      "dust_ilvl84": 5380,
+      "dust_ilvl84_q20": 6456,
+      "item_type": "unknown",
+      "base_type": "Rawhide Tower Shield"
+    },
+    "Mortem Morsu": {
+      "base_dust": 5300,
+      "dust_ilvl84": 5300,
+      "dust_ilvl84_q20": 6360,
+      "item_type": "unknown",
+      "base_type": "Fright Claw"
+    },
+    "Al Dhih": {
+      "base_dust": 5240,
+      "dust_ilvl84": 5240,
+      "dust_ilvl84_q20": 6288,
+      "item_type": "unknown",
+      "base_type": "Timeworn Claw"
+    },
+    "The Baron": {
+      "base_dust": 5240,
+      "dust_ilvl84": 5240,
+      "dust_ilvl84_q20": 6288,
+      "item_type": "unknown",
+      "base_type": "Close Helmet"
+    },
+    "Fairgraves' Tricorne": {
+      "base_dust": 5220,
+      "dust_ilvl84": 5220,
+      "dust_ilvl84_q20": 6264,
+      "item_type": "unknown",
+      "base_type": "Tricorne"
+    },
+    "Hyperboreus": {
+      "base_dust": 5220,
+      "dust_ilvl84": 5220,
+      "dust_ilvl84_q20": 6264,
+      "item_type": "unknown",
+      "base_type": "Leather Belt"
+    },
+    "Survivor's Guilt": {
+      "base_dust": 5220,
+      "dust_ilvl84": 5220,
+      "dust_ilvl84_q20": 6264,
+      "item_type": "unknown",
+      "base_type": "Heavy Belt"
+    },
+    "Reaper's Pursuit": {
+      "base_dust": 5160,
+      "dust_ilvl84": 5160,
+      "dust_ilvl84_q20": 6192,
+      "item_type": "unknown",
+      "base_type": "Shadow Axe"
+    },
+    "Deidbellow": {
+      "base_dust": 5160,
+      "dust_ilvl84": 5160,
+      "dust_ilvl84_q20": 6192,
+      "item_type": "unknown",
+      "base_type": "Gilded Sallet"
+    },
+    "Windshriek": {
+      "base_dust": 5160,
+      "dust_ilvl84": 5160,
+      "dust_ilvl84_q20": 6192,
+      "item_type": "unknown",
+      "base_type": "Reinforced Greaves"
+    },
+    "Drillneck": {
+      "base_dust": 5080,
+      "dust_ilvl84": 5080,
+      "dust_ilvl84_q20": 6096,
+      "item_type": "unknown",
+      "base_type": "Penetrating Arrow Quiver"
+    },
+    "Timeclasp": {
+      "base_dust": 5080,
+      "dust_ilvl84": 5080,
+      "dust_ilvl84_q20": 6096,
+      "item_type": "unknown",
+      "base_type": "Moonstone Ring"
+    },
+    "Faithguard": {
+      "base_dust": 5080,
+      "dust_ilvl84": 5080,
+      "dust_ilvl84_q20": 6096,
+      "item_type": "unknown",
+      "base_type": "Runic Helm"
+    },
+    "Shavronne's Pace": {
+      "base_dust": 5000,
+      "dust_ilvl84": 5000,
+      "dust_ilvl84_q20": 6000,
+      "item_type": "unknown",
+      "base_type": "Scholar Boots"
+    },
+    "Briskwrap": {
+      "base_dust": 5000,
+      "dust_ilvl84": 5000,
+      "dust_ilvl84_q20": 6000,
+      "item_type": "unknown",
+      "base_type": "Sun Leather"
+    },
+    "Flesh-Eater": {
+      "base_dust": 5000,
+      "dust_ilvl84": 5000,
+      "dust_ilvl84_q20": 6000,
+      "item_type": "unknown",
+      "base_type": "Dream Mace"
+    },
+    "Triad Grip": {
+      "base_dust": 5000,
+      "dust_ilvl84": 5000,
+      "dust_ilvl84_q20": 6000,
+      "item_type": "unknown",
+      "base_type": "Mesh Gloves"
+    },
+    "Shavronne's Gambit": {
+      "base_dust": 5000,
+      "dust_ilvl84": 5000,
+      "dust_ilvl84_q20": 6000,
+      "item_type": "unknown",
+      "base_type": "Scholar Boots"
+    },
+    "Death's Opus": {
+      "base_dust": 5000,
+      "dust_ilvl84": 5000,
+      "dust_ilvl84_q20": 6000,
+      "item_type": "unknown",
+      "base_type": "Death Bow"
+    },
+    "Le Heup of All": {
+      "base_dust": 4940,
+      "dust_ilvl84": 4940,
+      "dust_ilvl84_q20": 5928,
+      "item_type": "unknown",
+      "base_type": "Iron Ring"
+    },
+    "Pyre": {
+      "base_dust": 4920,
+      "dust_ilvl84": 4920,
+      "dust_ilvl84_q20": 5904,
+      "item_type": "unknown",
+      "base_type": "Sapphire Ring"
+    },
+    "Uzaza's Mountain": {
+      "base_dust": 4920,
+      "dust_ilvl84": 4920,
+      "dust_ilvl84_q20": 5904,
+      "item_type": "unknown",
+      "base_type": "Sapphire Ring"
+    },
+    "Circle of Fear": {
+      "base_dust": 4920,
+      "dust_ilvl84": 4920,
+      "dust_ilvl84_q20": 5904,
+      "item_type": "unknown",
+      "base_type": "Sapphire Ring"
+    },
+    "Replica Tasalio's Sign": {
+      "base_dust": 4920,
+      "dust_ilvl84": 4920,
+      "dust_ilvl84_q20": 5904,
+      "item_type": "unknown",
+      "base_type": "Sapphire Ring"
+    },
+    "Call of the Void": {
+      "base_dust": 4920,
+      "dust_ilvl84": 4920,
+      "dust_ilvl84_q20": 5904,
+      "item_type": "unknown",
+      "base_type": "Sapphire Ring"
+    },
+    "Ikiaho's Promise": {
+      "base_dust": 4860,
+      "dust_ilvl84": 4860,
+      "dust_ilvl84_q20": 5832,
+      "item_type": "unknown",
+      "base_type": "Coral Amulet"
+    },
+    "Matua Tupuna": {
+      "base_dust": 4800,
+      "dust_ilvl84": 4800,
+      "dust_ilvl84_q20": 5760,
+      "item_type": "unknown",
+      "base_type": "Tarnished Spirit Shield"
+    },
+    "The Trickster's Smile": {
+      "base_dust": 4800,
+      "dust_ilvl84": 4800,
+      "dust_ilvl84_q20": 5760,
+      "item_type": "unknown",
+      "base_type": "Visored Sallet"
+    },
+    "Blood of Corruption": {
+      "base_dust": 4780,
+      "dust_ilvl84": 4780,
+      "dust_ilvl84_q20": 5736,
+      "item_type": "unknown",
+      "base_type": "Amber Amulet"
+    },
+    "Replica Karui Ward": {
+      "base_dust": 4780,
+      "dust_ilvl84": 4780,
+      "dust_ilvl84_q20": 5736,
+      "item_type": "unknown",
+      "base_type": "Jade Amulet"
+    },
+    "Mightflay": {
+      "base_dust": 4720,
+      "dust_ilvl84": 4720,
+      "dust_ilvl84_q20": 5664,
+      "item_type": "unknown",
+      "base_type": "Flaying Knife"
+    },
+    "Titucius' Span": {
+      "base_dust": 4720,
+      "dust_ilvl84": 4720,
+      "dust_ilvl84_q20": 5664,
+      "item_type": "unknown",
+      "base_type": "Reinforced Tower Shield"
+    },
+    "Twyzel": {
+      "base_dust": 4720,
+      "dust_ilvl84": 4720,
+      "dust_ilvl84_q20": 5664,
+      "item_type": "unknown",
+      "base_type": "Sage Wand"
+    },
+    "Chitus' Needle": {
+      "base_dust": 4720,
+      "dust_ilvl84": 4720,
+      "dust_ilvl84_q20": 5664,
+      "item_type": "unknown",
+      "base_type": "Elegant Foil"
+    },
+    "The Warden's Brand": {
+      "base_dust": 4720,
+      "dust_ilvl84": 4720,
+      "dust_ilvl84_q20": 5664,
+      "item_type": "unknown",
+      "base_type": "Iron Ring"
+    },
+    "Retaliation Charm": {
+      "base_dust": 4720,
+      "dust_ilvl84": 4720,
+      "dust_ilvl84_q20": 5664,
+      "item_type": "unknown",
+      "base_type": "Citrine Amulet"
+    },
+    "Elevore": {
+      "base_dust": 4720,
+      "dust_ilvl84": 4720,
+      "dust_ilvl84_q20": 5664,
+      "item_type": "unknown",
+      "base_type": "Wolf Pelt"
+    },
+    "Veil of the Night": {
+      "base_dust": 4660,
+      "dust_ilvl84": 4660,
+      "dust_ilvl84_q20": 5592,
+      "item_type": "unknown",
+      "base_type": "Great Helmet"
+    },
+    "Edge of Madness": {
+      "base_dust": 4660,
+      "dust_ilvl84": 4660,
+      "dust_ilvl84_q20": 5592,
+      "item_type": "unknown",
+      "base_type": "Etched Greatsword"
+    },
+    "Replica Veil of the Night": {
+      "base_dust": 4660,
+      "dust_ilvl84": 4660,
+      "dust_ilvl84_q20": 5592,
+      "item_type": "unknown",
+      "base_type": "Great Helmet"
+    },
+    "Relentless Fury": {
+      "base_dust": 4580,
+      "dust_ilvl84": 4580,
+      "dust_ilvl84_q20": 5496,
+      "item_type": "unknown",
+      "base_type": "Decorative Axe"
+    },
+    "Thirst for Horrors": {
+      "base_dust": 4580,
+      "dust_ilvl84": 4580,
+      "dust_ilvl84_q20": 5496,
+      "item_type": "unknown",
+      "base_type": "War Buckler"
+    },
+    "Fated End": {
+      "base_dust": 4500,
+      "dust_ilvl84": 4500,
+      "dust_ilvl84_q20": 5400,
+      "item_type": "unknown",
+      "base_type": "Paua Ring"
+    },
+    "Replica Doedre's Damning": {
+      "base_dust": 4500,
+      "dust_ilvl84": 4500,
+      "dust_ilvl84_q20": 5400,
+      "item_type": "unknown",
+      "base_type": "Paua Ring"
+    },
+    "Wake of Destruction": {
+      "base_dust": 4440,
+      "dust_ilvl84": 4440,
+      "dust_ilvl84_q20": 5328,
+      "item_type": "unknown",
+      "base_type": "Mesh Boots"
+    },
+    "Leer Cast": {
+      "base_dust": 4440,
+      "dust_ilvl84": 4440,
+      "dust_ilvl84_q20": 5328,
+      "item_type": "unknown",
+      "base_type": "Festival Mask"
+    },
+    "Lakishu's Blade": {
+      "base_dust": 4440,
+      "dust_ilvl84": 4440,
+      "dust_ilvl84_q20": 5328,
+      "item_type": "unknown",
+      "base_type": "Elegant Sword"
+    },
+    "The Stormheart": {
+      "base_dust": 4440,
+      "dust_ilvl84": 4440,
+      "dust_ilvl84_q20": 5328,
+      "item_type": "unknown",
+      "base_type": "Royal Staff"
+    },
+    "Viper's Scales": {
+      "base_dust": 4440,
+      "dust_ilvl84": 4440,
+      "dust_ilvl84_q20": 5328,
+      "item_type": "unknown",
+      "base_type": "Full Scale Armour"
+    },
+    "Doomfletch's Prism": {
+      "base_dust": 4440,
+      "dust_ilvl84": 4440,
+      "dust_ilvl84_q20": 5328,
+      "item_type": "unknown",
+      "base_type": "Royal Bow"
+    },
+    "The Stormwall": {
+      "base_dust": 4440,
+      "dust_ilvl84": 4440,
+      "dust_ilvl84_q20": 5328,
+      "item_type": "unknown",
+      "base_type": "Royal Staff"
+    },
+    "Meginord's Girdle": {
+      "base_dust": 4380,
+      "dust_ilvl84": 4380,
+      "dust_ilvl84_q20": 5256,
+      "item_type": "unknown",
+      "base_type": "Heavy Belt"
+    },
+    "Berek's Pass": {
+      "base_dust": 4380,
+      "dust_ilvl84": 4380,
+      "dust_ilvl84_q20": 5256,
+      "item_type": "unknown",
+      "base_type": "Two-Stone Ring"
+    },
+    "Berek's Grip": {
+      "base_dust": 4380,
+      "dust_ilvl84": 4380,
+      "dust_ilvl84_q20": 5256,
+      "item_type": "unknown",
+      "base_type": "Two-Stone Ring"
+    },
+    "Kikazaru": {
+      "base_dust": 4380,
+      "dust_ilvl84": 4380,
+      "dust_ilvl84_q20": 5256,
+      "item_type": "unknown",
+      "base_type": "Topaz Ring"
+    },
+    "Belt of the Deceiver": {
+      "base_dust": 4380,
+      "dust_ilvl84": 4380,
+      "dust_ilvl84_q20": 5256,
+      "item_type": "unknown",
+      "base_type": "Heavy Belt"
+    },
+    "Tasalio's Sign": {
+      "base_dust": 4380,
+      "dust_ilvl84": 4380,
+      "dust_ilvl84_q20": 5256,
+      "item_type": "unknown",
+      "base_type": "Sapphire Ring"
+    },
+    "Maligaro's Cruelty": {
+      "base_dust": 4380,
+      "dust_ilvl84": 4380,
+      "dust_ilvl84_q20": 5256,
+      "item_type": "unknown",
+      "base_type": "Turquoise Amulet"
+    },
+    "Curtain Call": {
+      "base_dust": 4380,
+      "dust_ilvl84": 4380,
+      "dust_ilvl84_q20": 5256,
+      "item_type": "unknown",
+      "base_type": "Plague Mask"
+    },
+    "The Felbog Fang": {
+      "base_dust": 4380,
+      "dust_ilvl84": 4380,
+      "dust_ilvl84_q20": 5256,
+      "item_type": "unknown",
+      "base_type": "Citrine Amulet"
+    },
+    "Honoured Alliance": {
+      "base_dust": 4380,
+      "dust_ilvl84": 4380,
+      "dust_ilvl84_q20": 5256,
+      "item_type": "unknown",
+      "base_type": "Coral Ring"
+    },
+    "Geofri's Baptism": {
+      "base_dust": 4320,
+      "dust_ilvl84": 4320,
+      "dust_ilvl84_q20": 5184,
+      "item_type": "unknown",
+      "base_type": "Brass Maul"
+    },
+    "Sundance": {
+      "base_dust": 4320,
+      "dust_ilvl84": 4320,
+      "dust_ilvl84_q20": 5184,
+      "item_type": "unknown",
+      "base_type": "Clasped Boots"
+    },
+    "Slitherpinch": {
+      "base_dust": 4320,
+      "dust_ilvl84": 4320,
+      "dust_ilvl84_q20": 5184,
+      "item_type": "unknown",
+      "base_type": "Bronzescale Gauntlets"
+    },
+    "Queen's Decree": {
+      "base_dust": 4320,
+      "dust_ilvl84": 4320,
+      "dust_ilvl84_q20": 5184,
+      "item_type": "unknown",
+      "base_type": "Ornate Sword"
+    },
+    "Glitterdisc": {
+      "base_dust": 4320,
+      "dust_ilvl84": 4320,
+      "dust_ilvl84_q20": 5184,
+      "item_type": "unknown",
+      "base_type": "Burnished Spiked Shield"
+    },
+    "Queen's Escape": {
+      "base_dust": 4320,
+      "dust_ilvl84": 4320,
+      "dust_ilvl84_q20": 5184,
+      "item_type": "unknown",
+      "base_type": "Ornate Sword"
+    },
+    "Sunspite": {
+      "base_dust": 4320,
+      "dust_ilvl84": 4320,
+      "dust_ilvl84_q20": 5184,
+      "item_type": "unknown",
+      "base_type": "Clasped Boots"
+    },
+    "Geofri's Devotion": {
+      "base_dust": 4320,
+      "dust_ilvl84": 4320,
+      "dust_ilvl84_q20": 5184,
+      "item_type": "unknown",
+      "base_type": "Brass Maul"
+    },
+    "Thousand Ribbons": {
+      "base_dust": 4240,
+      "dust_ilvl84": 4240,
+      "dust_ilvl84_q20": 5088,
+      "item_type": "unknown",
+      "base_type": "Simple Robe"
+    },
+    "Tabula Rasa": {
+      "base_dust": 4240,
+      "dust_ilvl84": 4240,
+      "dust_ilvl84_q20": 5088,
+      "item_type": "unknown",
+      "base_type": "Simple Robe"
+    },
+    "Ewar's Mirage": {
+      "base_dust": 4180,
+      "dust_ilvl84": 4180,
+      "dust_ilvl84_q20": 5016,
+      "item_type": "unknown",
+      "base_type": "Antique Rapier"
+    },
+    "Mark of the Red Covenant": {
+      "base_dust": 4180,
+      "dust_ilvl84": 4180,
+      "dust_ilvl84_q20": 5016,
+      "item_type": "unknown",
+      "base_type": "Tribal Circlet"
+    },
+    "Coward's Legacy": {
+      "base_dust": 4120,
+      "dust_ilvl84": 4120,
+      "dust_ilvl84_q20": 4944,
+      "item_type": "unknown",
+      "base_type": "Chain Belt"
+    },
+    "Circle of Guilt": {
+      "base_dust": 4120,
+      "dust_ilvl84": 4120,
+      "dust_ilvl84_q20": 4944,
+      "item_type": "unknown",
+      "base_type": "Iron Ring"
+    },
+    "Chains of Emancipation": {
+      "base_dust": 4120,
+      "dust_ilvl84": 4120,
+      "dust_ilvl84_q20": 4944,
+      "item_type": "unknown",
+      "base_type": "Chain Belt"
+    },
+    "Carnage Heart": {
+      "base_dust": 4060,
+      "dust_ilvl84": 4060,
+      "dust_ilvl84_q20": 4872,
+      "item_type": "unknown",
+      "base_type": "Onyx Amulet"
+    },
+    "Foxshade": {
+      "base_dust": 4060,
+      "dust_ilvl84": 4060,
+      "dust_ilvl84_q20": 4872,
+      "item_type": "unknown",
+      "base_type": "Wild Leather"
+    },
+    "Prismweave": {
+      "base_dust": 4060,
+      "dust_ilvl84": 4060,
+      "dust_ilvl84_q20": 4872,
+      "item_type": "unknown",
+      "base_type": "Rustic Sash"
+    },
+    "Duskwing": {
+      "base_dust": 4060,
+      "dust_ilvl84": 4060,
+      "dust_ilvl84_q20": 4872,
+      "item_type": "unknown",
+      "base_type": "Saqawine Vulture"
+    },
+    "Timetwist": {
+      "base_dust": 4060,
+      "dust_ilvl84": 4060,
+      "dust_ilvl84_q20": 4872,
+      "item_type": "unknown",
+      "base_type": "Moonstone Ring"
+    },
+    "Fox's Fortune": {
+      "base_dust": 4060,
+      "dust_ilvl84": 4060,
+      "dust_ilvl84_q20": 4872,
+      "item_type": "unknown",
+      "base_type": "Wild Leather"
+    },
+    "Malachai's Simula": {
+      "base_dust": 4020,
+      "dust_ilvl84": 4020,
+      "dust_ilvl84_q20": 4824,
+      "item_type": "unknown",
+      "base_type": "Iron Mask"
+    },
+    "Ashrend": {
+      "base_dust": 4020,
+      "dust_ilvl84": 4020,
+      "dust_ilvl84_q20": 4824,
+      "item_type": "unknown",
+      "base_type": "Buckskin Tunic"
+    },
+    "Solaris Lorica": {
+      "base_dust": 4020,
+      "dust_ilvl84": 4020,
+      "dust_ilvl84_q20": 4824,
+      "item_type": "unknown",
+      "base_type": "Copper Plate"
+    },
+    "Trolltimber Spire": {
+      "base_dust": 4020,
+      "dust_ilvl84": 4020,
+      "dust_ilvl84_q20": 4824,
+      "item_type": "unknown",
+      "base_type": "Cedar Tower Shield"
+    },
+    "Widowhail": {
+      "base_dust": 4000,
+      "dust_ilvl84": 4000,
+      "dust_ilvl84_q20": 4800,
+      "item_type": "unknown",
+      "base_type": "Crude Bow"
+    },
+    "Storm Prison": {
+      "base_dust": 3940,
+      "dust_ilvl84": 3940,
+      "dust_ilvl84_q20": 4728,
+      "item_type": "unknown",
+      "base_type": "Spiraled Wand"
+    },
+    "Amplification Rod": {
+      "base_dust": 3940,
+      "dust_ilvl84": 3940,
+      "dust_ilvl84_q20": 4728,
+      "item_type": "unknown",
+      "base_type": "Spiraled Wand"
+    },
+    "Facebreaker": {
+      "base_dust": 3900,
+      "dust_ilvl84": 3900,
+      "dust_ilvl84_q20": 4680,
+      "item_type": "unknown",
+      "base_type": "Strapped Mitts"
+    },
+    "Mokou's Embrace": {
+      "base_dust": 3900,
+      "dust_ilvl84": 3900,
+      "dust_ilvl84_q20": 4680,
+      "item_type": "unknown",
+      "base_type": "Ruby Ring"
+    },
+    "Ahkeli's Mountain": {
+      "base_dust": 3900,
+      "dust_ilvl84": 3900,
+      "dust_ilvl84_q20": 4680,
+      "item_type": "unknown",
+      "base_type": "Ruby Ring"
+    },
+    "The Peregrine": {
+      "base_dust": 3840,
+      "dust_ilvl84": 3840,
+      "dust_ilvl84_q20": 4608,
+      "item_type": "unknown",
+      "base_type": "Visored Sallet"
+    },
+    "Stormcharger": {
+      "base_dust": 3840,
+      "dust_ilvl84": 3840,
+      "dust_ilvl84_q20": 4608,
+      "item_type": "unknown",
+      "base_type": "Plated Greaves"
+    },
+    "Giantsbane": {
+      "base_dust": 3840,
+      "dust_ilvl84": 3840,
+      "dust_ilvl84_q20": 4608,
+      "item_type": "unknown",
+      "base_type": "Bronze Gauntlets"
+    },
+    "Whakatutuki o Matua": {
+      "base_dust": 3840,
+      "dust_ilvl84": 3840,
+      "dust_ilvl84_q20": 4608,
+      "item_type": "unknown",
+      "base_type": "Tarnished Spirit Shield"
+    },
+    "Flesh and Spirit": {
+      "base_dust": 3780,
+      "dust_ilvl84": 3780,
+      "dust_ilvl84_q20": 4536,
+      "item_type": "unknown",
+      "base_type": "Ironscale Gauntlets"
+    },
+    "Replica Bloodplay": {
+      "base_dust": 3780,
+      "dust_ilvl84": 3780,
+      "dust_ilvl84_q20": 4536,
+      "item_type": "unknown",
+      "base_type": "Stiletto"
+    },
+    "Bones of Ullr": {
+      "base_dust": 3720,
+      "dust_ilvl84": 3720,
+      "dust_ilvl84_q20": 4464,
+      "item_type": "unknown",
+      "base_type": "Silk Slippers"
+    },
+    "Quecholli": {
+      "base_dust": 3720,
+      "dust_ilvl84": 3720,
+      "dust_ilvl84_q20": 4464,
+      "item_type": "unknown",
+      "base_type": "Jagged Maul"
+    },
+    "Deerstalker": {
+      "base_dust": 3720,
+      "dust_ilvl84": 3720,
+      "dust_ilvl84_q20": 4464,
+      "item_type": "unknown",
+      "base_type": "Deerskin Boots"
+    },
+    "Fidelitas' Spike": {
+      "base_dust": 3720,
+      "dust_ilvl84": 3720,
+      "dust_ilvl84_q20": 4464,
+      "item_type": "unknown",
+      "base_type": "Jagged Foil"
+    },
+    "Bated Breath": {
+      "base_dust": 3720,
+      "dust_ilvl84": 3720,
+      "dust_ilvl84_q20": 4464,
+      "item_type": "unknown",
+      "base_type": "Chain Belt"
+    },
+    "Praxis": {
+      "base_dust": 3720,
+      "dust_ilvl84": 3720,
+      "dust_ilvl84_q20": 4464,
+      "item_type": "unknown",
+      "base_type": "Paua Ring"
+    },
+    "Panquetzaliztli": {
+      "base_dust": 3720,
+      "dust_ilvl84": 3720,
+      "dust_ilvl84_q20": 4464,
+      "item_type": "unknown",
+      "base_type": "Jagged Maul"
+    },
+    "Perandus Blazon": {
+      "base_dust": 3500,
+      "dust_ilvl84": 3500,
+      "dust_ilvl84_q20": 4200,
+      "item_type": "unknown",
+      "base_type": "Cloth Belt"
+    },
+    "Ungil's Gauche": {
+      "base_dust": 3500,
+      "dust_ilvl84": 3500,
+      "dust_ilvl84_q20": 4200,
+      "item_type": "unknown",
+      "base_type": "Boot Knife"
+    },
+    "Brightbeak": {
+      "base_dust": 3500,
+      "dust_ilvl84": 3500,
+      "dust_ilvl84_q20": 4200,
+      "item_type": "unknown",
+      "base_type": "War Hammer"
+    },
+    "Daresso's Salute": {
+      "base_dust": 3500,
+      "dust_ilvl84": 3500,
+      "dust_ilvl84_q20": 4200,
+      "item_type": "unknown",
+      "base_type": "Citrine Amulet"
+    },
+    "Victario's Acuity": {
+      "base_dust": 3500,
+      "dust_ilvl84": 3500,
+      "dust_ilvl84_q20": 4200,
+      "item_type": "unknown",
+      "base_type": "Turquoise Amulet"
+    },
+    "Asphyxia's Wrath": {
+      "base_dust": 3500,
+      "dust_ilvl84": 3500,
+      "dust_ilvl84_q20": 4200,
+      "item_type": "unknown",
+      "base_type": "Feathered Arrow Quiver"
+    },
+    "Shaper's Seed": {
+      "base_dust": 3500,
+      "dust_ilvl84": 3500,
+      "dust_ilvl84_q20": 4200,
+      "item_type": "unknown",
+      "base_type": "Agate Amulet"
+    },
+    "The Deep One's Hide": {
+      "base_dust": 3500,
+      "dust_ilvl84": 3500,
+      "dust_ilvl84_q20": 4200,
+      "item_type": "unknown",
+      "base_type": "Studded Round Shield"
+    },
+    "Lavianga's Wisdom": {
+      "base_dust": 3500,
+      "dust_ilvl84": 3500,
+      "dust_ilvl84_q20": 4200,
+      "item_type": "unknown",
+      "base_type": "War Hammer"
+    },
+    "Spine of the First Claimant": {
+      "base_dust": 3500,
+      "dust_ilvl84": 3500,
+      "dust_ilvl84_q20": 4200,
+      "item_type": "unknown",
+      "base_type": "Iron Sceptre"
+    },
+    "Extractor Mentis": {
+      "base_dust": 3500,
+      "dust_ilvl84": 3500,
+      "dust_ilvl84_q20": 4200,
+      "item_type": "unknown",
+      "base_type": "Agate Amulet"
+    },
+    "Demigod's Dominance": {
+      "base_dust": 3500,
+      "dust_ilvl84": 3500,
+      "dust_ilvl84_q20": 4200,
+      "item_type": "unknown",
+      "base_type": "Golden Mantle"
+    },
+    "The Tempestuous Steel": {
+      "base_dust": 3500,
+      "dust_ilvl84": 3500,
+      "dust_ilvl84_q20": 4200,
+      "item_type": "unknown",
+      "base_type": "War Sword"
+    },
+    "Saemus' Gift": {
+      "base_dust": 3500,
+      "dust_ilvl84": 3500,
+      "dust_ilvl84_q20": 4200,
+      "item_type": "unknown",
+      "base_type": "Feathered Arrow Quiver"
+    },
+    "Frostferno": {
+      "base_dust": 3500,
+      "dust_ilvl84": 3500,
+      "dust_ilvl84_q20": 4200,
+      "item_type": "unknown",
+      "base_type": "Leather Hood"
+    },
+    "The Tactician": {
+      "base_dust": 3500,
+      "dust_ilvl84": 3500,
+      "dust_ilvl84_q20": 4200,
+      "item_type": "unknown",
+      "base_type": "Studded Belt"
+    },
+    "The Nomad": {
+      "base_dust": 3500,
+      "dust_ilvl84": 3500,
+      "dust_ilvl84_q20": 4200,
+      "item_type": "unknown",
+      "base_type": "Studded Belt"
+    },
+    "Victario's Flight": {
+      "base_dust": 3460,
+      "dust_ilvl84": 3460,
+      "dust_ilvl84_q20": 4152,
+      "item_type": "unknown",
+      "base_type": "Goathide Boots"
+    },
+    "Ashcaller": {
+      "base_dust": 3460,
+      "dust_ilvl84": 3460,
+      "dust_ilvl84_q20": 4152,
+      "item_type": "unknown",
+      "base_type": "Carved Wand"
+    },
+    "Putembo's Valley": {
+      "base_dust": 3460,
+      "dust_ilvl84": 3460,
+      "dust_ilvl84_q20": 4152,
+      "item_type": "unknown",
+      "base_type": "Topaz Ring"
+    },
+    "Ghostwrithe": {
+      "base_dust": 3360,
+      "dust_ilvl84": 3360,
+      "dust_ilvl84_q20": 4032,
+      "item_type": "unknown",
+      "base_type": "Silken Vest"
+    },
+    "Dusktoe": {
+      "base_dust": 3300,
+      "dust_ilvl84": 3300,
+      "dust_ilvl84_q20": 3960,
+      "item_type": "unknown",
+      "base_type": "Ironscale Boots"
+    },
+    "Wideswing": {
+      "base_dust": 3300,
+      "dust_ilvl84": 3300,
+      "dust_ilvl84_q20": 3960,
+      "item_type": "unknown",
+      "base_type": "Poleaxe"
+    },
+    "Faminebind": {
+      "base_dust": 3300,
+      "dust_ilvl84": 3300,
+      "dust_ilvl84_q20": 3960,
+      "item_type": "unknown",
+      "base_type": "Rustic Sash"
+    },
+    "Roth's Reach": {
+      "base_dust": 3300,
+      "dust_ilvl84": 3300,
+      "dust_ilvl84_q20": 3960,
+      "item_type": "unknown",
+      "base_type": "Recurve Bow"
+    },
+    "Duskblight": {
+      "base_dust": 3300,
+      "dust_ilvl84": 3300,
+      "dust_ilvl84_q20": 3960,
+      "item_type": "unknown",
+      "base_type": "Ironscale Boots"
+    },
+    "Thrillsteel": {
+      "base_dust": 3300,
+      "dust_ilvl84": 3300,
+      "dust_ilvl84_q20": 3960,
+      "item_type": "unknown",
+      "base_type": "Barbute Helmet"
+    },
+    "Doryani's Invitation": {
+      "base_dust": 3260,
+      "dust_ilvl84": 3260,
+      "dust_ilvl84_q20": 3912,
+      "item_type": "unknown",
+      "base_type": "Heavy Belt"
+    },
+    "Night's Hold": {
+      "base_dust": 3260,
+      "dust_ilvl84": 3260,
+      "dust_ilvl84_q20": 3912,
+      "item_type": "unknown",
+      "base_type": "Black Maw Talisman"
+    },
+    "String of Servitude": {
+      "base_dust": 3260,
+      "dust_ilvl84": 3260,
+      "dust_ilvl84_q20": 3912,
+      "item_type": "unknown",
+      "base_type": "Heavy Belt"
+    },
+    "Bear's Girdle": {
+      "base_dust": 3260,
+      "dust_ilvl84": 3260,
+      "dust_ilvl84_q20": 3912,
+      "item_type": "unknown",
+      "base_type": "Leather Belt"
+    },
+    "Hrimnor's Hymn": {
+      "base_dust": 3200,
+      "dust_ilvl84": 3200,
+      "dust_ilvl84_q20": 3840,
+      "item_type": "unknown",
+      "base_type": "Sledgehammer"
+    },
+    "Aurumvorax": {
+      "base_dust": 3200,
+      "dust_ilvl84": 3200,
+      "dust_ilvl84_q20": 3840,
+      "item_type": "unknown",
+      "base_type": "Basket Rapier"
+    },
+    "Hrimnor's Dirge": {
+      "base_dust": 3200,
+      "dust_ilvl84": 3200,
+      "dust_ilvl84_q20": 3840,
+      "item_type": "unknown",
+      "base_type": "Sledgehammer"
+    },
+    "Malachai's Awakening": {
+      "base_dust": 3200,
+      "dust_ilvl84": 3200,
+      "dust_ilvl84_q20": 3840,
+      "item_type": "unknown",
+      "base_type": "Iron Mask"
+    },
+    "Kaltenhalt": {
+      "base_dust": 3120,
+      "dust_ilvl84": 3120,
+      "dust_ilvl84_q20": 3744,
+      "item_type": "unknown",
+      "base_type": "Painted Buckler"
+    },
+    "Nomic's Storm": {
+      "base_dust": 3120,
+      "dust_ilvl84": 3120,
+      "dust_ilvl84_q20": 3744,
+      "item_type": "unknown",
+      "base_type": "Strapped Boots"
+    },
+    "Dreadarc": {
+      "base_dust": 3120,
+      "dust_ilvl84": 3120,
+      "dust_ilvl84_q20": 3744,
+      "item_type": "unknown",
+      "base_type": "Cleaver"
+    },
+    "Kaltensoul": {
+      "base_dust": 3120,
+      "dust_ilvl84": 3120,
+      "dust_ilvl84_q20": 3744,
+      "item_type": "unknown",
+      "base_type": "Painted Buckler"
+    },
+    "Dreadsurge": {
+      "base_dust": 3120,
+      "dust_ilvl84": 3120,
+      "dust_ilvl84_q20": 3744,
+      "item_type": "unknown",
+      "base_type": "Cleaver"
+    },
+    "Uzaza's Meadow": {
+      "base_dust": 3080,
+      "dust_ilvl84": 3080,
+      "dust_ilvl84_q20": 3696,
+      "item_type": "unknown",
+      "base_type": "Sapphire Ring"
+    },
+    "Wreath of Phrecia": {
+      "base_dust": 3080,
+      "dust_ilvl84": 3080,
+      "dust_ilvl84_q20": 3696,
+      "item_type": "unknown",
+      "base_type": "Iron Circlet"
+    },
+    "Demigod's Presence": {
+      "base_dust": 3020,
+      "dust_ilvl84": 3020,
+      "dust_ilvl84_q20": 3624,
+      "item_type": "unknown",
+      "base_type": "Gold Amulet"
+    },
+    "The Ignomon": {
+      "base_dust": 3020,
+      "dust_ilvl84": 3020,
+      "dust_ilvl84_q20": 3624,
+      "item_type": "unknown",
+      "base_type": "Gold Amulet"
+    },
+    "Bloodplay": {
+      "base_dust": 3020,
+      "dust_ilvl84": 3020,
+      "dust_ilvl84_q20": 3624,
+      "item_type": "unknown",
+      "base_type": "Stiletto"
+    },
+    "The Effigon": {
+      "base_dust": 3020,
+      "dust_ilvl84": 3020,
+      "dust_ilvl84_q20": 3624,
+      "item_type": "unknown",
+      "base_type": "Gold Amulet"
+    },
+    "The Untouched Soul": {
+      "base_dust": 3020,
+      "dust_ilvl84": 3020,
+      "dust_ilvl84_q20": 3624,
+      "item_type": "unknown",
+      "base_type": "Gold Amulet"
+    },
+    "The Goddess Bound": {
+      "base_dust": 2980,
+      "dust_ilvl84": 2980,
+      "dust_ilvl84_q20": 3576,
+      "item_type": "unknown",
+      "base_type": "Whalebone Rapier"
+    },
+    "Shackles of the Wretched": {
+      "base_dust": 2980,
+      "dust_ilvl84": 2980,
+      "dust_ilvl84_q20": 3576,
+      "item_type": "unknown",
+      "base_type": "Chain Gloves"
+    },
+    "Hyrri's Bite": {
+      "base_dust": 2940,
+      "dust_ilvl84": 2940,
+      "dust_ilvl84_q20": 3528,
+      "item_type": "unknown",
+      "base_type": "Sharktooth Arrow Quiver"
+    },
+    "Hyrri's Demise": {
+      "base_dust": 2940,
+      "dust_ilvl84": 2940,
+      "dust_ilvl84_q20": 3528,
+      "item_type": "unknown",
+      "base_type": "Sharktooth Arrow Quiver"
+    },
+    "Chain of Endurance": {
+      "base_dust": 2940,
+      "dust_ilvl84": 2940,
+      "dust_ilvl84_q20": 3528,
+      "item_type": "unknown",
+      "base_type": "Chain Belt"
+    },
+    "Limbsplit": {
+      "base_dust": 2860,
+      "dust_ilvl84": 2860,
+      "dust_ilvl84_q20": 3432,
+      "item_type": "unknown",
+      "base_type": "Woodsplitter"
+    },
+    "Pillar of the Caged God": {
+      "base_dust": 2860,
+      "dust_ilvl84": 2860,
+      "dust_ilvl84_q20": 3432,
+      "item_type": "unknown",
+      "base_type": "Iron Staff"
+    },
+    "Dying Breath": {
+      "base_dust": 2860,
+      "dust_ilvl84": 2860,
+      "dust_ilvl84_q20": 3432,
+      "item_type": "unknown",
+      "base_type": "Iron Staff"
+    },
+    "Realmshaper": {
+      "base_dust": 2860,
+      "dust_ilvl84": 2860,
+      "dust_ilvl84_q20": 3432,
+      "item_type": "unknown",
+      "base_type": "Iron Staff"
+    },
+    "The Cauteriser": {
+      "base_dust": 2860,
+      "dust_ilvl84": 2860,
+      "dust_ilvl84_q20": 3432,
+      "item_type": "unknown",
+      "base_type": "Woodsplitter"
+    },
+    "Realm Ender": {
+      "base_dust": 2860,
+      "dust_ilvl84": 2860,
+      "dust_ilvl84_q20": 3432,
+      "item_type": "unknown",
+      "base_type": "Iron Staff"
+    },
+    "Doedre's Damning": {
+      "base_dust": 2820,
+      "dust_ilvl84": 2820,
+      "dust_ilvl84_q20": 3384,
+      "item_type": "unknown",
+      "base_type": "Paua Ring"
+    },
+    "Quill Rain": {
+      "base_dust": 2820,
+      "dust_ilvl84": 2820,
+      "dust_ilvl84_q20": 3384,
+      "item_type": "unknown",
+      "base_type": "Short Bow"
+    },
+    "Replica Quill Rain": {
+      "base_dust": 2820,
+      "dust_ilvl84": 2820,
+      "dust_ilvl84_q20": 3384,
+      "item_type": "unknown",
+      "base_type": "Short Bow"
+    },
+    "Shiversting": {
+      "base_dust": 2760,
+      "dust_ilvl84": 2760,
+      "dust_ilvl84_q20": 3312,
+      "item_type": "unknown",
+      "base_type": "Bastard Sword"
+    },
+    "Honourhome": {
+      "base_dust": 2760,
+      "dust_ilvl84": 2760,
+      "dust_ilvl84_q20": 3312,
+      "item_type": "unknown",
+      "base_type": "Soldier Helmet"
+    },
+    "Doedre's Tenure": {
+      "base_dust": 2760,
+      "dust_ilvl84": 2760,
+      "dust_ilvl84_q20": 3312,
+      "item_type": "unknown",
+      "base_type": "Velvet Gloves"
+    },
+    "Demigod's Triumph": {
+      "base_dust": 2760,
+      "dust_ilvl84": 2760,
+      "dust_ilvl84_q20": 3312,
+      "item_type": "unknown",
+      "base_type": "Golden Wreath"
+    },
+    "Demigod's Stride": {
+      "base_dust": 2760,
+      "dust_ilvl84": 2760,
+      "dust_ilvl84_q20": 3312,
+      "item_type": "unknown",
+      "base_type": "Golden Caligae"
+    },
+    "Demigod's Touch": {
+      "base_dust": 2760,
+      "dust_ilvl84": 2760,
+      "dust_ilvl84_q20": 3312,
+      "item_type": "unknown",
+      "base_type": "Golden Bracers"
+    },
+    "Demigod's Bounty": {
+      "base_dust": 2760,
+      "dust_ilvl84": 2760,
+      "dust_ilvl84_q20": 3312,
+      "item_type": "unknown",
+      "base_type": "Golden Obi"
+    },
+    "Demigod's Eye": {
+      "base_dust": 2760,
+      "dust_ilvl84": 2760,
+      "dust_ilvl84_q20": 3312,
+      "item_type": "unknown",
+      "base_type": "Golden Hoop"
+    },
+    "Wildslash": {
+      "base_dust": 2760,
+      "dust_ilvl84": 2760,
+      "dust_ilvl84_q20": 3312,
+      "item_type": "unknown",
+      "base_type": "Awl"
+    },
+    "Demigod's Immortality": {
+      "base_dust": 2760,
+      "dust_ilvl84": 2760,
+      "dust_ilvl84_q20": 3312,
+      "item_type": "unknown",
+      "base_type": "Golden Visage"
+    },
+    "Doedre's Malevolence": {
+      "base_dust": 2760,
+      "dust_ilvl84": 2760,
+      "dust_ilvl84_q20": 3312,
+      "item_type": "unknown",
+      "base_type": "Velvet Gloves"
+    },
+    "Kaom's Sign": {
+      "base_dust": 2740,
+      "dust_ilvl84": 2740,
+      "dust_ilvl84_q20": 3288,
+      "item_type": "unknown",
+      "base_type": "Coral Ring"
+    },
+    "Replica Blood Thorn": {
+      "base_dust": 2740,
+      "dust_ilvl84": 2740,
+      "dust_ilvl84_q20": 3288,
+      "item_type": "unknown",
+      "base_type": "Gnarled Branch"
+    },
+    "Replica Fencoil": {
+      "base_dust": 2740,
+      "dust_ilvl84": 2740,
+      "dust_ilvl84_q20": 3288,
+      "item_type": "unknown",
+      "base_type": "Gnarled Branch"
+    },
+    "Feastbind": {
+      "base_dust": 2680,
+      "dust_ilvl84": 2680,
+      "dust_ilvl84_q20": 3216,
+      "item_type": "unknown",
+      "base_type": "Rustic Sash"
+    },
+    "Sadima's Touch": {
+      "base_dust": 2660,
+      "dust_ilvl84": 2660,
+      "dust_ilvl84_q20": 3192,
+      "item_type": "unknown",
+      "base_type": "Wool Gloves"
+    },
+    "Goldrim": {
+      "base_dust": 2660,
+      "dust_ilvl84": 2660,
+      "dust_ilvl84_q20": 3192,
+      "item_type": "unknown",
+      "base_type": "Leather Cap"
+    },
+    "Sacrificial Heart": {
+      "base_dust": 2660,
+      "dust_ilvl84": 2660,
+      "dust_ilvl84_q20": 3192,
+      "item_type": "unknown",
+      "base_type": "Paua Amulet"
+    },
+    "Replica Last Resort": {
+      "base_dust": 2660,
+      "dust_ilvl84": 2660,
+      "dust_ilvl84_q20": 3192,
+      "item_type": "unknown",
+      "base_type": "Nailed Fist"
+    },
+    "The Princess": {
+      "base_dust": 2600,
+      "dust_ilvl84": 2600,
+      "dust_ilvl84_q20": 3120,
+      "item_type": "unknown",
+      "base_type": "Sabre"
+    },
+    "Gorebreaker": {
+      "base_dust": 2600,
+      "dust_ilvl84": 2600,
+      "dust_ilvl84_q20": 3120,
+      "item_type": "unknown",
+      "base_type": "Spiked Club"
+    },
+    "Axiom Perpetuum": {
+      "base_dust": 2600,
+      "dust_ilvl84": 2600,
+      "dust_ilvl84_q20": 3120,
+      "item_type": "unknown",
+      "base_type": "Bronze Sceptre"
+    },
+    "Coward's Chains": {
+      "base_dust": 2580,
+      "dust_ilvl84": 2580,
+      "dust_ilvl84_q20": 3096,
+      "item_type": "unknown",
+      "base_type": "Chain Belt"
+    },
+    "Replica Prismweave": {
+      "base_dust": 2580,
+      "dust_ilvl84": 2580,
+      "dust_ilvl84_q20": 3096,
+      "item_type": "unknown",
+      "base_type": "Rustic Sash"
+    },
+    "Wondertrap": {
+      "base_dust": 2540,
+      "dust_ilvl84": 2540,
+      "dust_ilvl84_q20": 3048,
+      "item_type": "unknown",
+      "base_type": "Velvet Slippers"
+    },
+    "Hrimsorrow": {
+      "base_dust": 2540,
+      "dust_ilvl84": 2540,
+      "dust_ilvl84_q20": 3048,
+      "item_type": "unknown",
+      "base_type": "Goathide Gloves"
+    },
+    "Storm Cloud": {
+      "base_dust": 2540,
+      "dust_ilvl84": 2540,
+      "dust_ilvl84_q20": 3048,
+      "item_type": "unknown",
+      "base_type": "Long Bow"
+    },
+    "Hrimburn": {
+      "base_dust": 2540,
+      "dust_ilvl84": 2540,
+      "dust_ilvl84_q20": 3048,
+      "item_type": "unknown",
+      "base_type": "Goathide Gloves"
+    },
+    "Greedtrap": {
+      "base_dust": 2540,
+      "dust_ilvl84": 2540,
+      "dust_ilvl84_q20": 3048,
+      "item_type": "unknown",
+      "base_type": "Velvet Slippers"
+    },
+    "Wildwrap": {
+      "base_dust": 2540,
+      "dust_ilvl84": 2540,
+      "dust_ilvl84_q20": 3048,
+      "item_type": "unknown",
+      "base_type": "Strapped Leather"
+    },
+    "Bramblejack": {
+      "base_dust": 2500,
+      "dust_ilvl84": 2500,
+      "dust_ilvl84_q20": 3000,
+      "item_type": "unknown",
+      "base_type": "Plate Vest"
+    },
+    "Crest of Perandus": {
+      "base_dust": 2460,
+      "dust_ilvl84": 2460,
+      "dust_ilvl84_q20": 2952,
+      "item_type": "unknown",
+      "base_type": "Pine Buckler"
+    },
+    "Asenath's Chant": {
+      "base_dust": 2460,
+      "dust_ilvl84": 2460,
+      "dust_ilvl84_q20": 2952,
+      "item_type": "unknown",
+      "base_type": "Iron Circlet"
+    },
+    "Stone of Lazhwar": {
+      "base_dust": 2380,
+      "dust_ilvl84": 2380,
+      "dust_ilvl84_q20": 2856,
+      "item_type": "unknown",
+      "base_type": "Lapis Amulet"
+    },
+    "Karui Ward": {
+      "base_dust": 2380,
+      "dust_ilvl84": 2380,
+      "dust_ilvl84_q20": 2856,
+      "item_type": "unknown",
+      "base_type": "Jade Amulet"
+    },
+    "Springleaf": {
+      "base_dust": 2380,
+      "dust_ilvl84": 2380,
+      "dust_ilvl84_q20": 2856,
+      "item_type": "unknown",
+      "base_type": "Plank Kite Shield"
+    },
+    "Tear of Purity": {
+      "base_dust": 2380,
+      "dust_ilvl84": 2380,
+      "dust_ilvl84_q20": 2856,
+      "item_type": "unknown",
+      "base_type": "Lapis Amulet"
+    },
+    "Karui Charge": {
+      "base_dust": 2380,
+      "dust_ilvl84": 2380,
+      "dust_ilvl84_q20": 2856,
+      "item_type": "unknown",
+      "base_type": "Jade Amulet"
+    },
+    "The Oak": {
+      "base_dust": 2380,
+      "dust_ilvl84": 2380,
+      "dust_ilvl84_q20": 2856,
+      "item_type": "unknown",
+      "base_type": "Plank Kite Shield"
+    },
+    "The Screaming Eagle": {
+      "base_dust": 2320,
+      "dust_ilvl84": 2320,
+      "dust_ilvl84_q20": 2784,
+      "item_type": "unknown",
+      "base_type": "Jade Hatchet"
+    },
+    "Abberath's Horn": {
+      "base_dust": 2320,
+      "dust_ilvl84": 2320,
+      "dust_ilvl84_q20": 2784,
+      "item_type": "unknown",
+      "base_type": "Goat's Horn"
+    },
+    "The Gryphon": {
+      "base_dust": 2320,
+      "dust_ilvl84": 2320,
+      "dust_ilvl84_q20": 2784,
+      "item_type": "unknown",
+      "base_type": "Jade Hatchet"
+    },
+    "Ondar's Clasp": {
+      "base_dust": 2260,
+      "dust_ilvl84": 2260,
+      "dust_ilvl84_q20": 2712,
+      "item_type": "unknown",
+      "base_type": "Wrapped Mitts"
+    },
+    "Wheel of the Stormsail": {
+      "base_dust": 2260,
+      "dust_ilvl84": 2260,
+      "dust_ilvl84_q20": 2712,
+      "item_type": "unknown",
+      "base_type": "Rotted Round Shield"
+    },
+    "Goredrill": {
+      "base_dust": 2260,
+      "dust_ilvl84": 2260,
+      "dust_ilvl84_q20": 2712,
+      "item_type": "unknown",
+      "base_type": "Skinning Knife"
+    },
+    "Sanguine Gambol": {
+      "base_dust": 2260,
+      "dust_ilvl84": 2260,
+      "dust_ilvl84_q20": 2712,
+      "item_type": "unknown",
+      "base_type": "Skinning Knife"
+    },
+    "The Megalomaniac": {
+      "base_dust": 2260,
+      "dust_ilvl84": 2260,
+      "dust_ilvl84_q20": 2712,
+      "item_type": "unknown",
+      "base_type": "Bronze Stalker Sentinel"
+    },
+    "Fencoil": {
+      "base_dust": 2180,
+      "dust_ilvl84": 2180,
+      "dust_ilvl84_q20": 2616,
+      "item_type": "unknown",
+      "base_type": "Gnarled Branch"
+    },
+    "Craghead": {
+      "base_dust": 2180,
+      "dust_ilvl84": 2180,
+      "dust_ilvl84_q20": 2616,
+      "item_type": "unknown",
+      "base_type": "Serrated Arrow Quiver"
+    },
+    "The Blood Thorn": {
+      "base_dust": 2180,
+      "dust_ilvl84": 2180,
+      "dust_ilvl84_q20": 2616,
+      "item_type": "unknown",
+      "base_type": "Gnarled Branch"
+    },
+    "Kaom's Way": {
+      "base_dust": 2180,
+      "dust_ilvl84": 2180,
+      "dust_ilvl84_q20": 2616,
+      "item_type": "unknown",
+      "base_type": "Coral Ring"
+    },
+    "Cragfall": {
+      "base_dust": 2180,
+      "dust_ilvl84": 2180,
+      "dust_ilvl84_q20": 2616,
+      "item_type": "unknown",
+      "base_type": "Serrated Arrow Quiver"
+    },
+    "Mirebough": {
+      "base_dust": 2180,
+      "dust_ilvl84": 2180,
+      "dust_ilvl84_q20": 2616,
+      "item_type": "unknown",
+      "base_type": "Gnarled Branch"
+    },
+    "Sidhebreath": {
+      "base_dust": 2120,
+      "dust_ilvl84": 2120,
+      "dust_ilvl84_q20": 2544,
+      "item_type": "unknown",
+      "base_type": "Paua Amulet"
+    },
+    "Crown of Thorns": {
+      "base_dust": 2120,
+      "dust_ilvl84": 2120,
+      "dust_ilvl84_q20": 2544,
+      "item_type": "unknown",
+      "base_type": "Vine Circlet"
+    },
+    "Araku Tiki": {
+      "base_dust": 2120,
+      "dust_ilvl84": 2120,
+      "dust_ilvl84_q20": 2544,
+      "item_type": "unknown",
+      "base_type": "Coral Amulet"
+    },
+    "Wanderlust": {
+      "base_dust": 2120,
+      "dust_ilvl84": 2120,
+      "dust_ilvl84_q20": 2544,
+      "item_type": "unknown",
+      "base_type": "Wool Shoes"
+    },
+    "Last Resort": {
+      "base_dust": 2120,
+      "dust_ilvl84": 2120,
+      "dust_ilvl84_q20": 2544,
+      "item_type": "unknown",
+      "base_type": "Nailed Fist"
+    },
+    "Ngamahu Tiki": {
+      "base_dust": 2120,
+      "dust_ilvl84": 2120,
+      "dust_ilvl84_q20": 2544,
+      "item_type": "unknown",
+      "base_type": "Coral Amulet"
+    },
+    "Martyr's Crown": {
+      "base_dust": 2120,
+      "dust_ilvl84": 2120,
+      "dust_ilvl84_q20": 2544,
+      "item_type": "unknown",
+      "base_type": "Vine Circlet"
+    },
+    "Blackheart": {
+      "base_dust": 2060,
+      "dust_ilvl84": 2060,
+      "dust_ilvl84_q20": 2472,
+      "item_type": "unknown",
+      "base_type": "Iron Ring"
+    },
+    "Blackgleam": {
+      "base_dust": 2060,
+      "dust_ilvl84": 2060,
+      "dust_ilvl84_q20": 2472,
+      "item_type": "unknown",
+      "base_type": "Blazing Arrow Quiver"
+    },
+    "Voidheart": {
+      "base_dust": 2060,
+      "dust_ilvl84": 2060,
+      "dust_ilvl84_q20": 2472,
+      "item_type": "unknown",
+      "base_type": "Iron Ring"
+    },
+    "Oni-Goroshi": {
+      "base_dust": 2060,
+      "dust_ilvl84": 2060,
+      "dust_ilvl84_q20": 2472,
+      "item_type": "unknown",
+      "base_type": "Charan's Sword"
+    },
+    "Redbeak": {
+      "base_dust": 2000,
+      "dust_ilvl84": 2000,
+      "dust_ilvl84_q20": 2400,
+      "item_type": "unknown",
+      "base_type": "Rusted Sword"
+    },
+    "Silverbranch": {
+      "base_dust": 2000,
+      "dust_ilvl84": 2000,
+      "dust_ilvl84_q20": 2400,
+      "item_type": "unknown",
+      "base_type": "Crude Bow"
+    },
+    "Ezomyte Peak": {
+      "base_dust": 2000,
+      "dust_ilvl84": 2000,
+      "dust_ilvl84_q20": 2400,
+      "item_type": "unknown",
+      "base_type": "Iron Hat"
+    },
+    "Lochtonial Caress": {
+      "base_dust": 2000,
+      "dust_ilvl84": 2000,
+      "dust_ilvl84_q20": 2400,
+      "item_type": "unknown",
+      "base_type": "Iron Gauntlets"
+    },
+    "Lifesprig": {
+      "base_dust": 2000,
+      "dust_ilvl84": 2000,
+      "dust_ilvl84_q20": 2400,
+      "item_type": "unknown",
+      "base_type": "Driftwood Wand"
+    },
+    "Talisman of the Victor": {
+      "base_dust": 2000,
+      "dust_ilvl84": 2000,
+      "dust_ilvl84_q20": 2400,
+      "item_type": "unknown",
+      "base_type": "Jet Amulet"
+    },
+    "First Piece of the Arcane": {
+      "base_dust": 2000,
+      "dust_ilvl84": 2000,
+      "dust_ilvl84_q20": 2400,
+      "item_type": "unknown",
+      "base_type": "Legion Sword Piece"
+    },
+    "Second Piece of the Arcane": {
+      "base_dust": 2000,
+      "dust_ilvl84": 2000,
+      "dust_ilvl84_q20": 2400,
+      "item_type": "unknown",
+      "base_type": "Legion Sword Piece"
+    },
+    "Third Piece of the Arcane": {
+      "base_dust": 2000,
+      "dust_ilvl84": 2000,
+      "dust_ilvl84_q20": 2400,
+      "item_type": "unknown",
+      "base_type": "Legion Sword Piece"
+    },
+    "First Piece of Time": {
+      "base_dust": 2000,
+      "dust_ilvl84": 2000,
+      "dust_ilvl84_q20": 2400,
+      "item_type": "unknown",
+      "base_type": "Cloth Belt Piece"
+    },
+    "Second Piece of Time": {
+      "base_dust": 2000,
+      "dust_ilvl84": 2000,
+      "dust_ilvl84_q20": 2400,
+      "item_type": "unknown",
+      "base_type": "Cloth Belt Piece"
+    },
+    "Demigod's Authority": {
+      "base_dust": 2000,
+      "dust_ilvl84": 2000,
+      "dust_ilvl84_q20": 2400,
+      "item_type": "unknown",
+      "base_type": "Golden Blade"
+    },
+    "Wall of Brambles": {
+      "base_dust": 2000,
+      "dust_ilvl84": 2000,
+      "dust_ilvl84_q20": 2400,
+      "item_type": "unknown",
+      "base_type": "Plate Vest"
+    },
+    "Ezomyte Hold": {
+      "base_dust": 2000,
+      "dust_ilvl84": 2000,
+      "dust_ilvl84_q20": 2400,
+      "item_type": "unknown",
+      "base_type": "Iron Hat"
+    },
+    "Silverbough": {
+      "base_dust": 2000,
+      "dust_ilvl84": 2000,
+      "dust_ilvl84_q20": 2400,
+      "item_type": "unknown",
+      "base_type": "Crude Bow"
+    },
+    "Dreadbeak": {
+      "base_dust": 2000,
+      "dust_ilvl84": 2000,
+      "dust_ilvl84_q20": 2400,
+      "item_type": "unknown",
+      "base_type": "Rusted Sword"
+    }
+  }
+}

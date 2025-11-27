@@ -21,3 +21,6 @@ keyboard>=0.13.5
 
 # Image capture
 mss>=10.1.0
+
+# Clipboard (Kalguur Dust)
+pyperclip>=1.8.2

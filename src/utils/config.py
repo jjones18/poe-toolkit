@@ -13,17 +13,21 @@ import os
 class ConfigManager:
     """Manages application configuration with defaults."""
     
+    # Get the project root (parent of src/)
+    _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    
     # Base config with shareable defaults (checked into git)
-    CONFIG_FILE = "config/config.json"
+    CONFIG_FILE = os.path.join(_PROJECT_ROOT, "config", "config.json")
     
     # User-specific config (gitignored)
-    USER_CONFIG_FILE = "config/user_config.json"
+    USER_CONFIG_FILE = os.path.join(_PROJECT_ROOT, "config", "user_config.json")
     
     # Keys that are PC/user-specific and should be saved to user_config.json
     USER_SPECIFIC_KEYS = {
         "credentials",  # session_id, account_name, league
         "overlay",      # calibration settings are PC-specific
         "window",       # window position is PC-specific
+        "calibration",  # All calibration data
     }
     
     # Nested keys within league_vision that are user-specific
