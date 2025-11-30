@@ -21,11 +21,9 @@ from ui.components.stash_selector import StashTabSelector
 from .dust_data import DustDataFetcher, DustEfficiencyAnalyzer, DustDataCache
 from .scanner import (
     StashScanWorker, TabListWorker, UniqueItemInfo, 
-    group_items_by_tab, items_to_highlights,
-    get_unique_tab_items, get_normal_tab_items
+    group_items_by_tab, items_to_highlights
 )
 from .tab_tracker import TabTracker, TabTrackerWorker, TabRegionConfig, MultiTabHighlighter
-from .unique_tab import UniqueTabWorkflow, create_unique_tab_items, ClipboardManager
 from ui.components.ocr_settings_dialog import OCRSettingsDialog
 
 
@@ -57,11 +55,6 @@ class KalguurDustWidget(QWidget):
         self.tab_tracker: TabTracker = None
         self.tab_tracker_worker: TabTrackerWorker = None
         self.multi_tab_highlighter: MultiTabHighlighter = None
-        
-        # Unique tab workflow
-        self.unique_tab_workflow: UniqueTabWorkflow = None
-        self.unique_tab_items: list = []
-        self.normal_tab_items: list = []
         
         # Debug mode
         # Debug mode - check global config first, fall back to tool-specific
@@ -252,52 +245,6 @@ class KalguurDustWidget(QWidget):
         
         layout.addWidget(highlight_group)
         
-        # Unique Tab Workflow Section
-        unique_group = QGroupBox("Unique Stash Tab Collection")
-        unique_layout = QVBoxLayout(unique_group)
-        
-        self.unique_tab_status = QLabel("No unique tab items found")
-        self.unique_tab_status.setStyleSheet("color: #888888;")
-        unique_layout.addWidget(self.unique_tab_status)
-        
-        # Current item being collected
-        self.unique_item_label = QLabel("")
-        self.unique_item_label.setStyleSheet(
-            "font-size: 14px; font-weight: bold; color: #ffb74d; padding: 8px;"
-        )
-        self.unique_item_label.setWordWrap(True)
-        unique_layout.addWidget(self.unique_item_label)
-        
-        unique_btn_row = QHBoxLayout()
-        
-        self.start_unique_btn = QPushButton("Start Unique Tab Collection")
-        self.start_unique_btn.clicked.connect(self.start_unique_workflow)
-        self.start_unique_btn.setEnabled(False)
-        unique_btn_row.addWidget(self.start_unique_btn)
-        
-        self.next_item_btn = QPushButton("Next Item")
-        self.next_item_btn.clicked.connect(self._on_next_unique_item)
-        self.next_item_btn.setEnabled(False)
-        self.next_item_btn.setToolTip("Click after you've grabbed the current item")
-        unique_btn_row.addWidget(self.next_item_btn)
-        
-        self.skip_item_btn = QPushButton("Skip")
-        self.skip_item_btn.clicked.connect(self._on_skip_unique_item)
-        self.skip_item_btn.setEnabled(False)
-        unique_btn_row.addWidget(self.skip_item_btn)
-        
-        unique_layout.addLayout(unique_btn_row)
-        
-        # Instructions
-        instructions = QLabel(
-            "For unique tabs: Item names are copied to clipboard.\n"
-            "Paste into the game's 'Highlight Items' search bar."
-        )
-        instructions.setStyleSheet("color: #666666; font-size: 10px;")
-        unique_layout.addWidget(instructions)
-        
-        layout.addWidget(unique_group)
-        
         # Log Area (debug mode controlled via Settings menu)
         log_label = QLabel("Log:")
         log_label.setStyleSheet("color: #888888;")
@@ -441,27 +388,15 @@ class KalguurDustWidget(QWidget):
         
         self.scan_results = filtered_items
         
-        # Separate unique tab items from normal tab items
-        self.unique_tab_items = get_unique_tab_items(filtered_items)
-        self.normal_tab_items = get_normal_tab_items(filtered_items)
-        self.items_by_tab = group_items_by_tab(self.normal_tab_items)
+        # Group items by tab for highlighting
+        self.items_by_tab = group_items_by_tab(filtered_items)
         
         # Update results table
         self.results_table.setRowCount(len(filtered_items))
         
         for row, item in enumerate(filtered_items):
-            # Mark unique tab items with different styling
-            name_item = QTableWidgetItem(item.name)
-            if item.is_unique_tab:
-                name_item.setForeground(QColor(255, 183, 77))  # Orange for unique tabs
-                name_item.setToolTip("Unique Tab - Use clipboard workflow")
-            self.results_table.setItem(row, 0, name_item)
-            
-            tab_item = QTableWidgetItem(item.tab_name)
-            if item.is_unique_tab:
-                tab_item.setText(f"{item.tab_name} [U]")
-            self.results_table.setItem(row, 1, tab_item)
-            
+            self.results_table.setItem(row, 0, QTableWidgetItem(item.name))
+            self.results_table.setItem(row, 1, QTableWidgetItem(item.tab_name))
             self.results_table.setItem(row, 2, QTableWidgetItem(str(item.ilvl)))
             self.results_table.setItem(row, 3, QTableWidgetItem(str(item.dust)))
             self.results_table.setItem(row, 4, QTableWidgetItem(f"{item.chaos_price:.1f}"))
@@ -475,35 +410,20 @@ class KalguurDustWidget(QWidget):
         # Update summary
         total_dust = sum(i.dust for i in filtered_items)
         tabs_count = len(self.items_by_tab)
-        total_scanned = len(self.all_scan_results)
         
-        summary_parts = [f"Found {len(filtered_items)} valuable uniques"]
-        if self.normal_tab_items:
-            summary_parts.append(f"{len(self.normal_tab_items)} in normal tabs")
-        if self.unique_tab_items:
-            summary_parts.append(f"{len(self.unique_tab_items)} in unique tabs")
-        summary_parts.append(f"Total dust: {total_dust:,}")
+        self.results_summary.setText(
+            f"Found {len(filtered_items)} valuable uniques across {tabs_count} tabs | Total dust: {total_dust:,}"
+        )
         
-        self.results_summary.setText(" | ".join(summary_parts))
-        
-        # Enable highlighting for normal tabs
-        if self.normal_tab_items:
+        # Enable highlighting
+        if filtered_items:
             self.start_highlight_btn.setEnabled(True)
             self.highlight_status.setText(
-                f"Ready to highlight {len(self.normal_tab_items)} items across {tabs_count} normal tabs"
+                f"Ready to highlight {len(filtered_items)} items across {tabs_count} tabs"
             )
         else:
             self.start_highlight_btn.setEnabled(False)
-            self.highlight_status.setText("No items in normal tabs to highlight")
-        
-        # Enable unique tab workflow
-        if self.unique_tab_items:
-            self.start_unique_btn.setEnabled(True)
-            self.unique_tab_status.setText(
-                f"Found {len(self.unique_tab_items)} items in unique stash tabs"
-            )
-        else:
-            self.unique_tab_status.setText("No unique tab items found")
+            self.highlight_status.setText("No items to highlight")
     
     def get_guidance_y(self) -> int:
         """Get Y coordinate for guidance text (above tab bar)."""
@@ -827,73 +747,6 @@ class KalguurDustWidget(QWidget):
                 invert=settings['invert']
             )
 
-    # Unique Tab Workflow Methods
-    def start_unique_workflow(self):
-        """Start the unique tab collection workflow."""
-        if not self.unique_tab_items:
-            return
-        
-        # Create workflow items
-        workflow_items = create_unique_tab_items(self.unique_tab_items)
-        
-        if not workflow_items:
-            self.log("No unique tab items to collect")
-            return
-        
-        # Initialize workflow
-        self.unique_tab_workflow = UniqueTabWorkflow(
-            self.dust_config.get("unique_tab_calibration", {})
-        )
-        self.unique_tab_workflow.item_changed.connect(self._on_unique_item_changed)
-        self.unique_tab_workflow.status_message.connect(self.log)
-        self.unique_tab_workflow.workflow_complete.connect(self._on_unique_workflow_complete)
-        
-        self.unique_tab_workflow.set_items(workflow_items)
-        self.unique_tab_workflow.start()
-        
-        # Update UI
-        self.start_unique_btn.setEnabled(False)
-        self.next_item_btn.setEnabled(True)
-        self.skip_item_btn.setEnabled(True)
-        self.unique_tab_status.setText("Workflow started - paste item names into game search")
-    
-    def _on_unique_item_changed(self, current: int, total: int, item_name: str):
-        """Handle unique tab item change."""
-        self.unique_item_label.setText(
-            f"Item {current}/{total}: {item_name}\n"
-            f"[Copied to clipboard - paste into search bar]"
-        )
-    
-    def _on_next_unique_item(self):
-        """Advance to next unique tab item."""
-        if self.unique_tab_workflow:
-            self.unique_tab_workflow.manual_advance()
-    
-    def _on_skip_unique_item(self):
-        """Skip current unique tab item."""
-        if self.unique_tab_workflow:
-            self.unique_tab_workflow.skip_item()
-    
-    def _on_unique_workflow_complete(self):
-        """Handle unique tab workflow completion."""
-        self.unique_item_label.setText("All unique tab items collected!")
-        self.unique_tab_status.setText("Unique tab collection complete")
-        self.start_unique_btn.setEnabled(True)
-        self.next_item_btn.setEnabled(False)
-        self.skip_item_btn.setEnabled(False)
-    
-    def stop_unique_workflow(self):
-        """Stop the unique tab workflow."""
-        if self.unique_tab_workflow:
-            self.unique_tab_workflow.stop()
-            self.unique_tab_workflow = None
-        
-        self.start_unique_btn.setEnabled(True)
-        self.next_item_btn.setEnabled(False)
-        self.skip_item_btn.setEnabled(False)
-        self.unique_item_label.setText("")
-        self.unique_tab_status.setText("Unique tab workflow stopped")
-    
     def clear_overlay(self):
         """Clear all highlights."""
         self.overlay_update.emit([])
@@ -910,7 +763,6 @@ class KalguurDustWidget(QWidget):
     def cleanup(self):
         """Cleanup resources."""
         self.stop_highlighting()
-        self.stop_unique_workflow()
         self.clear_overlay()
 
 

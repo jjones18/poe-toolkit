@@ -33,104 +33,11 @@ class UniqueItemInfo:
     dust: int = 0
     chaos_price: float = 0.0
     efficiency: float = 0.0
-    # Unique tab support
-    is_unique_tab: bool = False
-    item_category: str = ""  # For unique tab category highlighting
 
 
-# Item category mapping for unique tabs
-# Maps base type keywords to category names
-ITEM_CATEGORY_MAP = {
-    # Armor
-    'helmet': 'Helmets', 'hat': 'Helmets', 'cap': 'Helmets', 'mask': 'Helmets',
-    'circlet': 'Helmets', 'crown': 'Helmets', 'hood': 'Helmets', 'burgonet': 'Helmets',
-    'tricorne': 'Helmets', 'bascinet': 'Helmets', 'casque': 'Helmets', 'sallet': 'Helmets',
-    'coif': 'Helmets', 'cage': 'Helmets', 'helm': 'Helmets',
-    
-    'gloves': 'Gloves', 'gauntlets': 'Gloves', 'mitts': 'Gloves', 'bracers': 'Gloves',
-    
-    'boots': 'Boots', 'greaves': 'Boots', 'slippers': 'Boots', 'shoes': 'Boots',
-    'leaguards': 'Boots',
-    
-    'body armour': 'Body Armours', 'robe': 'Body Armours', 'vest': 'Body Armours',
-    'plate': 'Body Armours', 'jacket': 'Body Armours', 'coat': 'Body Armours',
-    'garb': 'Body Armours', 'regalia': 'Body Armours', 'vestment': 'Body Armours',
-    'silks': 'Body Armours', 'wrap': 'Body Armours', 'tunic': 'Body Armours',
-    'brigandine': 'Body Armours', 'doublet': 'Body Armours', 'hauberk': 'Body Armours',
-    'lamellar': 'Body Armours', 'wyrmscale': 'Body Armours', 'dragonscale': 'Body Armours',
-    'chainmail': 'Body Armours', 'ringmail': 'Body Armours', 'chestplate': 'Body Armours',
-    'full plate': 'Body Armours', 'astral plate': 'Body Armours', 'gladiator plate': 'Body Armours',
-    'glorious plate': 'Body Armours', 'golden plate': 'Body Armours',
-    
-    'shield': 'Shields', 'buckler': 'Shields', 'kite shield': 'Shields',
-    'tower shield': 'Shields', 'spirit shield': 'Shields',
-    
-    # Weapons
-    'sword': 'One Hand Weapons', 'rapier': 'One Hand Weapons', 'foil': 'One Hand Weapons',
-    'sabre': 'One Hand Weapons', 'cutlass': 'One Hand Weapons',
-    'axe': 'One Hand Weapons', 'hatchet': 'One Hand Weapons', 'cleaver': 'One Hand Weapons',
-    'mace': 'One Hand Weapons', 'club': 'One Hand Weapons', 'hammer': 'One Hand Weapons',
-    'sceptre': 'One Hand Weapons', 'wand': 'One Hand Weapons',
-    'dagger': 'One Hand Weapons', 'stiletto': 'One Hand Weapons', 'boot knife': 'One Hand Weapons',
-    'claw': 'One Hand Weapons', 'fist': 'One Hand Weapons',
-    
-    'two hand sword': 'Two Hand Weapons', 'zwei': 'Two Hand Weapons',
-    'two hand axe': 'Two Hand Weapons', 'labrys': 'Two Hand Weapons',
-    'two hand mace': 'Two Hand Weapons', 'maul': 'Two Hand Weapons',
-    'staff': 'Two Hand Weapons', 'quarterstaff': 'Two Hand Weapons', 'warstaff': 'Two Hand Weapons',
-    
-    'bow': 'Bows', 'short bow': 'Bows', 'long bow': 'Bows',
-    
-    'quiver': 'Quivers',
-    
-    # Accessories
-    'amulet': 'Amulets', 'talisman': 'Amulets',
-    'ring': 'Rings',
-    'belt': 'Belts', 'sash': 'Belts', 'stygian': 'Belts',
-    
-    # Jewels
-    'jewel': 'Jewels', 'cobalt jewel': 'Jewels', 'crimson jewel': 'Jewels',
-    'viridian jewel': 'Jewels', 'prismatic jewel': 'Jewels',
-    'abyss jewel': 'Jewels', 'cluster jewel': 'Jewels',
-    
-    # Flasks
-    'flask': 'Flasks',
-}
-
-
-def get_item_category(base_type: str) -> str:
-    """Determine item category from base type for unique tab highlighting."""
-    base_lower = base_type.lower()
-    
-    for keyword, category in ITEM_CATEGORY_MAP.items():
-        if keyword in base_lower:
-            return category
-    
-    return 'Other'
-
-
-def is_unique_stash_tab(tab_data: dict, item_count: int) -> bool:
-    """
-    Detect if a tab is a Unique Collection tab.
-    
-    Detection methods:
-    - Tab type from API (if available)
-    - High ratio of unique items
-    - Special tab properties
-    """
-    # Check tab type if available
-    tab_type = tab_data.get('type', '')
-    if 'unique' in tab_type.lower():
-        return True
-    
-    # Check for special stash tab indicator
-    # Unique tabs can hold hundreds of items (one of each unique)
-    # Normal tabs hold 12x12=144 or 24x24=576 for quad
-    # If we see way more items than a quad tab could hold, it's special
-    if item_count > 600:
-        return True
-    
-    return False
+# Tab types that are not supported by the PoE stash API
+# See docs/API_LIMITATIONS.md for details
+UNSUPPORTED_TAB_TYPES = {'UniqueStash'}
 
 
 class StashScanWorker(QThread):
@@ -167,8 +74,6 @@ class StashScanWorker(QThread):
             'valuable_uniques': 0,
             'total_dust': 0,
             'tabs_with_items': set(),
-            'unique_tabs': set(),  # Tabs that are unique collection tabs
-            'unique_tab_items': 0,  # Items from unique tabs
         }
         
         total_tabs = len(self.tab_indices)
@@ -185,7 +90,7 @@ class StashScanWorker(QThread):
             # Fetch tab data
             data = client.get_stash_items(tab_idx)
             if not data or 'items' not in data:
-                self.log_signal.emit(f"Failed to fetch tab {tab_idx}")
+                self.log_signal.emit(f"Failed to fetch tab {tab_idx} - no items key")
                 continue
             
             # Get tab metadata
@@ -195,11 +100,17 @@ class StashScanWorker(QThread):
             
             items = data.get('items', [])
             
-            # Detect if this is a unique collection tab
-            is_unique_tab = is_unique_stash_tab(data, len(items))
-            if is_unique_tab:
-                self.log_signal.emit(f"  Detected unique collection tab: {tab_name}")
-                stats['unique_tabs'].add(tab_idx)
+            # Get tab type from tab metadata
+            tab_type = 'unknown'
+            for tab_meta in data.get('tabs', []):
+                if tab_meta.get('i') == tab_idx:
+                    tab_type = tab_meta.get('type', 'unknown')
+                    break
+            
+            # Skip unsupported tab types (see docs/API_LIMITATIONS.md)
+            if tab_type in UNSUPPORTED_TAB_TYPES:
+                self.log_signal.emit(f"  Skipping {tab_type} tab '{tab_name}' - not supported by PoE API")
+                continue
             
             # Process items
             items_in_tab = 0
@@ -207,7 +118,7 @@ class StashScanWorker(QThread):
             items_no_dust = []
             
             for item in items:
-                unique_info = self._process_item(item, tab_idx, tab_name, is_quad, is_unique_tab)
+                unique_info = self._process_item(item, tab_idx, tab_name, is_quad)
                 if unique_info:
                     stats['total_uniques'] += 1
                     items_in_tab += 1
@@ -224,8 +135,6 @@ class StashScanWorker(QThread):
                         stats['valuable_uniques'] += 1
                         stats['total_dust'] += unique_info.dust
                         stats['tabs_with_items'].add(tab_idx)
-                        if unique_info.is_unique_tab:
-                            stats['unique_tab_items'] += 1
             
             # Debug logging for this tab
             if self.debug_mode:
@@ -237,7 +146,6 @@ class StashScanWorker(QThread):
         
         # Convert sets to lists for JSON serialization
         stats['tabs_with_items'] = list(stats['tabs_with_items'])
-        stats['unique_tabs'] = list(stats['unique_tabs'])
         
         self.log_signal.emit(
             f"Scan complete. Found {stats['valuable_uniques']} valuable uniques "
@@ -258,7 +166,7 @@ class StashScanWorker(QThread):
         return f'Tab {tab_idx}'
     
     def _process_item(self, item: dict, tab_idx: int, tab_name: str, 
-                      is_quad: bool, is_unique_tab: bool = False) -> Optional[UniqueItemInfo]:
+                      is_quad: bool) -> Optional[UniqueItemInfo]:
         """
         Process a single item from stash API.
         
@@ -319,9 +227,6 @@ class StashScanWorker(QThread):
             chaos_price = 0
             efficiency = 0
         
-        # Determine item category for unique tab highlighting
-        item_category = get_item_category(base_type) if is_unique_tab else ""
-        
         return UniqueItemInfo(
             name=name,
             base_type=base_type,
@@ -338,8 +243,6 @@ class StashScanWorker(QThread):
             dust=dust,
             chaos_price=chaos_price,
             efficiency=efficiency,
-            is_unique_tab=is_unique_tab,
-            item_category=item_category,
         )
 
 
@@ -380,34 +283,6 @@ def group_items_by_tab(items: List[UniqueItemInfo]) -> Dict[str, List[UniqueItem
         grouped[item.tab_name].append(item)
     
     return grouped
-
-
-def group_items_by_category(items: List[UniqueItemInfo]) -> Dict[str, List[UniqueItemInfo]]:
-    """
-    Group items by their category for unique tab workflow.
-    
-    Returns:
-        Dict mapping category -> list of items in that category
-    """
-    grouped: Dict[str, List[UniqueItemInfo]] = {}
-    
-    for item in items:
-        category = item.item_category or 'Other'
-        if category not in grouped:
-            grouped[category] = []
-        grouped[category].append(item)
-    
-    return grouped
-
-
-def get_unique_tab_items(items: List[UniqueItemInfo]) -> List[UniqueItemInfo]:
-    """Filter items that are from unique stash tabs."""
-    return [item for item in items if item.is_unique_tab]
-
-
-def get_normal_tab_items(items: List[UniqueItemInfo]) -> List[UniqueItemInfo]:
-    """Filter items that are from normal/quad stash tabs."""
-    return [item for item in items if not item.is_unique_tab]
 
 
 def items_to_highlights(items: List[UniqueItemInfo]) -> List[dict]:

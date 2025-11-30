@@ -294,6 +294,27 @@ class TabTracker(QObject):
             self._debug(f"No match found for: '{text}' (known tabs: {len(self.known_tabs)})")
         return matched
     
+    def _normalize_ocr_text(self, text: str) -> str:
+        """
+        Normalize OCR text by fixing common misreadings.
+        
+        Common OCR errors:
+        - '$' misread as 'S' (very common in PoE tab names like S1, S2)
+        - '0' misread as 'O' 
+        - '|' misread as 'l', 'I', '1'
+        """
+        # Fix common OCR substitutions
+        replacements = {
+            '$': 's',  # $2 -> s2, $1 -> s1
+            # Add more as needed
+        }
+        
+        result = text
+        for wrong, correct in replacements.items():
+            result = result.replace(wrong, correct)
+        
+        return result
+    
     def _match_tab_name(self, ocr_text: str) -> Optional[str]:
         """
         Match OCR text against known tab names.
@@ -301,7 +322,11 @@ class TabTracker(QObject):
         Uses fuzzy matching to handle OCR errors.
         Handles PoE trade tabs that include price info (e.g. "~b/o 1 div | TabName").
         """
-        ocr_lower = ocr_text.lower().strip()
+        # Normalize OCR text to fix common misreadings
+        ocr_normalized = self._normalize_ocr_text(ocr_text)
+        if ocr_normalized != ocr_text:
+            self._debug(f"OCR normalized: '{ocr_text}' -> '{ocr_normalized}'")
+        ocr_lower = ocr_normalized.lower().strip()
         
         # Split OCR text by common separators to find potential tab names
         # OCR often sees '|' as 'I' or 'l' or '1' depending on font, but we'll assume user tuned it
