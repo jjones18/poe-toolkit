@@ -12,18 +12,19 @@ from PyQt6.QtWidgets import QApplication
 
 from .vision_core import VisionCore
 from utils.logger import DebugLogger
-
-try:
-    import win32gui
-    HAS_WIN32 = True
-except ImportError:
-    HAS_WIN32 = False
+from utils import platform_utils
 
 try:
     import keyboard
     HAS_KEYBOARD = True
 except ImportError:
     HAS_KEYBOARD = False
+
+try:
+    from pynput import keyboard as pynput_keyboard
+    HAS_PYNPUT_KB = True
+except ImportError:
+    HAS_PYNPUT_KB = False
 
 
 class ScanResult:
@@ -71,10 +72,14 @@ class ScannerWorker(QThread):
         resolution_config = config.get("resolution_override")
         self.vision = VisionCore(resolution_config=resolution_config)
         
-        # Setup Tesseract - check if it exists
-        tesseract_path = config.get("tesseract_path", "C:/Program Files/Tesseract-OCR/tesseract.exe")
+        # Setup Tesseract
         import os
-        if not os.path.exists(tesseract_path):
+        import shutil
+        tesseract_path = config.get("tesseract_path", "tesseract")
+        # Check existence: absolute path check for Windows, PATH lookup for Linux command name
+        tesseract_ok = os.path.isabs(tesseract_path) and os.path.exists(tesseract_path) \
+                       or (not os.path.isabs(tesseract_path) and shutil.which(tesseract_path) is not None)
+        if not tesseract_ok:
             self.status_signal.emit(f"WARNING: Tesseract not found at {tesseract_path}")
             DebugLogger.log(f"Tesseract not found at {tesseract_path}", "Vision")
         pytesseract.pytesseract.tesseract_cmd = tesseract_path
@@ -90,12 +95,30 @@ class ScannerWorker(QThread):
         
         # Setup hotkey (Shift+Esc to stop)
         self.hotkey_id = None
+        self._pynput_hotkey_listener = None
         if HAS_KEYBOARD:
             try:
                 self.hotkey_id = keyboard.add_hotkey("shift+esc", self._on_stop_hotkey)
                 DebugLogger.log("Hotkey registered: Shift+Esc to stop scanner", "Vision")
             except Exception as e:
-                DebugLogger.log(f"Failed to register hotkey: {e}", "Vision")
+                # keyboard lib requires root on Linux — fall back to pynput
+                DebugLogger.log(f"keyboard lib failed ({e}), falling back to pynput", "Vision")
+                self._setup_pynput_hotkey()
+        elif HAS_PYNPUT_KB:
+            self._setup_pynput_hotkey()
+
+    def _setup_pynput_hotkey(self):
+        """Register Shift+Esc via pynput (works on Linux without root)."""
+        if not HAS_PYNPUT_KB:
+            return
+        try:
+            self._pynput_hotkey_listener = pynput_keyboard.GlobalHotKeys({
+                '<shift>+<esc>': self._on_stop_hotkey
+            })
+            self._pynput_hotkey_listener.start()
+            DebugLogger.log("Hotkey registered via pynput: Shift+Esc to stop scanner", "Vision")
+        except Exception as e:
+            DebugLogger.log(f"Failed to register pynput hotkey: {e}", "Vision")
     
     def _on_stop_hotkey(self):
         """Called when stop hotkey is pressed."""
@@ -118,6 +141,12 @@ class ScannerWorker(QThread):
                 self.hotkey_id = None
             except:
                 pass
+        if self._pynput_hotkey_listener is not None:
+            try:
+                self._pynput_hotkey_listener.stop()
+                self._pynput_hotkey_listener = None
+            except:
+                pass
     
     def pause(self):
         """Pause scanning."""
@@ -129,14 +158,13 @@ class ScannerWorker(QThread):
     
     def is_poe_focused(self):
         """Check if PoE window is focused."""
-        if not HAS_WIN32:
-            return True
         try:
-            hwnd = win32gui.GetForegroundWindow()
-            title = win32gui.GetWindowText(hwnd)
+            title = platform_utils.get_foreground_window_title()
+            if not title:
+                return True  # Can't detect focus, assume focused
             return "Path of Exile" in title
         except:
-            return False
+            return True
     
     def get_active_strategy(self):
         """Determine scan strategy based on zone or manual override."""
@@ -215,8 +243,8 @@ class ScannerWorker(QThread):
                         "width": int(rect["width"] * 0.90),
                         "height": int(rect["height"] * 0.85)
                     }
-                elif strategy == "mouse" and HAS_WIN32:
-                    mx, my = win32gui.GetCursorPos()
+                elif strategy == "mouse":
+                    mx, my = platform_utils.get_cursor_pos()
                     h_cfg = self.config.get("scan_region_hover", {
                         "width": 600, "height": 800, 
                         "x_offset": 50, "y_offset": -100

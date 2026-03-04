@@ -26,11 +26,7 @@ except ImportError:
     HAS_MSS = False
     print("Warning: mss not found. Screen capture disabled.")
 
-try:
-    import win32gui
-    HAS_WIN32 = True
-except ImportError:
-    HAS_WIN32 = False
+from utils import platform_utils
 
 
 @dataclass
@@ -468,12 +464,11 @@ class TabTrackerWorker(QThread):
                 continue
             
             # Check if PoE is focused (matches "Path of Exile" or "Path of Exile 2")
-            if HAS_WIN32 and not self.ignore_focus_check:
+            if not self.ignore_focus_check:
                 try:
-                    hwnd = win32gui.GetForegroundWindow()
-                    title = win32gui.GetWindowText(hwnd)
-                    # Check for PoE 1 or PoE 2
-                    if "path of exile" not in title.lower():
+                    title = platform_utils.get_foreground_window_title()
+                    # Only pause if we got a title and it's not PoE
+                    if title and "path of exile" not in title.lower():
                         # Log every 5 seconds (25 attempts) to avoid spam
                         if ocr_attempts % 25 == 0:
                             self.status_signal.emit(f"Paused: Focus is on '{title}'")

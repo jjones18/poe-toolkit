@@ -8,6 +8,7 @@ Settings are split into two files:
 
 import json
 import os
+import sys
 
 
 class ConfigManager:
@@ -64,7 +65,7 @@ class ConfigManager:
         },
         "league_vision": {
             "client_log_path": "",
-            "tesseract_path": "C:/Program Files/Tesseract-OCR/tesseract.exe",
+            "tesseract_path": "C:/Program Files/Tesseract-OCR/tesseract.exe" if sys.platform == "win32" else "tesseract",
             "ocr_threshold": 70,
             "debug_mode": False,
             "scan_mode": "auto",

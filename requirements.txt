@@ -8,7 +8,10 @@ requests>=2.31.0
 pynput>=1.7.6
 
 # Windows-specific (for overlay and window detection)
-pywin32>=311
+pywin32>=311; sys_platform == "win32"
+
+# Linux window detection
+python-xlib>=0.33; sys_platform == "linux"
 
 # OCR (League Vision)
 # Note: opencv-python may need --no-deps if numpy version constraint conflicts

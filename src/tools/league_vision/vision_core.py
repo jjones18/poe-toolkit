@@ -6,12 +6,7 @@ import mss
 import numpy as np
 import cv2
 
-try:
-    import win32gui
-    HAS_WIN32 = True
-except ImportError:
-    HAS_WIN32 = False
-    print("Warning: win32gui not found. Window detection may not work.")
+from utils import platform_utils
 
 
 class VisionCore:
@@ -19,18 +14,14 @@ class VisionCore:
     
     def __init__(self, window_title="Path of Exile", resolution_config=None):
         self.window_title = window_title
-        self.hwnd = None
         self.resolution_config = resolution_config
         
     def find_window(self):
-        """Finds the PoE window and stores its handle."""
-        if not HAS_WIN32:
-            return False
-        self.hwnd = win32gui.FindWindow(None, self.window_title)
-        return self.hwnd is not None and self.hwnd != 0
+        """Finds the PoE window."""
+        return platform_utils.find_window_rect(self.window_title) is not None
 
     def get_window_rect(self):
-        """Returns the window rectangle."""
+        """Returns the window rectangle as {"left", "top", "width", "height"}, or None."""
         if self.resolution_config and self.resolution_config.get("enabled"):
             return {
                 "top": 0, 
@@ -38,17 +29,7 @@ class VisionCore:
                 "width": self.resolution_config["width"], 
                 "height": self.resolution_config["height"]
             }
-
-        if not self.find_window():
-            return None
-
-        try:
-            rect = win32gui.GetWindowRect(self.hwnd)
-            x, y, w, h = rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1]
-            return {"top": y, "left": x, "width": w, "height": h}
-        except Exception as e:
-            print(f"Error getting window rect: {e}")
-            return None
+        return platform_utils.find_window_rect(self.window_title)
 
     def capture_region(self, region=None):
         """Captures a region of the screen."""
@@ -66,11 +47,7 @@ class VisionCore:
 
     def get_mouse_tooltip_region(self, width=400, height=200):
         """Calculates a region around the mouse cursor."""
-        if not HAS_WIN32:
-            return None
-            
-        point = win32gui.GetCursorPos()
-        mx, my = point
+        mx, my = platform_utils.get_cursor_pos()
         
         region = {
             "top": max(0, my - 50),

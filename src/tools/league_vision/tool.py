@@ -248,7 +248,7 @@ class LeagueVisionWidget(QWidget):
         import pytesseract
         from tools.league_vision.vision_core import VisionCore
         
-        tesseract_path = self.vision_config.get("tesseract_path", "C:/Program Files/Tesseract-OCR/tesseract.exe")
+        tesseract_path = self.vision_config.get("tesseract_path", "tesseract")
         pytesseract.pytesseract.tesseract_cmd = tesseract_path
         
         vision = VisionCore()

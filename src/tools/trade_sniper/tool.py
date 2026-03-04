@@ -3,6 +3,7 @@ Trade Sniper Tool - Control panel for trade automation service.
 """
 
 import os
+import sys
 import socket
 import subprocess
 from PyQt6.QtWidgets import (
@@ -258,12 +259,21 @@ class TradeSniperWidget(QWidget):
     
     def launch_brave(self):
         """Launch Brave browser with remote debugging enabled."""
-        # Common Brave paths
-        brave_paths = [
-            r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe",
-            r"C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe",
-            os.path.expandvars(r"%LOCALAPPDATA%\BraveSoftware\Brave-Browser\Application\brave.exe"),
-        ]
+        # Common Brave paths per platform
+        if sys.platform == "win32":
+            brave_paths = [
+                r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe",
+                r"C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe",
+                os.path.expandvars(r"%LOCALAPPDATA%\BraveSoftware\Brave-Browser\Application\brave.exe"),
+            ]
+        else:
+            brave_paths = [
+                "/usr/bin/brave-browser",
+                "/usr/bin/brave",
+                "/opt/brave.com/brave/brave-browser",
+                "/snap/bin/brave",
+                os.path.expanduser("~/.local/bin/brave-browser"),
+            ]
         
         brave_exe = None
         for path in brave_paths:

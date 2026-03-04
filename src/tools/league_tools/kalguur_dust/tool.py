@@ -457,7 +457,7 @@ class KalguurDustWidget(QWidget):
         tab_bar_calibration = calibration.get("tab_bar")
         
         tesseract_path = self.config.get("league_vision", {}).get(
-            "tesseract_path", "C:/Program Files/Tesseract-OCR/tesseract.exe"
+            "tesseract_path", "tesseract"
         )
         
         # Check if tab bar is calibrated

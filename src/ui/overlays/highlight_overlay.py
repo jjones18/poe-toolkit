@@ -9,6 +9,12 @@ try:
 except ImportError:
     HAS_WIN32 = False
 
+try:
+    from pynput import mouse as pynput_mouse
+    HAS_PYNPUT = True
+except ImportError:
+    HAS_PYNPUT = False
+
 
 class HighlightOverlay(BaseOverlay):
     """Overlay for highlighting stash items."""
@@ -27,15 +33,34 @@ class HighlightOverlay(BaseOverlay):
         self.pen_gray.setWidth(3)
         self.brush_gray = QColor(150, 150, 150, 50)
         
-        # Keep overlay click-through (don't call set_clickable)
-        # Use a timer to poll for clicks instead of intercepting them
-        self._last_mouse_state = False
-        self._click_poll_timer = QTimer()
-        self._click_poll_timer.timeout.connect(self._poll_mouse_clicks)
-        self._click_poll_timer.start(50)  # Poll every 50ms
+        self._pynput_listener = None
+
+        if HAS_WIN32:
+            # Windows: poll mouse state via timer
+            self._last_mouse_state = False
+            self._click_poll_timer = QTimer()
+            self._click_poll_timer.timeout.connect(self._poll_mouse_clicks)
+            self._click_poll_timer.start(50)
+        elif HAS_PYNPUT:
+            # Linux: use pynput listener for click detection
+            self._pynput_listener = pynput_mouse.Listener(on_click=self._on_pynput_click)
+            self._pynput_listener.start()
+
+    def _on_pynput_click(self, x, y, button, pressed):
+        """Handle mouse clicks via pynput (Linux)."""
+        if not pressed or button != pynput_mouse.Button.left:
+            return
+        if not self.highlights or not self.isVisible():
+            return
+        click_pos = QPoint(x, y)
+        for i, rect in enumerate(self.highlights):
+            if rect.contains(click_pos):
+                self.highlight_states[i] = True
+                self.update()
+                break
 
     def _poll_mouse_clicks(self):
-        """Poll for mouse clicks to mark items as collected without blocking."""
+        """Poll for mouse clicks to mark items as collected (Windows only)."""
         if not HAS_WIN32 or not self.highlights or not self.isVisible():
             return
         
@@ -44,19 +69,22 @@ class HighlightOverlay(BaseOverlay):
         
         # Detect click (transition from not-pressed to pressed)
         if mouse_down and not self._last_mouse_state:
-            # Get cursor position
             cursor_pos = win32gui.GetCursorPos()
             click_pos = QPoint(cursor_pos[0], cursor_pos[1])
             
-            # Check if click is within any highlight rect
             for i, rect in enumerate(self.highlights):
                 if rect.contains(click_pos):
-                    # Mark as collected (gray)
                     self.highlight_states[i] = True
                     self.update()
                     break
         
         self._last_mouse_state = bool(mouse_down)
+
+    def closeEvent(self, event):
+        if self._pynput_listener is not None:
+            self._pynput_listener.stop()
+        super().closeEvent(event)
+
 
     def set_highlights(self, rects: list):
         """Set the list of highlight rectangles."""
