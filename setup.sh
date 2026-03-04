@@ -95,7 +95,8 @@ fi
 
 # ── Virtual environment ───────────────────────────────────────────────────────
 info "Setting up Python virtual environment..."
-if [ ! -d "venv" ]; then
+if [ ! -f "venv/bin/activate" ]; then
+    [ -d "venv" ] && rm -rf venv  # Remove broken/incomplete venv if present
     python3 -m venv venv
     ok "Virtual environment created"
 else
