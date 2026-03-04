@@ -24,10 +24,26 @@ echo ""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# ── Detect package manager ────────────────────────────────────────────────────
+if command -v paru &>/dev/null; then
+    PKG="paru -S"
+elif command -v pacman &>/dev/null; then
+    PKG="sudo pacman -S"
+elif command -v apt &>/dev/null; then
+    PKG="sudo apt install"
+elif command -v dnf &>/dev/null; then
+    PKG="sudo dnf install"
+else
+    PKG="<your package manager>"
+fi
+
+install_hint() { echo -e "    ${CYAN}$PKG $1${NC}"; }
+
 # ── Python ────────────────────────────────────────────────────────────────────
 info "Checking Python..."
 if ! command -v python3 &>/dev/null; then
-    err "Python 3 not found. Install it with: sudo apt install python3 python3-pip python3-venv"
+    err "Python 3 not found. Install it:"
+    install_hint "python"
     exit 1
 fi
 PYTHON_VER=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
@@ -38,10 +54,8 @@ info "Checking Tesseract OCR..."
 if command -v tesseract &>/dev/null; then
     ok "Tesseract found: $(tesseract --version 2>&1 | head -1)"
 else
-    warn "Tesseract not found. Install it with:"
-    warn "  sudo apt install tesseract-ocr    # Debian/Ubuntu"
-    warn "  sudo pacman -S tesseract          # Arch"
-    warn "  sudo dnf install tesseract        # Fedora"
+    warn "Tesseract not found. Install it:"
+    install_hint "tesseract"
     warn "League Vision and Kalguur Dust OCR features will not work without it."
 fi
 
@@ -51,7 +65,7 @@ if command -v node &>/dev/null; then
     ok "Node.js found: $(node --version)"
 else
     warn "Node.js not found. Trade Sniper will not work without it."
-    warn "Install from https://nodejs.org or via your package manager."
+    install_hint "nodejs npm"
 fi
 
 # ── Brave browser ─────────────────────────────────────────────────────────────
@@ -66,7 +80,8 @@ for path in /usr/bin/brave-browser /usr/bin/brave /opt/brave.com/brave/brave-bro
 done
 if [ "$BRAVE_FOUND" -eq 0 ]; then
     warn "Brave not found. Trade Sniper will not work without it."
-    warn "Install from https://brave.com/linux/"
+    install_hint "brave-bin"   # AUR name; apt: brave-browser
+    warn "Or install from https://brave.com/linux/"
 fi
 
 # ── xdotool (optional, window detection fallback) ─────────────────────────────
@@ -74,8 +89,8 @@ info "Checking xdotool (optional, improves window detection)..."
 if command -v xdotool &>/dev/null; then
     ok "xdotool found"
 else
-    warn "xdotool not found. Window auto-detection will use python-xlib only."
-    warn "Install with: sudo apt install xdotool"
+    warn "xdotool not found. Window auto-detection will rely on python-xlib only."
+    install_hint "xdotool"
 fi
 
 # ── Virtual environment ───────────────────────────────────────────────────────
@@ -87,7 +102,6 @@ else
     ok "Virtual environment already exists"
 fi
 
-# Activate venv
 source venv/bin/activate
 
 # ── pip dependencies ──────────────────────────────────────────────────────────
@@ -110,8 +124,7 @@ if [ ! -f "config/user_config.json" ]; then
     cp config/user_config.template.json config/user_config.json
     ok "Created config/user_config.json from template"
     warn "Edit config/user_config.json and fill in your POESESSID and account name."
-    warn "Set 'tesseract_path' to 'tesseract' (or leave as default — Linux default is already correct)."
-    warn "Set 'client_log_path' to your PoE Client.txt path."
+    warn "Set 'client_log_path' to your PoE Client.txt path (check your Wine/Proton prefix)."
 else
     ok "config/user_config.json already exists (not overwritten)"
 fi
@@ -125,8 +138,8 @@ echo "    source venv/bin/activate"
 echo "    python src/main.py"
 echo ""
 info "Notes:"
-echo "  - If League Vision scanning hotkey (Shift+Esc) doesn't work, it's using pynput automatically."
-echo "  - Screen capture requires X11. Wayland is not currently supported (use XWayland)."
-echo "  - Set your PoE window to 'Windowed Fullscreen' for best screen capture compatibility."
+echo "  - Shift+Esc hotkey uses pynput automatically (no root needed)."
+echo "  - Screen capture requires X11. Use XWayland if on Wayland."
+echo "  - Set PoE to 'Windowed Fullscreen' for best screen capture compatibility."
 echo "========================================"
 echo ""
