@@ -3,7 +3,10 @@ Trade automation service wrapper.
 Manages the Node.js trade sniper as a subprocess.
 """
 
+import atexit
 import os
+import platform
+import signal
 import subprocess
 import threading
 from PyQt6.QtCore import QObject, pyqtSignal
@@ -20,9 +23,7 @@ class TradeService(QObject):
     
     def __init__(self, service_dir: str = None):
         super().__init__()
-        # Get absolute path to trade_service directory
         if service_dir is None:
-            # Default: trade_service folder relative to project root
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             self.service_dir = os.path.join(project_root, "trade_service")
         else:
@@ -31,6 +32,35 @@ class TradeService(QObject):
         self.process = None
         self.output_thread = None
         self._running = False
+        
+        atexit.register(self._force_cleanup)
+        if platform.system() != 'Windows':
+            for sig in (signal.SIGTERM, signal.SIGHUP):
+                try:
+                    signal.signal(sig, self._signal_handler)
+                except (OSError, ValueError):
+                    pass
+    
+    def _signal_handler(self, signum, frame):
+        """Best-effort cleanup on unexpected termination signals."""
+        self._force_cleanup()
+    
+    def _force_cleanup(self):
+        """Kill the subprocess if it's still alive. Called by atexit and signal handlers."""
+        if self.process is not None:
+            try:
+                if self.process.poll() is None:
+                    if platform.system() == 'Windows':
+                        subprocess.run(
+                            f'taskkill /F /T /PID {self.process.pid}',
+                            shell=True, capture_output=True
+                        )
+                    else:
+                        os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
+            except (OSError, ProcessLookupError):
+                pass
+            self.process = None
+            self._running = False
     
     @property
     def is_running(self) -> bool:
@@ -39,6 +69,44 @@ class TradeService(QObject):
     def get_script_path(self) -> str:
         """Get the path to the trade monitor script."""
         return os.path.join(self.service_dir, "trade_monitor.js")
+    
+    def kill_orphan_processes(self) -> int:
+        """Find and kill any orphaned trade_monitor.js node processes.
+        Returns the number of processes killed."""
+        killed = 0
+        try:
+            if platform.system() == 'Windows':
+                result = subprocess.run(
+                    'wmic process where "commandline like \'%trade_monitor.js%\' and name=\'node.exe\'" get processid',
+                    capture_output=True, text=True, shell=True
+                )
+                for line in result.stdout.strip().splitlines():
+                    line = line.strip()
+                    if line.isdigit():
+                        pid = int(line)
+                        if self.process and pid == self.process.pid:
+                            continue
+                        subprocess.run(f'taskkill /F /T /PID {pid}', shell=True, capture_output=True)
+                        killed += 1
+            else:
+                result = subprocess.run(
+                    ['pgrep', '-f', 'node.*trade_monitor\\.js'],
+                    capture_output=True, text=True
+                )
+                for line in result.stdout.strip().splitlines():
+                    line = line.strip()
+                    if line.isdigit():
+                        pid = int(line)
+                        if self.process and pid == self.process.pid:
+                            continue
+                        try:
+                            os.kill(pid, signal.SIGKILL)
+                            killed += 1
+                        except (OSError, ProcessLookupError):
+                            pass
+        except Exception:
+            pass
+        return killed
     
     def check_dependencies(self) -> tuple:
         """Check if Node.js and npm are available."""
@@ -101,24 +169,29 @@ class TradeService(QObject):
             self.status_changed.emit("error")
             return
         
+        orphans = self.kill_orphan_processes()
+        if orphans > 0:
+            self.log_output.emit(f"Cleaned up {orphans} orphaned trade_monitor process(es).")
+        
         try:
-            # Build command with optional auto-resume flag
             cmd = "node trade_monitor.js"
             if auto_resume:
                 cmd += " --auto-resume"
             
-            # Start the Node.js process with UTF-8 encoding for emoji support
-            self.process = subprocess.Popen(
-                cmd,
+            popen_kwargs = dict(
                 cwd=self.service_dir,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 bufsize=1,
-                shell=True,  # Use shell to access PATH
+                shell=True,
                 encoding='utf-8',
-                errors='replace'  # Replace undecodable chars instead of crashing
+                errors='replace',
             )
+            if platform.system() != 'Windows':
+                popen_kwargs['start_new_session'] = True
+            
+            self.process = subprocess.Popen(cmd, **popen_kwargs)
             
             self._running = True
             self.status_changed.emit("running")
@@ -139,20 +212,20 @@ class TradeService(QObject):
             return
         
         try:
-            # On Windows with shell=True, we need to kill the entire process tree
-            # Using taskkill to force kill the process and all children
-            import platform
             if platform.system() == 'Windows':
                 subprocess.run(
                     f'taskkill /F /T /PID {self.process.pid}',
-                    shell=True,
-                    capture_output=True
+                    shell=True, capture_output=True
                 )
             else:
-                self.process.terminate()
-                self.process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            self.process.kill()
+                try:
+                    pgid = os.getpgid(self.process.pid)
+                    os.killpg(pgid, signal.SIGTERM)
+                    self.process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    os.killpg(pgid, signal.SIGKILL)
+                except (OSError, ProcessLookupError):
+                    self.process.kill()
         except Exception as e:
             self.log_output.emit(f"Error stopping service: {e}")
         

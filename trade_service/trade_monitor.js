@@ -17,6 +17,10 @@ const puppeteer = require('puppeteer-core');
 
 const CHECK_INTERVAL = 10; // 10ms = checking 100 times per second!
 
+function getSearchId(url) {
+    return url.match(/trade\/search\/[^/]+\/([^/]+)/)?.[1] || 'unknown';
+}
+
 async function connectToBrowser() {
     try {
         const browser = await puppeteer.connect({
@@ -123,24 +127,41 @@ async function startMonitoring(browser, autoResumeEnabled) {
 
         // Find ALL PoE trade live search pages
         const tradePages = [];
+        const tabLabels = new Map(); // page -> search ID from URL
         for (const p of pages) {
             const url = p.url();
             if (url.includes('pathofexile.com/trade') && url.includes('/live')) {
                 tradePages.push(p);
+                tabLabels.set(p, getSearchId(url));
             }
         }
 
         if (tradePages.length === 0) {
-            console.log('❌ No PoE trade live search pages found!');
+            console.log('No PoE trade live search pages found!');
             console.log('Please open at least one live search tab.');
             process.exit(1);
         }
 
-        console.log(`\n✅ Found ${tradePages.length} live search tab(s)!\n`);
+        // Clean up any orphaned in-page scripts from a previous session
+        for (const page of tradePages) {
+            try {
+                await page.evaluate(() => {
+                    if (window.poeAutoClicker) {
+                        window.poeAutoClicker.running = false;
+                        if (window.poeAutoClicker.observer) {
+                            window.poeAutoClicker.observer.disconnect();
+                        }
+                        window.poeAutoClicker = null;
+                    }
+                });
+            } catch (err) {
+                // Page may have navigated away
+            }
+        }
+
+        console.log(`\nFound ${tradePages.length} live search tab(s)!\n`);
         for (let i = 0; i < tradePages.length; i++) {
-            const url = tradePages[i].url();
-            const searchName = url.match(/trade\/search\/[^/]+\/([^/]+)/)?.[1] || 'unknown';
-            console.log(`   ${i + 1}. ${searchName}`);
+            console.log(`   ${i + 1}. ${tabLabels.get(tradePages[i])}`);
         }
         console.log('');
 
@@ -165,12 +186,10 @@ async function startMonitoring(browser, autoResumeEnabled) {
         // Inject monitoring script into ALL tabs
         for (let i = 0; i < tradePages.length; i++) {
             const page = tradePages[i];
-            const tabIndex = i;
+            const searchId = tabLabels.get(page);
             
-            await page.evaluate((checkInterval, tabIndex) => {
-            // Don't re-inject if already running
+            await page.evaluate((checkInterval, searchId) => {
             if (window.poeAutoClicker && window.poeAutoClicker.running) {
-                console.log('⚠️  Already running! Stopping old instance...');
                 window.poeAutoClicker.running = false;
                 if (window.poeAutoClicker.observer) {
                     window.poeAutoClicker.observer.disconnect();
@@ -183,100 +202,113 @@ async function startMonitoring(browser, autoResumeEnabled) {
                 clickCount: 0,
                 observer: null,
                 lastClickTime: 0,
-                cooldownMs: 5000, // 5 second cooldown between clicks
-                isClicking: false, // Lock to prevent multiple simultaneous clicks
-                tabIndex: tabIndex // Which tab this is
+                cooldownMs: 5000,
+                isClicking: false,
+                searchId: searchId
             };
 
+            // Handles the "In demand. Teleport anyway?" confirmation that appears
+            // after clicking Travel to Hideout when someone else got there first.
+            // Runs regardless of pause state since we already paused on the initial click.
+            function clickTeleportAnyway() {
+                const buttons = document.querySelectorAll('.results button');
+                for (let i = 0; i < buttons.length; i++) {
+                    const text = buttons[i].textContent;
+                    if (text.indexOf('eleport') !== -1 && text.indexOf('anyway') !== -1) {
+                        buttons[i].click();
+                        console.log(`[${searchId}] Clicked "Teleport anyway" confirmation`);
+                        return true;
+                    }
+                }
+                return false;
+            }
+
             function clickTopTravelButton() {
-                // Prevent multiple simultaneous clicks
                 if (window.poeAutoClicker.isClicking) {
                     return false;
                 }
 
-                // Only click if not paused
+                // Always check for teleport-anyway confirmations, even while paused
+                if (clickTeleportAnyway()) {
+                    return true;
+                }
+
                 if (window.poeAutoClicker.paused) {
                     return false;
                 }
 
-                // Check cooldown - prevent rate limiting
                 const now = Date.now();
-                const timeSinceLastClick = now - window.poeAutoClicker.lastClickTime;
-                if (timeSinceLastClick < window.poeAutoClicker.cooldownMs) {
-                    // Still in cooldown
+                if (now - window.poeAutoClicker.lastClickTime < window.poeAutoClicker.cooldownMs) {
                     return false;
                 }
 
-                // Set lock
                 window.poeAutoClicker.isClicking = true;
 
                 try {
-                    // Find ALL travel to hideout buttons
-                    const allButtons = Array.from(document.querySelectorAll('button'));
-                    const travelButtons = allButtons.filter(button => {
-                        const buttonText = button.textContent.trim().toLowerCase();
-                        return buttonText.includes('travel') && buttonText.includes('hideout');
-                    });
+                    const buttons = document.querySelectorAll('.results button:not(.poe-auto-clicked)');
 
-                    if (travelButtons.length === 0) {
-                        window.poeAutoClicker.isClicking = false;
-                        return false;
-                    }
+                    for (let i = 0; i < buttons.length; i++) {
+                        const button = buttons[i];
+                        const text = button.textContent;
 
-                    // Get the FIRST (top) button that hasn't been clicked
-                    for (const button of travelButtons) {
-                        // Skip if already clicked
-                        if (button.classList.contains('poe-auto-clicked')) {
+                        if (text.indexOf('ravel') === -1) {
                             continue;
                         }
 
-                        // Check if item is still available (not sold/outdated)
-                        const listingElement = button.closest('.resultset');
-                        if (listingElement) {
-                            const listingText = listingElement.textContent.toLowerCase();
-                            
-                            // Skip if item is no longer available or outdated
-                            if (listingText.includes('no longer available') || 
-                                listingText.includes('is outdated') ||
-                                listingText.includes('item is in demand')) {
-                                
-                                // Mark as clicked so we don't check it again
+                        const lower = text.toLowerCase();
+                        if (!(lower.includes('travel') && lower.includes('hideout'))) {
+                            continue;
+                        }
+
+                        if (button.disabled) {
+                            button.classList.add('poe-auto-clicked');
+                            continue;
+                        }
+
+                        const listing = button.closest('.resultset');
+                        if (listing) {
+                            const lt = listing.textContent;
+                            if (lt.includes('no longer available') ||
+                                lt.includes('is outdated')) {
                                 button.classList.add('poe-auto-clicked');
-                                console.log('⏭️  Skipping unavailable/outdated item');
-                                continue; // Keep looking for next valid item
-                            }
-                            
-                            // Check if button is disabled
-                            if (button.disabled || button.hasAttribute('disabled')) {
-                                button.classList.add('poe-auto-clicked');
-                                console.log('⏭️  Skipping disabled button');
                                 continue;
                             }
                         }
 
-                        // This is a valid item! Click it
                         button.classList.add('poe-auto-clicked');
                         window.poeAutoClicker.lastClickTime = now;
-                        window.poeAutoClicker.paused = true; // Pause BEFORE clicking
-                        
+                        window.poeAutoClicker.paused = true;
+
                         button.click();
-                        
+
                         window.poeAutoClicker.clickCount++;
-                        console.log(`🏠 [Tab ${tabIndex + 1}] Clicked TOP available item! Total: ${window.poeAutoClicker.clickCount}`);
-                        console.log('⏸️  PAUSED - Waiting for resume signal...');
-                        
+                        console.log(`[${searchId}] Clicked item #${window.poeAutoClicker.clickCount}`);
+
                         window.poeAutoClicker.isClicking = false;
                         return true;
                     }
-                    
-                    // No valid buttons found
+
                     window.poeAutoClicker.isClicking = false;
                     return false;
                 } catch (err) {
                     window.poeAutoClicker.isClicking = false;
-                    console.error('Error clicking button:', err);
                     return false;
                 }
+            }
+
+            const observer = new MutationObserver((mutations) => {
+                for (let i = 0; i < mutations.length; i++) {
+                    if (mutations[i].addedNodes.length > 0) {
+                        clickTopTravelButton();
+                        return;
+                    }
+                }
+            });
+
+            const resultsContainer = document.querySelector('.results');
+            if (resultsContainer) {
+                observer.observe(resultsContainer, { childList: true, subtree: true });
+                window.poeAutoClicker.observer = observer;
             }
 
             const intervalId = setInterval(() => {
@@ -285,25 +317,12 @@ async function startMonitoring(browser, autoResumeEnabled) {
                     return;
                 }
                 clickTopTravelButton();
-            }, checkInterval);
-
-            const observer = new MutationObserver(() => {
-                clickTopTravelButton();
-            });
-
-            const resultsContainer = document.querySelector('.results');
-            if (resultsContainer) {
-                observer.observe(resultsContainer, { childList: true, subtree: true });
-                window.poeAutoClicker.observer = observer;
-                console.log('✅ Observer attached to results container');
-            } else {
-                console.log('⚠️  Could not find results container. Will use interval only.');
-            }
+            }, 50);
 
             clickTopTravelButton();
-            }, CHECK_INTERVAL, tabIndex);
+            }, CHECK_INTERVAL, searchId);
             
-            console.log(`✅ Tab ${i + 1} monitoring enabled`);
+            console.log(`  ${searchId} - monitoring enabled`);
         }
         
         console.log('\n✅ All tabs are being monitored!\n');
@@ -322,9 +341,7 @@ async function startMonitoring(browser, autoResumeEnabled) {
                 for (const p of allPages) {
                     const url = p.url();
                     if (url.includes('pathofexile.com/trade') && url.includes('/live')) {
-                        // Check if this page is already being monitored
-                        const alreadyMonitored = tradePages.some(existingPage => existingPage.url() === url);
-                        if (!alreadyMonitored) {
+                        if (!tabLabels.has(p)) {
                             newTradePages.push(p);
                         }
                     }
@@ -332,20 +349,18 @@ async function startMonitoring(browser, autoResumeEnabled) {
                 
                 // If new tabs found, inject monitoring into them
                 if (newTradePages.length > 0) {
-                    console.log(`\n✨ Detected ${newTradePages.length} new tab(s)!`);
+                    console.log(`\nDetected ${newTradePages.length} new tab(s)!`);
                     
                     for (const page of newTradePages) {
-                        const tabIndex = tradePages.length;
-                        tradePages.push(page); // Add to monitored list
+                        const searchId = getSearchId(page.url());
+                        tradePages.push(page);
+                        tabLabels.set(page, searchId);
                         
-                        const url = page.url();
-                        const searchName = url.match(/trade\/search\/[^/]+\/([^/]+)/)?.[1] || 'unknown';
-                        console.log(`   Adding: ${searchName}`);
+                        console.log(`   Adding: ${searchId}`);
                         
-                        // Inject monitoring script into new tab
-                        await page.evaluate((checkInterval, tabIndex) => {
+                        await page.evaluate((checkInterval, searchId) => {
                             if (window.poeAutoClicker && window.poeAutoClicker.running) {
-                                return; // Already running
+                                return;
                             }
 
                             window.poeAutoClicker = {
@@ -356,57 +371,69 @@ async function startMonitoring(browser, autoResumeEnabled) {
                                 lastClickTime: 0,
                                 cooldownMs: 5000,
                                 isClicking: false,
-                                tabIndex: tabIndex
+                                searchId: searchId
                             };
+
+                            function clickTeleportAnyway() {
+                                const buttons = document.querySelectorAll('.results button');
+                                for (let i = 0; i < buttons.length; i++) {
+                                    const text = buttons[i].textContent;
+                                    if (text.indexOf('eleport') !== -1 && text.indexOf('anyway') !== -1) {
+                                        buttons[i].click();
+                                        console.log(`[${searchId}] Clicked "Teleport anyway" confirmation`);
+                                        return true;
+                                    }
+                                }
+                                return false;
+                            }
 
                             function clickTopTravelButton() {
                                 if (window.poeAutoClicker.isClicking) {
                                     return false;
                                 }
+
+                                if (clickTeleportAnyway()) {
+                                    return true;
+                                }
+
                                 if (window.poeAutoClicker.paused) {
                                     return false;
                                 }
 
                                 const now = Date.now();
-                                const timeSinceLastClick = now - window.poeAutoClicker.lastClickTime;
-                                if (timeSinceLastClick < window.poeAutoClicker.cooldownMs) {
+                                if (now - window.poeAutoClicker.lastClickTime < window.poeAutoClicker.cooldownMs) {
                                     return false;
                                 }
 
                                 window.poeAutoClicker.isClicking = true;
 
                                 try {
-                                    const allButtons = Array.from(document.querySelectorAll('button'));
-                                    const travelButtons = allButtons.filter(button => {
-                                        const buttonText = button.textContent.trim().toLowerCase();
-                                        return buttonText.includes('travel') && buttonText.includes('hideout');
-                                    });
+                                    const buttons = document.querySelectorAll('.results button:not(.poe-auto-clicked)');
 
-                                    if (travelButtons.length === 0) {
-                                        window.poeAutoClicker.isClicking = false;
-                                        return false;
-                                    }
+                                    for (let i = 0; i < buttons.length; i++) {
+                                        const button = buttons[i];
+                                        const text = button.textContent;
 
-                                    for (const button of travelButtons) {
-                                        if (button.classList.contains('poe-auto-clicked')) {
+                                        if (text.indexOf('ravel') === -1) {
                                             continue;
                                         }
 
-                                        const listingElement = button.closest('.resultset');
-                                        if (listingElement) {
-                                            const listingText = listingElement.textContent.toLowerCase();
-                                            
-                                            if (listingText.includes('no longer available') || 
-                                                listingText.includes('is outdated') ||
-                                                listingText.includes('item is in demand')) {
+                                        const lower = text.toLowerCase();
+                                        if (!(lower.includes('travel') && lower.includes('hideout'))) {
+                                            continue;
+                                        }
+
+                                        if (button.disabled) {
+                                            button.classList.add('poe-auto-clicked');
+                                            continue;
+                                        }
+
+                                        const listing = button.closest('.resultset');
+                                        if (listing) {
+                                            const lt = listing.textContent;
+                                            if (lt.includes('no longer available') ||
+                                                lt.includes('is outdated')) {
                                                 button.classList.add('poe-auto-clicked');
-                                                console.log('⏭️  Skipping unavailable/outdated item');
-                                                continue;
-                                            }
-                                            
-                                            if (button.disabled || button.hasAttribute('disabled')) {
-                                                button.classList.add('poe-auto-clicked');
-                                                console.log('⏭️  Skipping disabled button');
                                                 continue;
                                             }
                                         }
@@ -414,36 +441,31 @@ async function startMonitoring(browser, autoResumeEnabled) {
                                         button.classList.add('poe-auto-clicked');
                                         window.poeAutoClicker.lastClickTime = now;
                                         window.poeAutoClicker.paused = true;
-                                        
+
                                         button.click();
-                                        
+
                                         window.poeAutoClicker.clickCount++;
-                                        console.log(`🏠 [Tab ${tabIndex + 1}] Clicked TOP available item! Total: ${window.poeAutoClicker.clickCount}`);
-                                        console.log('⏸️  PAUSED - Waiting for resume signal...');
-                                        
+                                        console.log(`[${searchId}] Clicked item #${window.poeAutoClicker.clickCount}`);
+
                                         window.poeAutoClicker.isClicking = false;
                                         return true;
                                     }
-                                    
+
                                     window.poeAutoClicker.isClicking = false;
                                     return false;
                                 } catch (err) {
                                     window.poeAutoClicker.isClicking = false;
-                                    console.error('Error clicking button:', err);
                                     return false;
                                 }
                             }
 
-                            const intervalId = setInterval(() => {
-                                if (!window.poeAutoClicker.running) {
-                                    clearInterval(intervalId);
-                                    return;
+                            const observer = new MutationObserver((mutations) => {
+                                for (let i = 0; i < mutations.length; i++) {
+                                    if (mutations[i].addedNodes.length > 0) {
+                                        clickTopTravelButton();
+                                        return;
+                                    }
                                 }
-                                clickTopTravelButton();
-                            }, checkInterval);
-
-                            const observer = new MutationObserver(() => {
-                                clickTopTravelButton();
                             });
 
                             const resultsContainer = document.querySelector('.results');
@@ -452,13 +474,21 @@ async function startMonitoring(browser, autoResumeEnabled) {
                                 window.poeAutoClicker.observer = observer;
                             }
 
+                            const intervalId = setInterval(() => {
+                                if (!window.poeAutoClicker.running) {
+                                    clearInterval(intervalId);
+                                    return;
+                                }
+                                clickTopTravelButton();
+                            }, 50);
+
                             clickTopTravelButton();
-                        }, CHECK_INTERVAL, tabIndex);
+                        }, CHECK_INTERVAL, searchId);
                         
-                        console.log(`   ✅ Tab ${tabIndex + 1} monitoring enabled`);
+                        console.log(`   ${searchId} - monitoring enabled`);
                     }
                     
-                    console.log(`\n🔍 Now monitoring ${tradePages.length} total tab(s)\n`);
+                    console.log(`\nNow monitoring ${tradePages.length} total tab(s)\n`);
                 }
             } catch (err) {
                 // Ignore errors during tab detection
@@ -471,13 +501,12 @@ async function startMonitoring(browser, autoResumeEnabled) {
                 // Check all tabs for clicks and pause state
                 let anyPaused = false;
                 let totalClicks = 0;
-                let pausedTabIndex = -1;
+                let pausedSearchId = '';
                 const closedPages = [];
                 
                 for (let i = 0; i < tradePages.length; i++) {
                     const page = tradePages[i];
                     
-                    // Check if page is closed
                     if (page.isClosed()) {
                         closedPages.push(i);
                         continue;
@@ -486,31 +515,29 @@ async function startMonitoring(browser, autoResumeEnabled) {
                     try {
                         const status = await page.evaluate(() => ({
                             clickCount: window.poeAutoClicker?.clickCount || 0,
-                            isRunning: window.poeAutoClicker?.running || false,
                             isPaused: window.poeAutoClicker?.paused || false,
-                            tabIndex: window.poeAutoClicker?.tabIndex || 0
+                            searchId: window.poeAutoClicker?.searchId || ''
                         }));
                         
                         totalClicks += status.clickCount;
                         
                         if (status.isPaused) {
                             anyPaused = true;
-                            pausedTabIndex = i;
+                            pausedSearchId = tabLabels.get(page) || status.searchId;
                         }
                     } catch (err) {
-                        // Page might have been closed or navigated away
                         closedPages.push(i);
                     }
                 }
                 
-                // Remove closed pages from the array (in reverse order to maintain indices)
                 if (closedPages.length > 0) {
                     for (let i = closedPages.length - 1; i >= 0; i--) {
                         const index = closedPages[i];
+                        tabLabels.delete(tradePages[index]);
                         tradePages.splice(index, 1);
                     }
-                    console.log(`\n❌ Removed ${closedPages.length} closed tab(s)`);
-                    console.log(`🔍 Now monitoring ${tradePages.length} tab(s)\n`);
+                    console.log(`\nRemoved ${closedPages.length} closed tab(s)`);
+                    console.log(`Now monitoring ${tradePages.length} tab(s)\n`);
                 }
 
                 // Check if just clicked (count increased)
@@ -524,13 +551,13 @@ async function startMonitoring(browser, autoResumeEnabled) {
                 if (anyPaused && !waitingForResume) {
                     waitingForResume = true;
                     console.log('\n' + '='.repeat(60));
-                    console.log('⏸️  PAUSED');
+                    console.log('PAUSED');
                     console.log('='.repeat(60));
-                    console.log(`  Clicked item in Tab ${pausedTabIndex + 1}!`);
+                    console.log(`  Clicked item in search: ${pausedSearchId}`);
                     console.log('  When you\'re ready for the next one:');
-                    console.log('  → Press ENTER to resume monitoring ALL tabs');
+                    console.log('  -> Press ENTER to resume monitoring ALL tabs');
                     if (autoResumeEnabled) {
-                        console.log('  ⏱️  OR wait 60 seconds for auto-resume');
+                        console.log('  -> OR wait 60 seconds for auto-resume');
                     }
                     console.log('='.repeat(60) + '\n');
                     
