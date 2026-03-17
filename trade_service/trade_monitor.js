@@ -207,15 +207,13 @@ async function startMonitoring(browser, autoResumeEnabled) {
                 searchId: searchId
             };
 
-            // Handles the "In demand. Teleport anyway?" confirmation that appears
-            // after clicking Travel to Hideout when someone else got there first.
-            // Runs regardless of pause state since we already paused on the initial click.
             function clickTeleportAnyway() {
-                const buttons = document.querySelectorAll('.results button');
+                const buttons = document.querySelectorAll('.results button:not(.poe-auto-clicked)');
                 for (let i = 0; i < buttons.length; i++) {
                     const text = buttons[i].textContent;
                     if (text.indexOf('eleport') !== -1 && text.indexOf('anyway') !== -1) {
                         buttons[i].click();
+                        buttons[i].classList.add('poe-auto-clicked');
                         console.log(`[${searchId}] Clicked "Teleport anyway" confirmation`);
                         return true;
                     }
@@ -228,7 +226,6 @@ async function startMonitoring(browser, autoResumeEnabled) {
                     return false;
                 }
 
-                // Always check for teleport-anyway confirmations, even while paused
                 if (clickTeleportAnyway()) {
                     return true;
                 }
@@ -375,11 +372,12 @@ async function startMonitoring(browser, autoResumeEnabled) {
                             };
 
                             function clickTeleportAnyway() {
-                                const buttons = document.querySelectorAll('.results button');
+                                const buttons = document.querySelectorAll('.results button:not(.poe-auto-clicked)');
                                 for (let i = 0; i < buttons.length; i++) {
                                     const text = buttons[i].textContent;
                                     if (text.indexOf('eleport') !== -1 && text.indexOf('anyway') !== -1) {
                                         buttons[i].click();
+                                        buttons[i].classList.add('poe-auto-clicked');
                                         console.log(`[${searchId}] Clicked "Teleport anyway" confirmation`);
                                         return true;
                                     }
@@ -592,7 +590,7 @@ async function startMonitoring(browser, autoResumeEnabled) {
             } catch (err) {
                 console.log('⚠️  Lost connection to page');
             }
-        }, 100); // Fast polling for instant response
+        }, 500);
 
         // Cleanup on exit
         process.on('SIGINT', async () => {
