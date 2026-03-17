@@ -2,6 +2,7 @@
 
 A unified Path of Exile helper application combining multiple tools into a single, modern interface.
 
+![Version](https://img.shields.io/badge/Version-1.1.0-blue.svg)
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
@@ -175,6 +176,10 @@ To add a new tool:
 1. Create a folder under `src/tools/`
 2. Implement the `BaseTool` interface
 3. Register it in `main_window.py`
+
+### Versioning
+
+The app version is defined in `src/utils/__init__.py` as `APP_VERSION` and displayed in the UI sidebar. Every commit that changes application behavior must include a version bump following semver (MAJOR.MINOR.PATCH).
 
 ---
 

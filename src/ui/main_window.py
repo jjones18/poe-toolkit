@@ -16,6 +16,7 @@ from ui.calibration import (
     CalibrationManager, CalibrationType, CALIBRATION_CONFIGS,
     get_calibration_status_text
 )
+from utils import APP_VERSION
 from utils.config import ConfigManager
 from utils.coordinate_mapper import StashGridMapper
 
@@ -142,9 +143,14 @@ class MainWindow(QMainWindow):
         # Logo/Title
         title = QLabel("POE Toolkit")
         title.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
-        title.setStyleSheet("color: #e0e0e0; padding: 8px;")
+        title.setStyleSheet("color: #e0e0e0; padding: 8px 8px 0px 8px;")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
+        
+        version_label = QLabel(f"v{APP_VERSION}")
+        version_label.setStyleSheet("color: #666666; font-size: 10px; padding: 0px 8px 8px 8px;")
+        version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(version_label)
         
         # Separator
         sep = QFrame()
