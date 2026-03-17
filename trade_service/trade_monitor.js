@@ -204,19 +204,42 @@ async function startMonitoring(browser, autoResumeEnabled) {
                 lastClickTime: 0,
                 cooldownMs: 5000,
                 isClicking: false,
-                searchId: searchId
+                searchId: searchId,
+                maxClicksPerListing: 3,
+                // WeakMap: resultset element -> number of clicks attempted
+                listingClicks: new WeakMap()
             };
 
+            function getListingClicks(listing) {
+                return listing ? (window.poeAutoClicker.listingClicks.get(listing) || 0) : 0;
+            }
+
+            function addListingClick(listing) {
+                if (!listing) return 0;
+                const count = getListingClicks(listing) + 1;
+                window.poeAutoClicker.listingClicks.set(listing, count);
+                return count;
+            }
+
+            function isListingMaxed(listing) {
+                return listing && getListingClicks(listing) >= window.poeAutoClicker.maxClicksPerListing;
+            }
+
             function clickTeleportAnyway() {
-                const buttons = document.querySelectorAll('.results button:not(.poe-auto-clicked)');
+                const buttons = document.querySelectorAll('.results button');
                 for (let i = 0; i < buttons.length; i++) {
                     const text = buttons[i].textContent;
-                    if (text.indexOf('eleport') !== -1 && text.indexOf('anyway') !== -1) {
-                        buttons[i].click();
-                        buttons[i].classList.add('poe-auto-clicked');
-                        console.log(`[${searchId}] Clicked "Teleport anyway" confirmation`);
-                        return true;
+                    if (text.indexOf('eleport') === -1 || text.indexOf('anyway') === -1) {
+                        continue;
                     }
+                    const listing = buttons[i].closest('.resultset');
+                    if (isListingMaxed(listing)) {
+                        continue;
+                    }
+                    buttons[i].click();
+                    const count = addListingClick(listing);
+                    console.log(`[${searchId}] Clicked "Teleport anyway" (${count}/${window.poeAutoClicker.maxClicksPerListing})`);
+                    return true;
                 }
                 return false;
             }
@@ -242,10 +265,16 @@ async function startMonitoring(browser, autoResumeEnabled) {
                 window.poeAutoClicker.isClicking = true;
 
                 try {
-                    const buttons = document.querySelectorAll('.results button:not(.poe-auto-clicked)');
+                    const buttons = document.querySelectorAll('.results button');
 
                     for (let i = 0; i < buttons.length; i++) {
                         const button = buttons[i];
+                        const listing = button.closest('.resultset');
+
+                        if (isListingMaxed(listing)) {
+                            continue;
+                        }
+
                         const text = button.textContent;
 
                         if (text.indexOf('ravel') === -1) {
@@ -258,21 +287,21 @@ async function startMonitoring(browser, autoResumeEnabled) {
                         }
 
                         if (button.disabled) {
-                            button.classList.add('poe-auto-clicked');
+                            if (listing) addListingClick(listing);
                             continue;
                         }
 
-                        const listing = button.closest('.resultset');
                         if (listing) {
                             const lt = listing.textContent;
                             if (lt.includes('no longer available') ||
                                 lt.includes('is outdated')) {
-                                button.classList.add('poe-auto-clicked');
+                                // Max it out immediately so we never retry
+                                if (listing) window.poeAutoClicker.listingClicks.set(listing, window.poeAutoClicker.maxClicksPerListing);
                                 continue;
                             }
                         }
 
-                        button.classList.add('poe-auto-clicked');
+                        addListingClick(listing);
                         window.poeAutoClicker.lastClickTime = now;
                         window.poeAutoClicker.paused = true;
 
@@ -368,19 +397,41 @@ async function startMonitoring(browser, autoResumeEnabled) {
                                 lastClickTime: 0,
                                 cooldownMs: 5000,
                                 isClicking: false,
-                                searchId: searchId
+                                searchId: searchId,
+                                maxClicksPerListing: 3,
+                                listingClicks: new WeakMap()
                             };
 
+                            function getListingClicks(listing) {
+                                return listing ? (window.poeAutoClicker.listingClicks.get(listing) || 0) : 0;
+                            }
+
+                            function addListingClick(listing) {
+                                if (!listing) return 0;
+                                const count = getListingClicks(listing) + 1;
+                                window.poeAutoClicker.listingClicks.set(listing, count);
+                                return count;
+                            }
+
+                            function isListingMaxed(listing) {
+                                return listing && getListingClicks(listing) >= window.poeAutoClicker.maxClicksPerListing;
+                            }
+
                             function clickTeleportAnyway() {
-                                const buttons = document.querySelectorAll('.results button:not(.poe-auto-clicked)');
+                                const buttons = document.querySelectorAll('.results button');
                                 for (let i = 0; i < buttons.length; i++) {
                                     const text = buttons[i].textContent;
-                                    if (text.indexOf('eleport') !== -1 && text.indexOf('anyway') !== -1) {
-                                        buttons[i].click();
-                                        buttons[i].classList.add('poe-auto-clicked');
-                                        console.log(`[${searchId}] Clicked "Teleport anyway" confirmation`);
-                                        return true;
+                                    if (text.indexOf('eleport') === -1 || text.indexOf('anyway') === -1) {
+                                        continue;
                                     }
+                                    const listing = buttons[i].closest('.resultset');
+                                    if (isListingMaxed(listing)) {
+                                        continue;
+                                    }
+                                    buttons[i].click();
+                                    const count = addListingClick(listing);
+                                    console.log(`[${searchId}] Clicked "Teleport anyway" (${count}/${window.poeAutoClicker.maxClicksPerListing})`);
+                                    return true;
                                 }
                                 return false;
                             }
@@ -406,10 +457,16 @@ async function startMonitoring(browser, autoResumeEnabled) {
                                 window.poeAutoClicker.isClicking = true;
 
                                 try {
-                                    const buttons = document.querySelectorAll('.results button:not(.poe-auto-clicked)');
+                                    const buttons = document.querySelectorAll('.results button');
 
                                     for (let i = 0; i < buttons.length; i++) {
                                         const button = buttons[i];
+                                        const listing = button.closest('.resultset');
+
+                                        if (isListingMaxed(listing)) {
+                                            continue;
+                                        }
+
                                         const text = button.textContent;
 
                                         if (text.indexOf('ravel') === -1) {
@@ -422,21 +479,20 @@ async function startMonitoring(browser, autoResumeEnabled) {
                                         }
 
                                         if (button.disabled) {
-                                            button.classList.add('poe-auto-clicked');
+                                            if (listing) addListingClick(listing);
                                             continue;
                                         }
 
-                                        const listing = button.closest('.resultset');
                                         if (listing) {
                                             const lt = listing.textContent;
                                             if (lt.includes('no longer available') ||
                                                 lt.includes('is outdated')) {
-                                                button.classList.add('poe-auto-clicked');
+                                                if (listing) window.poeAutoClicker.listingClicks.set(listing, window.poeAutoClicker.maxClicksPerListing);
                                                 continue;
                                             }
                                         }
 
-                                        button.classList.add('poe-auto-clicked');
+                                        addListingClick(listing);
                                         window.poeAutoClicker.lastClickTime = now;
                                         window.poeAutoClicker.paused = true;
 
