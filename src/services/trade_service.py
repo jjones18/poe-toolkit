@@ -151,7 +151,7 @@ class TradeService(QObject):
             self.log_output.emit(f"Error installing dependencies: {e}")
             return False
     
-    def start(self, auto_resume: bool = False):
+    def start(self, auto_resume: bool = False, cooldown_s: int = 5):
         """Start the trade monitoring service."""
         if self.is_running:
             self.log_output.emit("Service is already running.")
@@ -174,7 +174,7 @@ class TradeService(QObject):
             self.log_output.emit(f"Cleaned up {orphans} orphaned trade_monitor process(es).")
         
         try:
-            cmd = "node trade_monitor.js"
+            cmd = f"node trade_monitor.js --cooldown={cooldown_s}"
             if auto_resume:
                 cmd += " --auto-resume"
             

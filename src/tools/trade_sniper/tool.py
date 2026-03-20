@@ -99,18 +99,20 @@ class TradeSniperWidget(QWidget):
         config_group = QGroupBox("Configuration")
         config_layout = QVBoxLayout(config_group)
         
-        # Auto-resume
+        # Auto-resume (send toggle to running service when changed)
         self.chk_auto_resume = QCheckBox("Auto-resume after 60 seconds")
         self.chk_auto_resume.setChecked(self.trade_config.get("auto_resume", False))
+        self.chk_auto_resume.toggled.connect(self.on_auto_resume_toggled)
         config_layout.addWidget(self.chk_auto_resume)
         
-        # Cooldown
+        # Cooldown (in seconds)
         cooldown_row = QHBoxLayout()
-        cooldown_row.addWidget(QLabel("Click cooldown (ms):"))
+        cooldown_row.addWidget(QLabel("Wait time after teleport click (s):"))
         self.cooldown_spin = QSpinBox()
-        self.cooldown_spin.setRange(1000, 30000)
-        self.cooldown_spin.setSingleStep(1000)
-        self.cooldown_spin.setValue(self.trade_config.get("cooldown_ms", 5000))
+        self.cooldown_spin.setRange(1, 30)
+        self.cooldown_spin.setSingleStep(1)
+        cooldown_ms = self.trade_config.get("cooldown_ms", 5000)
+        self.cooldown_spin.setValue(cooldown_ms // 1000)
         cooldown_row.addWidget(self.cooldown_spin)
         cooldown_row.addStretch()
         config_layout.addLayout(cooldown_row)
@@ -333,6 +335,11 @@ class TradeSniperWidget(QWidget):
         scrollbar = self.log_area.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
     
+    def on_auto_resume_toggled(self, checked: bool):
+        """Send auto-resume toggle to the running service."""
+        if self.is_service_running:
+            self.service.send_input(f"__auto_resume__:{'on' if checked else 'off'}\n")
+    
     def on_start_resume_click(self):
         """Handle start/resume button click based on current state."""
         if self.is_service_running:
@@ -341,7 +348,8 @@ class TradeSniperWidget(QWidget):
         else:
             # Service not running, start it
             auto_resume = self.chk_auto_resume.isChecked()
-            self.service.start(auto_resume=auto_resume)
+            cooldown_s = self.cooldown_spin.value()
+            self.service.start(auto_resume=auto_resume, cooldown_s=cooldown_s)
     
     def stop_service(self):
         """Stop the trade service."""

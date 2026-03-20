@@ -33,29 +33,54 @@ async function connectToBrowser() {
     }
 }
 
+// Shared state so stdin toggles are visible inside startMonitoring
+const state = { autoResumeEnabled: false };
+
 async function main() {
-    // Check for command line arguments
     const args = process.argv.slice(2);
-    const autoResumeEnabled = args.includes('--auto-resume');
+    state.autoResumeEnabled = args.includes('--auto-resume');
+
+    // Parse --cooldown=N (seconds), default 5
+    let cooldownSeconds = 5;
+    const cooldownArg = args.find(a => a.startsWith('--cooldown='));
+    if (cooldownArg) {
+        const parsed = parseInt(cooldownArg.split('=')[1], 10);
+        if (!isNaN(parsed) && parsed > 0) {
+            cooldownSeconds = parsed;
+        }
+    }
+    const cooldownMs = cooldownSeconds * 1000;
+
+    // Listen for dynamic auto-resume toggle commands on stdin
+    process.stdin.on('data', (data) => {
+        const msg = data.toString().trim();
+        if (msg === '__auto_resume__:on') {
+            state.autoResumeEnabled = true;
+            console.log('Auto-resume toggled ON');
+        } else if (msg === '__auto_resume__:off') {
+            state.autoResumeEnabled = false;
+            console.log('Auto-resume toggled OFF');
+        }
+    });
     
-    console.log('🎮 PoE Trade Auto - Connect to Existing Browser\n');
+    console.log('PoE Trade Auto - Connect to Existing Browser\n');
     console.log('Attempting to connect to your Brave browser on port 9222...\n');
 
     let browser = await connectToBrowser();
     
     if (!browser) {
-        console.log('❌ Could not connect to browser!');
+        console.log('Could not connect to browser!');
         console.log('Make sure you started Brave with remote debugging.');
         console.log('\nRun: start_brave_debugging.bat\n');
         process.exit(1);
     }
 
-    console.log('✅ Connected to your Brave browser!\n');
+    console.log('Connected to your Brave browser!\n');
 
-    if (autoResumeEnabled) {
-        console.log('✅ Auto-resume enabled - Will resume after 60s\n');
+    if (state.autoResumeEnabled) {
+        console.log(`Auto-resume enabled - Will resume after 60s (cooldown: ${cooldownSeconds}s)\n`);
     } else {
-        console.log('✅ Manual resume only - Press Enter to continue\n');
+        console.log(`Manual resume only - Press Enter to continue (cooldown: ${cooldownSeconds}s)\n`);
     }
 
     // Listen for browser disconnect
@@ -90,8 +115,7 @@ async function main() {
                     await waitForReconnect();
                 });
                 
-                // Restart the monitoring process with same auto-resume setting
-                await startMonitoring(browser, autoResumeEnabled);
+                await startMonitoring(browser, cooldownMs);
             }
         }, 5000);
         
@@ -105,18 +129,17 @@ async function main() {
                     
                     browser = newBrowser;
                     browser.on('disconnected', waitForReconnect);
-                    await startMonitoring(browser, autoResumeEnabled);
+                    await startMonitoring(browser, cooldownMs);
                 }
             }, 5000);
         }
     });
 
-    // Start monitoring with auto-resume setting
-    await startMonitoring(browser, autoResumeEnabled);
+    await startMonitoring(browser, cooldownMs);
 }
 
 
-async function startMonitoring(browser, autoResumeEnabled) {
+async function startMonitoring(browser, cooldownMs) {
     try {
         const pages = await browser.pages();
         
@@ -175,7 +198,6 @@ async function startMonitoring(browser, autoResumeEnabled) {
 
         let clickCount = 0;
         let lastNotification = Date.now();
-        let isPausedGlobal = false;
 
         console.log('👀 Monitoring ALL tabs for new listings...');
         console.log(`🔍 Watching ${tradePages.length} live search(es) simultaneously`);
@@ -188,7 +210,7 @@ async function startMonitoring(browser, autoResumeEnabled) {
             const page = tradePages[i];
             const searchId = tabLabels.get(page);
             
-            await page.evaluate((checkInterval, searchId) => {
+            await page.evaluate((checkInterval, searchId, cdMs) => {
             if (window.poeAutoClicker && window.poeAutoClicker.running) {
                 window.poeAutoClicker.running = false;
                 if (window.poeAutoClicker.observer) {
@@ -202,11 +224,10 @@ async function startMonitoring(browser, autoResumeEnabled) {
                 clickCount: 0,
                 observer: null,
                 lastClickTime: 0,
-                cooldownMs: 5000,
+                cooldownMs: cdMs,
                 isClicking: false,
                 searchId: searchId,
                 maxClicksPerListing: 3,
-                // WeakMap: resultset element -> number of clicks attempted
                 listingClicks: new WeakMap()
             };
 
@@ -346,15 +367,14 @@ async function startMonitoring(browser, autoResumeEnabled) {
             }, 50);
 
             clickTopTravelButton();
-            }, CHECK_INTERVAL, searchId);
+            }, CHECK_INTERVAL, searchId, cooldownMs);
             
             console.log(`  ${searchId} - monitoring enabled`);
         }
         
-        console.log('\n✅ All tabs are being monitored!\n');
-        console.log('🔄 Auto-detecting new tabs every 30 seconds...\n');
+        console.log('\nAll tabs are being monitored!\n');
+        console.log('Auto-detecting new tabs every 30 seconds...\n');
 
-        let isPaused = false;
         let waitingForResume = false;
 
         // Auto-detect new tabs every 30 seconds
@@ -384,7 +404,7 @@ async function startMonitoring(browser, autoResumeEnabled) {
                         
                         console.log(`   Adding: ${searchId}`);
                         
-                        await page.evaluate((checkInterval, searchId) => {
+                        await page.evaluate((checkInterval, searchId, cdMs) => {
                             if (window.poeAutoClicker && window.poeAutoClicker.running) {
                                 return;
                             }
@@ -395,7 +415,7 @@ async function startMonitoring(browser, autoResumeEnabled) {
                                 clickCount: 0,
                                 observer: null,
                                 lastClickTime: 0,
-                                cooldownMs: 5000,
+                                cooldownMs: cdMs,
                                 isClicking: false,
                                 searchId: searchId,
                                 maxClicksPerListing: 3,
@@ -537,7 +557,7 @@ async function startMonitoring(browser, autoResumeEnabled) {
                             }, 50);
 
                             clickTopTravelButton();
-                        }, CHECK_INTERVAL, searchId);
+                        }, CHECK_INTERVAL, searchId, cooldownMs);
                         
                         console.log(`   ${searchId} - monitoring enabled`);
                     }
@@ -601,41 +621,42 @@ async function startMonitoring(browser, autoResumeEnabled) {
                     clickCount = totalClicks;
                 }
 
-                // Check if paused and need to prompt for resume
                 if (anyPaused && !waitingForResume) {
                     waitingForResume = true;
                     console.log('\n' + '='.repeat(60));
                     console.log('PAUSED');
                     console.log('='.repeat(60));
                     console.log(`  Clicked item in search: ${pausedSearchId}`);
-                    console.log('  When you\'re ready for the next one:');
                     console.log('  -> Press ENTER to resume monitoring ALL tabs');
-                    if (autoResumeEnabled) {
+                    if (state.autoResumeEnabled) {
                         console.log('  -> OR wait 60 seconds for auto-resume');
                     }
                     console.log('='.repeat(60) + '\n');
                     
-                    // Wait for Enter key OR 60 second timeout (if enabled)
-                    if (autoResumeEnabled) {
-                        await waitForEnterOrTimeout(60000); // 60 seconds
+                    const getAutoResume = () => state.autoResumeEnabled;
+                    if (state.autoResumeEnabled) {
+                        await waitForEnterOrTimeout(60000, getAutoResume);
                     } else {
-                        await waitForEnter();
+                        await waitForEnter(getAutoResume);
                     }
                     
-                    // Resume ALL tabs
                     for (const page of tradePages) {
-                        await page.evaluate(() => {
-                            if (window.poeAutoClicker) {
-                                window.poeAutoClicker.paused = false;
-                                window.poeAutoClicker.isClicking = false; // Reset lock
-                                console.log('▶️  RESUMED');
+                        try {
+                            if (!page.isClosed()) {
+                                await page.evaluate(() => {
+                                    if (window.poeAutoClicker) {
+                                        window.poeAutoClicker.paused = false;
+                                        window.poeAutoClicker.isClicking = false;
+                                    }
+                                });
                             }
-                        });
+                        } catch (err) {
+                            // Page may have closed
+                        }
                     }
                     
-                    console.log(`▶️  RESUMED - Monitoring all ${tradePages.length} tabs...\n`);
+                    console.log(`RESUMED - Monitoring all ${tradePages.length} tabs...\n`);
                     waitingForResume = false;
-                    isPausedGlobal = false;
                 }
 
                 // Periodic status update (only when not paused)
@@ -691,32 +712,84 @@ async function startMonitoring(browser, autoResumeEnabled) {
     }
 }
 
-function waitForEnter() {
+function waitForEnter(getAutoResume) {
+    const HEARTBEAT_INTERVAL = 5000;
+
     return new Promise((resolve) => {
-        process.stdin.once('data', () => resolve());
+        let heartbeatTimer = null;
+        let elapsed = 0;
+        let dataListener;
+
+        function cleanup() {
+            if (heartbeatTimer) clearInterval(heartbeatTimer);
+            if (dataListener) process.stdin.removeListener('data', dataListener);
+        }
+
+        dataListener = (data) => {
+            const msg = data.toString().trim();
+            if (msg.startsWith('__auto_resume__:')) return;
+            cleanup();
+            console.log('Enter pressed - resuming...');
+            resolve('enter');
+        };
+        process.stdin.on('data', dataListener);
+
+        heartbeatTimer = setInterval(() => {
+            elapsed += HEARTBEAT_INTERVAL;
+
+            // If auto-resume was toggled on while waiting, switch to timed mode
+            if (getAutoResume && getAutoResume()) {
+                cleanup();
+                console.log('Auto-resume enabled mid-pause, switching to timed wait...');
+                waitForEnterOrTimeout(60000, getAutoResume).then(resolve);
+                return;
+            }
+
+            const waitSec = Math.floor(elapsed / 1000);
+            console.log(`PAUSED - waiting for manual resume... (${waitSec}s elapsed)`);
+        }, HEARTBEAT_INTERVAL);
     });
 }
 
-function waitForEnterOrTimeout(timeoutMs) {
+function waitForEnterOrTimeout(timeoutMs, getAutoResume) {
+    const AUTO_RESUME_DELAY = timeoutMs;
+    const HEARTBEAT_INTERVAL = 5000;
+
     return new Promise((resolve) => {
-        let timeout;
+        let heartbeatTimer = null;
+        let activeElapsed = 0;
         let dataListener;
-        
-        // Set up timeout
-        timeout = setTimeout(() => {
-            process.stdin.removeListener('data', dataListener);
-            console.log('⏱️  60 seconds elapsed - auto-resuming...');
-            resolve('timeout');
-        }, timeoutMs);
-        
-        // Set up Enter key listener
-        dataListener = () => {
-            clearTimeout(timeout);
-            console.log('⌨️  Enter pressed - resuming...');
+
+        function cleanup() {
+            if (heartbeatTimer) clearInterval(heartbeatTimer);
+            if (dataListener) process.stdin.removeListener('data', dataListener);
+        }
+
+        dataListener = (data) => {
+            const msg = data.toString().trim();
+            if (msg.startsWith('__auto_resume__:')) return;
+            cleanup();
+            console.log('Enter pressed - resuming...');
             resolve('enter');
         };
-        
-        process.stdin.once('data', dataListener);
+        process.stdin.on('data', dataListener);
+
+        heartbeatTimer = setInterval(() => {
+            if (getAutoResume()) {
+                activeElapsed += HEARTBEAT_INTERVAL;
+                const remaining = Math.max(0, Math.ceil((AUTO_RESUME_DELAY - activeElapsed) / 1000));
+
+                if (activeElapsed >= AUTO_RESUME_DELAY) {
+                    cleanup();
+                    console.log('Auto-resume timer elapsed - resuming...');
+                    resolve('timeout');
+                } else {
+                    console.log(`PAUSED - auto-resuming in ${remaining}s...`);
+                }
+            } else {
+                console.log('PAUSED - auto-resume disabled, waiting for manual resume...');
+            }
+        }, HEARTBEAT_INTERVAL);
     });
 }
 
