@@ -1,0 +1,329 @@
+import os
+import signal
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from typing import Any
+from unittest.mock import Mock, patch
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SRC_DIR = os.path.join(PROJECT_ROOT, "src")
+if SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
+
+from services.trade_service import TradeService
+
+
+class FakeStdin:
+    def __init__(self, process):
+        self.process = process
+        self.writes = []
+        self.flush_count = 0
+        self.close_count = 0
+
+    def write(self, text):
+        self.writes.append(text)
+        if text == "__shutdown__\n":
+            self.process.returncode = 0
+
+    def flush(self):
+        self.flush_count += 1
+
+    def close(self):
+        self.close_count += 1
+
+
+class FakeStdout:
+    def __init__(self):
+        self.close_count = 0
+
+    def readline(self):
+        return ""
+
+    def close(self):
+        self.close_count += 1
+
+
+class FakeProcess:
+    def __init__(self, pid=424242):
+        self.pid = pid
+        self.returncode = None
+        self.stdin = FakeStdin(self)
+        self.stdout: Any = None
+        self.kill_count = 0
+
+    def poll(self):
+        return self.returncode
+
+    def wait(self, timeout=None):
+        if self.returncode is None:
+            raise subprocess.TimeoutExpired("node", timeout)
+        return self.returncode
+
+    def kill(self):
+        self.kill_count += 1
+        self.returncode = -signal.SIGKILL
+
+
+class TradeServiceStopTests(unittest.TestCase):
+    @patch("services.trade_service.platform.system", return_value="Linux")
+    @patch("services.trade_service.os.getpgid", return_value=424242)
+    @patch("services.trade_service.os.killpg")
+    def test_stop_requests_graceful_browser_cleanup_before_signals(
+        self, killpg, _getpgid, _platform_system
+    ):
+        service = TradeService()
+        process = FakeProcess()
+        service.process = process
+        service._running = True
+        statuses = []
+        service.status_changed.connect(statuses.append)
+
+        stopped = service.stop()
+
+        self.assertTrue(stopped)
+        self.assertEqual(process.stdin.writes, ["__shutdown__\n"])
+        self.assertEqual(process.stdin.flush_count, 1)
+        killpg.assert_not_called()
+        self.assertEqual(statuses[-1], "stopped")
+        self.assertIsNone(service.process)
+        self.assertFalse(service._running)
+
+    @patch("services.trade_service.platform.system", return_value="Linux")
+    @patch("services.trade_service.os.getpgid", return_value=424242)
+    @patch("services.trade_service.os.killpg")
+    def test_stop_escalates_to_sigterm_when_graceful_request_is_ignored(
+        self, killpg, _getpgid, _platform_system
+    ):
+        service = TradeService()
+        process = FakeProcess()
+        process.stdin.write = lambda text: process.stdin.writes.append(text)
+        service.process = process
+        service._running = True
+
+        def record_signal(_pgid, sent_signal):
+            if sent_signal == signal.SIGTERM:
+                process.returncode = -signal.SIGTERM
+
+        killpg.side_effect = record_signal
+
+        service.stop()
+
+        self.assertEqual(process.stdin.writes, ["__shutdown__\n"])
+        killpg.assert_called_once_with(424242, signal.SIGTERM)
+        self.assertIsNone(service.process)
+
+    @patch("services.trade_service.platform.system", return_value="Linux")
+    @patch("services.trade_service.os.getpgid", return_value=424242)
+    @patch("services.trade_service.os.killpg")
+    def test_stop_does_not_report_stopped_while_process_is_still_alive(
+        self, _killpg, _getpgid, _platform_system
+    ):
+        service = TradeService()
+        process = FakeProcess()
+        process.stdin.write = lambda text: process.stdin.writes.append(text)
+        service.process = process
+        service._running = True
+        statuses = []
+        service.status_changed.connect(statuses.append)
+
+        stopped = service.stop()
+
+        self.assertFalse(stopped)
+        self.assertIs(service.process, process)
+        self.assertTrue(service._running)
+        self.assertEqual(statuses[-1], "error")
+
+    @patch("services.trade_service.platform.system", return_value="Linux")
+    @patch("services.trade_service.os.getpgid", return_value=424242)
+    @patch("services.trade_service.os.killpg")
+    def test_force_cleanup_requests_graceful_browser_cleanup_before_killing(
+        self, killpg, _getpgid, _platform_system
+    ):
+        service = TradeService()
+        process = FakeProcess()
+        service.process = process
+        service._running = True
+
+        service._force_cleanup()
+
+        self.assertEqual(process.stdin.writes, ["__shutdown__\n"])
+        killpg.assert_not_called()
+        self.assertIsNone(service.process)
+        self.assertFalse(service._running)
+
+    def test_stop_releases_owner_closes_pipes_and_joins_output_reader(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            owner_file = Path(temp_dir) / "trade-service.lock"
+            owner_file.write_text(str(os.getpid()), encoding="utf-8")
+            service = TradeService(owner_file=str(owner_file))
+            process = FakeProcess()
+            process.stdout = FakeStdout()
+            output_thread = Mock()
+            service.process = process
+            service.output_thread = output_thread
+            service._running = True
+
+            service.stop()
+
+            self.assertFalse(owner_file.exists())
+            self.assertEqual(process.stdin.close_count, 1)
+            self.assertEqual(process.stdout.close_count, 1)
+            output_thread.join.assert_called_once_with(timeout=2)
+            self.assertIsNone(service.output_thread)
+
+
+class TradeServiceStartTests(unittest.TestCase):
+    @patch("services.trade_service.threading.Thread")
+    @patch("services.trade_service.subprocess.Popen")
+    @patch.object(TradeService, "check_dependencies", return_value=("v24.18.0", "11"))
+    def test_start_launches_node_directly_without_shell_wrapper(
+        self, _dependencies, popen, thread
+    ):
+        process = FakeProcess()
+        process.stdout = object()
+        popen.return_value = process
+        temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_dir.cleanup)
+        owner_file = os.path.join(temp_dir.name, "trade-service.lock")
+        service = TradeService(
+            service_dir=os.path.join(PROJECT_ROOT, "trade_service"),
+            owner_file=owner_file,
+        )
+
+        service.start(
+            auto_resume=True,
+            auto_resume_delay_s=90,
+            cooldown_s=5,
+            game_id="poe1",
+        )
+
+        command, = popen.call_args.args
+        kwargs = popen.call_args.kwargs
+        self.assertEqual(
+            command,
+            [
+                "node",
+                "trade_monitor.js",
+                "--cooldown=5",
+                "--auto-resume-delay=90",
+                "--game=poe1",
+                "--auto-resume",
+            ],
+        )
+        self.assertFalse(kwargs["shell"])
+        self.assertTrue(kwargs["start_new_session"])
+        thread.return_value.start.assert_called_once_with()
+
+    @patch("services.trade_service.threading.Thread")
+    @patch("services.trade_service.subprocess.Popen")
+    @patch.object(TradeService, "check_dependencies", return_value=("v24.18.0", "11"))
+    def test_start_refuses_live_owner_for_same_installation(
+        self, _dependencies, popen, _thread
+    ):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            owner_file = Path(temp_dir) / "trade-service.lock"
+            owner_file.write_text(str(os.getpid()), encoding="utf-8")
+            service = TradeService(
+                service_dir=os.path.join(PROJECT_ROOT, "trade_service"),
+                owner_file=str(owner_file),
+            )
+            statuses = []
+            logs = []
+            service.status_changed.connect(statuses.append)
+            service.log_output.connect(logs.append)
+
+            service.start()
+
+            popen.assert_not_called()
+            self.assertEqual(statuses[-1], "error")
+            self.assertTrue(any("already owns" in line for line in logs))
+
+    @patch("services.trade_service.threading.Thread")
+    @patch("services.trade_service.subprocess.Popen")
+    @patch.object(TradeService, "check_dependencies", return_value=("v24.18.0", "11"))
+    def test_start_reclaims_stale_owner_without_scanning_other_processes(
+        self, _dependencies, popen, thread
+    ):
+        process = FakeProcess()
+        process.stdout = object()
+        popen.return_value = process
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            owner_file = Path(temp_dir) / "trade-service.lock"
+            owner_file.write_text("999999999", encoding="utf-8")
+            service = TradeService(
+                service_dir=os.path.join(PROJECT_ROOT, "trade_service"),
+                owner_file=str(owner_file),
+            )
+
+            with patch.object(service, "_pid_is_alive", return_value=False):
+                service.start()
+
+            popen.assert_called_once()
+            thread.return_value.start.assert_called_once_with()
+            self.assertEqual(owner_file.read_text(encoding="utf-8"), str(os.getpid()))
+
+
+class TradeServiceDependencyTests(unittest.TestCase):
+    @patch("services.trade_service.subprocess.run")
+    def test_dependency_probes_are_direct_and_bounded(self, run):
+        run.side_effect = [
+            subprocess.CompletedProcess([], 0, stdout="v24.18.0\n", stderr=""),
+            subprocess.CompletedProcess([], 0, stdout="11.0.0\n", stderr=""),
+        ]
+        service = TradeService()
+
+        self.assertEqual(service.check_dependencies(), ("v24.18.0", "11.0.0"))
+
+        self.assertEqual(run.call_args_list[0].args[0], ["node", "--version"])
+        self.assertEqual(run.call_args_list[1].args[0][-1], "--version")
+        for invocation in run.call_args_list:
+            self.assertEqual(invocation.kwargs["timeout"], 5)
+            self.assertFalse(invocation.kwargs["shell"])
+
+    @patch("services.trade_service.subprocess.run")
+    def test_npm_install_is_direct_and_bounded(self, run):
+        run.return_value = subprocess.CompletedProcess([], 0, stdout="installed", stderr="")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            Path(temp_dir, "package.json").write_text("{}", encoding="utf-8")
+            service = TradeService(service_dir=temp_dir)
+
+            self.assertTrue(service.install_dependencies())
+
+        command = run.call_args.args[0]
+        self.assertEqual(command[-1], "install")
+        self.assertEqual(run.call_args.kwargs["timeout"], 120)
+        self.assertFalse(run.call_args.kwargs["shell"])
+
+
+class TradeServiceOutputTests(unittest.TestCase):
+    def test_intentional_stop_does_not_emit_duplicate_process_ended_status(self):
+        service = TradeService()
+        process = FakeProcess()
+        process.returncode = 0
+
+        class EndedStdout:
+            @staticmethod
+            def readline():
+                return ""
+
+        process.stdout = EndedStdout()
+        service.process = process
+        service._running = True
+        service._stopping = True
+        statuses = []
+        logs = []
+        service.status_changed.connect(statuses.append)
+        service.log_output.connect(logs.append)
+
+        service._read_output()
+
+        self.assertEqual(statuses, [])
+        self.assertNotIn("Trade service ended.", logs)
+
+
+if __name__ == "__main__":
+    unittest.main()

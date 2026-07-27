@@ -5,7 +5,7 @@ Main application window with sidebar navigation.
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QStackedWidget, QPushButton, QLabel, QFrame, QMessageBox,
-    QMenuBar, QMenu
+    QMenuBar, QMenu, QComboBox
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QAction
@@ -19,6 +19,7 @@ from ui.calibration import (
 from utils import APP_VERSION
 from utils.config import ConfigManager
 from utils.coordinate_mapper import StashGridMapper
+from services.trade_service import TradeService
 
 
 class SidebarButton(QPushButton):
@@ -53,13 +54,14 @@ class SidebarButton(QPushButton):
 class MainWindow(QMainWindow):
     """Main application window with sidebar navigation."""
     
-    def __init__(self):
+    def __init__(self, trade_service: TradeService = None):
         super().__init__()
         self.setWindowTitle("POE Toolkit")
         self.setMinimumSize(900, 700)
         
         # Load config
         self.config = ConfigManager.load()
+        self.trade_service = trade_service or TradeService()
         
         # Restore window geometry
         win_config = self.config.get("window", {})
@@ -148,9 +150,23 @@ class MainWindow(QMainWindow):
         layout.addWidget(title)
         
         version_label = QLabel(f"v{APP_VERSION}")
-        version_label.setStyleSheet("color: #666666; font-size: 10px; padding: 0px 8px 8px 8px;")
+        version_label.setStyleSheet("color: #e0e0e0; font-size: 10px; padding: 0px 8px 8px 8px;")
         version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(version_label)
+
+        game_label = QLabel("Toolkit Mode")
+        game_label.setStyleSheet("color: #aaaaaa; font-size: 10px; padding: 4px 8px 0px 8px;")
+        game_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(game_label)
+
+        self.game_combo = QComboBox()
+        for game_id, profile in ConfigManager.GAME_PROFILES.items():
+            self.game_combo.addItem(profile["label"], game_id)
+        self.game_combo.setCurrentIndex(
+            self.game_combo.findData(ConfigManager.get_active_game(self.config))
+        )
+        self.game_combo.currentIndexChanged.connect(self.on_game_combo_changed)
+        layout.addWidget(self.game_combo)
         
         # Separator
         sep = QFrame()
@@ -242,17 +258,29 @@ class MainWindow(QMainWindow):
         return self.config.get("debug_mode", False)
     
     def load_tools(self):
-        """Load and initialize tool modules."""
-        from tools.league_tools import LeagueToolsTool
-        from tools.league_vision import LeagueVisionTool
+        """Load and initialize tool modules for the selected game."""
+        from tools.settings_tool import SettingsTool
         from tools.trade_sniper import TradeSniperTool
         
-        # Create tool instances
+        active_game = ConfigManager.get_active_game(self.config)
         tool_classes = [
-            (LeagueToolsTool, {"config": self.config}),
-            (LeagueVisionTool, {"config": self.config, "overlay": self.overlay}),
-            (TradeSniperTool, {"config": self.config}),
+            (SettingsTool, {"config": self.config}),
         ]
+
+        if active_game == "poe1":
+            from tools.league_tools import LeagueToolsTool
+            from tools.league_vision import LeagueVisionTool
+            tool_classes.extend([
+                (LeagueToolsTool, {"config": self.config}),
+                (LeagueVisionTool, {"config": self.config, "overlay": self.overlay}),
+            ])
+
+        # Trade is shared between PoE 1 and PoE 2. The active game controls
+        # which trade URL is opened and which live-search tabs are monitored.
+        tool_classes.append((TradeSniperTool, {
+            "config": self.config,
+            "service": self.trade_service,
+        }))
         
         for tool_class, kwargs in tool_classes:
             try:
@@ -270,6 +298,12 @@ class MainWindow(QMainWindow):
                 # Create widget and add to stack
                 widget = tool.create_widget()
                 self.content_stack.addWidget(widget)
+
+                # Settings can switch the global game mode too.
+                if hasattr(widget, 'game_changed'):
+                    widget.game_changed.connect(self.on_settings_game_changed)
+                if hasattr(widget, 'settings_saved'):
+                    widget.settings_saved.connect(self.on_settings_saved)
                 
                 # Connect Ultimatum overlay updates
                 if hasattr(widget, 'overlay_update'):
@@ -285,6 +319,70 @@ class MainWindow(QMainWindow):
                 
             except Exception as e:
                 print(f"Error loading tool {tool_class.__name__}: {e}")
+
+    def on_settings_game_changed(self, game_id: str):
+        """Synchronize sidebar combo when Settings changes the active game."""
+        idx = self.game_combo.findData(game_id)
+        if idx >= 0 and self.game_combo.currentIndex() != idx:
+            self.game_combo.blockSignals(True)
+            self.game_combo.setCurrentIndex(idx)
+            self.game_combo.blockSignals(False)
+        self.reload_tools()
+
+    def on_settings_saved(self):
+        """Refresh every view that mirrors application-owned shared settings."""
+        widgets = [getattr(tool, 'widget', None) for tool in self.tools]
+        self._refresh_shared_settings_views(widgets)
+        self.status_label.setText("Settings saved")
+
+    @staticmethod
+    def _refresh_shared_settings_views(widgets):
+        for widget in widgets:
+            refresh = getattr(widget, "refresh_shared_settings", None)
+            if callable(refresh):
+                refresh()
+
+    def on_game_combo_changed(self):
+        """Switch between PoE 1 and PoE 2 toolsets."""
+        game_id = self.game_combo.currentData()
+        if not game_id or game_id == ConfigManager.get_active_game(self.config):
+            return
+        self.save_config()
+        ConfigManager.set_active_game(self.config, game_id)
+        ConfigManager.save(self.config)
+        self.reload_tools()
+        profile = ConfigManager.get_game_profile(game_id)
+        self.status_label.setText(f"Toolkit mode: {profile['label']}")
+
+    def clear_tools(self):
+        """Remove loaded tool widgets/buttons before rebuilding for another game."""
+        for tool in self.tools:
+            try:
+                tool.cleanup()
+            except Exception as e:
+                print(f"Error cleaning up tool: {e}")
+
+        self.tools = []
+
+        while self.content_stack.count():
+            widget = self.content_stack.widget(0)
+            self.content_stack.removeWidget(widget)
+            widget.deleteLater()
+
+        while self.tool_button_container.count():
+            item = self.tool_button_container.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        self.sidebar_buttons = []
+
+    def reload_tools(self):
+        """Rebuild sidebar/content for the active game."""
+        self.clear_tools()
+        self.load_tools()
+        if self.sidebar_buttons:
+            self.sidebar_buttons[0].setChecked(True)
+            self.on_tool_selected(0)
     
     def on_tool_selected(self, index: int):
         """Handle tool selection from sidebar."""
@@ -451,13 +549,34 @@ class MainWindow(QMainWindow):
             "height": self.height()
         }
         
-        # Save credentials from Ultimatum tool if available
-        if self.tools and hasattr(self.tools[0], 'widget') and self.tools[0].widget:
-            widget = self.tools[0].widget
-            if hasattr(widget, 'get_credentials'):
-                self.config["credentials"] = widget.get_credentials()
+        # Shared Settings is the final authority for account/game/league values,
+        # so synchronize dependent widgets first and the owner last.
+        widgets = [getattr(tool, 'widget', None) for tool in self.tools]
+        for widget in self._ordered_config_widgets(widgets):
+            if hasattr(widget, 'sync_config'):
+                widget.sync_config()
+            elif hasattr(widget, 'get_credentials'):
+                credentials = widget.get_credentials()
+                if credentials:
+                    account = credentials.get("account_name", ConfigManager.get_account_name(self.config))
+                    session_id = credentials.get("session_id", ConfigManager.get_session_id(self.config))
+                    ConfigManager.set_account_credentials(self.config, session_id, account)
+                    if credentials.get("league"):
+                        ConfigManager.set_game_league(
+                            self.config,
+                            ConfigManager.get_active_game(self.config),
+                            credentials["league"]
+                        )
         
         ConfigManager.save(self.config)
+
+    @staticmethod
+    def _ordered_config_widgets(widgets):
+        """Return dependent config views first and the shared-settings owner last."""
+        return sorted(
+            (widget for widget in widgets if widget is not None),
+            key=lambda widget: bool(getattr(widget, "owns_shared_settings", False)),
+        )
     
     def closeEvent(self, event):
         """Handle application close."""
@@ -470,6 +589,10 @@ class MainWindow(QMainWindow):
         
         # Close overlay
         self.overlay.close()
+
+        # The Trade service survives tool/mode reloads but belongs to the app.
+        if self.trade_service.is_running:
+            self.trade_service.stop()
         
         # Save config
         self.save_config()

@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QPushButton, QSlider, QTableWidget, QTableWidgetItem,
     QHeaderView, QGroupBox, QTextEdit, QSplitter, QFrame,
-    QCheckBox, QScrollArea
+    QCheckBox, QScrollArea, QComboBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor
@@ -25,6 +25,7 @@ from .scanner import (
 )
 from .tab_tracker import TabTracker, TabTrackerWorker, TabRegionConfig, MultiTabHighlighter
 from ui.components.ocr_settings_dialog import OCRSettingsDialog
+from utils.config import ConfigManager
 
 
 class KalguurDustWidget(QWidget):
@@ -38,6 +39,7 @@ class KalguurDustWidget(QWidget):
     def __init__(self, config: dict, parent=None):
         super().__init__(parent)
         self.config = config
+        self.game_id = "poe1"
         self.dust_config = config.get("kalguur_dust", {})
         
         # Data components
@@ -99,25 +101,30 @@ class KalguurDustWidget(QWidget):
         subtitle.setStyleSheet("font-size: 12px; color: #888888; margin-bottom: 10px;")
         layout.addWidget(subtitle)
         
-        # Credentials Section (reuse from parent config)
-        creds_group = QGroupBox("API Credentials")
+        # Account Section (shared with Settings)
+        creds_group = QGroupBox("Account")
         creds_layout = QVBoxLayout(creds_group)
         
-        creds_layout.addWidget(QLabel("POESESSID:"))
-        self.sess_id_input = QLineEdit()
-        self.sess_id_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.sess_id_input.setText(self.config.get("credentials", {}).get("session_id", ""))
-        creds_layout.addWidget(self.sess_id_input)
+        creds_layout.addWidget(QLabel("Account/POESESSID are managed in Settings."))
         
         creds_row = QHBoxLayout()
         creds_row.addWidget(QLabel("Account:"))
-        self.account_input = QLineEdit()
-        self.account_input.setText(self.config.get("credentials", {}).get("account_name", ""))
-        creds_row.addWidget(self.account_input)
-        
-        creds_row.addWidget(QLabel("League:"))
-        self.league_input = QLineEdit()
-        self.league_input.setText(self.config.get("credentials", {}).get("league", "Settlers"))
+        self.account_label = QLabel(ConfigManager.get_account_name(self.config) or "Not set")
+        self.account_label.setStyleSheet("color: #cccccc;")
+        creds_row.addWidget(self.account_label)
+
+        creds_row.addWidget(QLabel("PoE 1 League:"))
+        self.league_input = QComboBox()
+        self.league_input.setEditable(False)
+        for league in ConfigManager.get_game_league_options(self.config, self.game_id):
+            self.league_input.addItem(league)
+        selected_league = ConfigManager.get_game_league(self.config, self.game_id)
+        if selected_league:
+            idx = self.league_input.findText(selected_league)
+            if idx < 0:
+                self.league_input.insertItem(0, selected_league)
+                idx = 0
+            self.league_input.setCurrentIndex(idx)
         creds_row.addWidget(self.league_input)
         creds_layout.addLayout(creds_row)
         
@@ -279,9 +286,9 @@ class KalguurDustWidget(QWidget):
     
     def fetch_tab_list(self):
         """Fetch list of stash tabs."""
-        session_id = self.sess_id_input.text().strip()
-        account = self.account_input.text().strip()
-        league = self.league_input.text().strip()
+        session_id = ConfigManager.get_session_id(self.config)
+        account = ConfigManager.get_account_name(self.config)
+        league = self.league_input.currentText().strip()
         
         if not session_id or not account:
             self.log("Error: Credentials required.")
@@ -309,9 +316,9 @@ class KalguurDustWidget(QWidget):
             self.log("No tabs selected!")
             return
         
-        session_id = self.sess_id_input.text().strip()
-        account = self.account_input.text().strip()
-        league = self.league_input.text().strip()
+        session_id = ConfigManager.get_session_id(self.config)
+        account = ConfigManager.get_account_name(self.config)
+        league = self.league_input.currentText().strip()
         
         self.scan_btn.setEnabled(False)
         self.log("Initializing dust data...")
@@ -752,13 +759,24 @@ class KalguurDustWidget(QWidget):
         self.overlay_update.emit([])
         self.current_tab_label.setText("")
     
+    def sync_config(self):
+        """Tool-local settings persist elsewhere; shared league belongs to Settings."""
+
+    def refresh_shared_settings(self):
+        """Refresh mirrored account and league values from application Settings."""
+        self.account_label.setText(f"Account: {ConfigManager.get_account_name(self.config)}")
+        league = ConfigManager.get_game_league(self.config, self.game_id)
+        index = self.league_input.findText(league)
+        if league and index < 0:
+            self.league_input.insertItem(0, league)
+            index = 0
+        if index >= 0:
+            self.league_input.setCurrentIndex(index)
+
     def get_credentials(self):
-        """Return current credentials for saving."""
-        return {
-            "session_id": self.sess_id_input.text().strip(),
-            "account_name": self.account_input.text().strip(),
-            "league": self.league_input.text().strip()
-        }
+        """Legacy save hook: account credentials now live in Settings."""
+        self.sync_config()
+        return {}
     
     def cleanup(self):
         """Cleanup resources."""

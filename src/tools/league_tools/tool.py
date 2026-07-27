@@ -124,6 +124,18 @@ class LeagueToolsWidget(QWidget):
                 return widget.get_credentials()
         
         return {}
+
+    def sync_config(self):
+        """Push child widget settings into the shared config."""
+        for widget in self.league_widgets:
+            if hasattr(widget, 'sync_config'):
+                widget.sync_config()
+
+    def refresh_shared_settings(self):
+        """Refresh account/league mirrors after application Settings changes."""
+        for widget in self.league_widgets:
+            if hasattr(widget, 'refresh_shared_settings'):
+                widget.refresh_shared_settings()
     
     def cleanup(self):
         """Clean up all league widgets."""

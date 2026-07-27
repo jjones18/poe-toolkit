@@ -2,10 +2,22 @@
     "_comment": "Copy this file to user_config.json and fill in your settings",
     "_note": "user_config.json is gitignored and will not be uploaded",
     
+    "app": {
+        "active_game": "poe1"
+    },
     "credentials": {
         "session_id": "YOUR_POESESSID_HERE",
-        "account_name": "YOUR_ACCOUNT_NAME",
-        "league": "Settlers"
+        "account_name": "YOUR_ACCOUNT_NAME"
+    },
+    "game_settings": {
+        "poe1": {
+            "league": "Settlers",
+            "league_options": []
+        },
+        "poe2": {
+            "league": "Standard",
+            "league_options": []
+        }
     },
     "overlay": {
         "x_offset": 18,
@@ -21,6 +33,7 @@
     },
     "league_vision": {
         "client_log_path": "C:/Path/To/Your/PoE/logs/Client.txt",
+        "_client_log_path_settings_note": "This is editable in the toolkit Settings page under Local Paths.",
         "_client_log_path_linux": "On Linux (Steam/Proton): ~/.steam/steam/steamapps/compatdata/<appid>/pfx/drive_c/users/steamuser/AppData/Local/Path of Exile/logs/Client.txt",
         "tesseract_path": "C:/Program Files/Tesseract-OCR/tesseract.exe",
         "_tesseract_path_linux": "On Linux: leave as 'tesseract' (install with: sudo apt install tesseract-ocr)",
@@ -44,4 +57,3 @@
         }
     }
 }
-

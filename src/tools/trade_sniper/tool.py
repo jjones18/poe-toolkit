@@ -2,35 +2,131 @@
 Trade Sniper Tool - Control panel for trade automation service.
 """
 
+import json
 import os
+import shutil
 import sys
-import socket
 import subprocess
+from pathlib import Path
+from urllib.parse import urlparse
+from urllib.request import urlopen
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTextEdit, QGroupBox, QCheckBox, QSpinBox, QMessageBox
 )
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import QObject, QRunnable, Qt, QThreadPool, QTimer, pyqtSignal
 
 from tools.base_tool import BaseTool
 from services.trade_service import TradeService
+from utils.config import ConfigManager
+
+
+def get_trade_profile_dir(platform_name=None, environ=None, home=None):
+    """Return the per-user data directory for Trade Sniper's browser profile."""
+    platform_name = platform_name or sys.platform
+    environ = os.environ if environ is None else environ
+    home = Path.home() if home is None else Path(home)
+
+    if platform_name.startswith("win"):
+        base = Path(environ.get("LOCALAPPDATA", home / "AppData" / "Local"))
+    elif platform_name == "darwin":
+        base = home / "Library" / "Application Support"
+    else:
+        base = Path(environ.get("XDG_DATA_HOME", home / ".local" / "share"))
+    return base / "poe-toolkit" / "brave-profile"
+
+
+def get_legacy_trade_profile_dir():
+    """Return the pre-1.2 profile directory inside the repository checkout."""
+    return Path(__file__).resolve().parents[3] / "trade_service" / "brave-profile"
+
+
+def prepare_trade_profile_dir(target_dir=None, legacy_dir=None):
+    """Create/migrate the profile, preserving the legacy path if a move is unsafe."""
+    target = Path(target_dir) if target_dir is not None else get_trade_profile_dir()
+    legacy = Path(legacy_dir) if legacy_dir is not None else get_legacy_trade_profile_dir()
+
+    if target.exists():
+        return target
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if legacy.is_dir():
+        try:
+            shutil.move(str(legacy), str(target))
+            return target
+        except OSError:
+            # A running browser can lock profile files on Windows. Never risk a
+            # partial copy or a fresh logged-out profile; retry on a later launch.
+            return legacy
+    target.mkdir(parents=True, exist_ok=True)
+    return target
+
+
+def evaluate_devtools_readiness(version: dict, targets: list, trade_url: str):
+    """Validate CDP identity and find a page under the selected game's trade path."""
+    if not isinstance(version, dict) or not version.get("webSocketDebuggerUrl"):
+        return False, "Port 9222 is not a DevTools browser endpoint"
+
+    expected = urlparse(trade_url)
+    expected_path = expected.path.rstrip("/")
+    for target in targets if isinstance(targets, list) else []:
+        if not isinstance(target, dict) or target.get("type") != "page":
+            continue
+        candidate = urlparse(target.get("url", ""))
+        path_matches = (
+            candidate.path == expected_path
+            or candidate.path.startswith(f"{expected_path}/")
+        )
+        if candidate.netloc == expected.netloc and path_matches:
+            browser = version.get("Browser", "Chromium")
+            return True, f"{browser}: compatible trade tab ready"
+
+    return False, "DevTools connected; open a compatible trade tab for this game"
+
+
+class BackgroundTaskSignals(QObject):
+    result = pyqtSignal(object)
+    error = pyqtSignal(str)
+    finished = pyqtSignal()
+
+
+class BackgroundTask(QRunnable):
+    """Run a bounded blocking operation outside the Qt GUI thread."""
+
+    def __init__(self, operation):
+        super().__init__()
+        self.operation = operation
+        self.signals = BackgroundTaskSignals()
+
+    def run(self):
+        try:
+            self.signals.result.emit(self.operation())
+        except Exception as exc:
+            self.signals.error.emit(str(exc))
+        finally:
+            self.signals.finished.emit()
 
 
 class TradeSniperWidget(QWidget):
     """Main widget for Trade Sniper tool."""
     
-    def __init__(self, config: dict, parent=None):
+    def __init__(self, config: dict, parent=None, service: TradeService = None):
         super().__init__(parent)
         self.config = config
-        self.trade_config = config.get("trade_sniper", {})
-        
-        self.service = TradeService()
+        self.trade_config = config.setdefault("trade_sniper", {})
+        self.game_id = ConfigManager.get_active_game(config)
+        self.game_profile = ConfigManager.get_game_profile(self.game_id)
+        self.trade_url = ConfigManager.get_trade_url(config, self.game_id)
+        self.brave_ready = False
+        self._background_tasks = {}
+
+        self.service = service or TradeService()
         self.service.status_changed.connect(self.on_status_changed)
         self.service.log_output.connect(self.log)
         
         self.setup_ui()
         self.check_setup()
         self.check_brave_status()
+        self.on_status_changed("running" if self.service.is_running else "stopped")
         
         # Periodically check Brave status every 5 seconds
         self.brave_check_timer = QTimer()
@@ -47,7 +143,7 @@ class TradeSniperWidget(QWidget):
         title.setStyleSheet("font-size: 24px; font-weight: bold; color: #ffffff;")
         layout.addWidget(title)
         
-        subtitle = QLabel("Automated live search monitoring")
+        subtitle = QLabel(f"Automated live search monitoring ({self.game_profile['label']})")
         subtitle.setStyleSheet("color: #888888; font-size: 12px;")
         layout.addWidget(subtitle)
         
@@ -89,9 +185,9 @@ class TradeSniperWidget(QWidget):
         brave_row.addStretch()
         req_layout.addLayout(brave_row)
         
-        req_layout.addWidget(QLabel("2. Login to pathofexile.com/trade in Brave"))
+        req_layout.addWidget(QLabel(f"2. Login to {self.trade_url} in Brave"))
         req_layout.addWidget(QLabel("3. Open live search tab(s)"))
-        req_layout.addWidget(QLabel("4. Start Path of Exile game"))
+        req_layout.addWidget(QLabel(f"4. Start {self.game_profile['full_name']} game"))
         
         layout.addWidget(req_group)
         
@@ -99,11 +195,23 @@ class TradeSniperWidget(QWidget):
         config_group = QGroupBox("Configuration")
         config_layout = QVBoxLayout(config_group)
         
-        # Auto-resume (send toggle to running service when changed)
-        self.chk_auto_resume = QCheckBox("Auto-resume after 60 seconds")
+        # Auto-resume checkbox and adjustable delay
+        auto_resume_row = QHBoxLayout()
+        self.chk_auto_resume = QCheckBox("Auto-resume after:")
         self.chk_auto_resume.setChecked(self.trade_config.get("auto_resume", False))
         self.chk_auto_resume.toggled.connect(self.on_auto_resume_toggled)
-        config_layout.addWidget(self.chk_auto_resume)
+        auto_resume_row.addWidget(self.chk_auto_resume)
+
+        self.auto_resume_delay_spin = QSpinBox()
+        self.auto_resume_delay_spin.setRange(1, 600)
+        self.auto_resume_delay_spin.setSingleStep(1)
+        self.auto_resume_delay_spin.setSuffix(" s")
+        auto_resume_delay_ms = self.trade_config.get("auto_resume_delay_ms", 60000)
+        self.auto_resume_delay_spin.setValue(max(1, auto_resume_delay_ms // 1000))
+        self.auto_resume_delay_spin.valueChanged.connect(self.on_auto_resume_delay_changed)
+        auto_resume_row.addWidget(self.auto_resume_delay_spin)
+        auto_resume_row.addStretch()
+        config_layout.addLayout(auto_resume_row)
         
         # Cooldown (in seconds)
         cooldown_row = QHBoxLayout()
@@ -113,6 +221,7 @@ class TradeSniperWidget(QWidget):
         self.cooldown_spin.setSingleStep(1)
         cooldown_ms = self.trade_config.get("cooldown_ms", 5000)
         self.cooldown_spin.setValue(cooldown_ms // 1000)
+        self.cooldown_spin.valueChanged.connect(self.on_cooldown_changed)
         cooldown_row.addWidget(self.cooldown_spin)
         cooldown_row.addStretch()
         config_layout.addLayout(cooldown_row)
@@ -145,9 +254,19 @@ class TradeSniperWidget(QWidget):
         layout.addWidget(self.log_area, 1)
     
     def check_setup(self):
-        """Check if Node.js is available."""
-        node_ver, npm_ver = self.service.check_dependencies()
-        
+        """Check Node/npm availability without blocking the GUI thread."""
+        self.node_status.setText("Node.js: Checking...")
+        self.node_ok = False
+        self.deps_ok = False
+        self.update_start_button_state()
+        self._start_background_task(
+            "dependency-check",
+            self.service.check_dependencies,
+            self._on_dependencies_checked,
+        )
+
+    def _on_dependencies_checked(self, versions):
+        node_ver, _npm_ver = versions
         if node_ver:
             self.node_status.setText(f"Node.js: {node_ver} (OK)")
             self.node_status.setStyleSheet("color: #66ff66;")
@@ -159,10 +278,44 @@ class TradeSniperWidget(QWidget):
         
         # Check npm dependencies (this will also call update_start_button_state)
         self.check_npm_dependencies()
+
+    def _start_background_task(self, name, operation, on_result):
+        """Submit one named operation; duplicate clicks cannot start another copy."""
+        if name in self._background_tasks:
+            return False
+        task = BackgroundTask(operation)
+        task.signals.result.connect(on_result)
+        task.signals.error.connect(
+            lambda message, task_name=name: self._on_background_error(task_name, message)
+        )
+        task.signals.finished.connect(
+            lambda task_name=name: self._background_tasks.pop(task_name, None)
+        )
+        self._background_tasks[name] = task
+        thread_pool = QThreadPool.globalInstance()
+        if thread_pool is None:
+            self._background_tasks.pop(name, None)
+            raise RuntimeError("Qt global thread pool is unavailable")
+        thread_pool.start(task)
+        return True
+
+    def _on_background_error(self, name: str, message: str):
+        self.log(f"{name} failed: {message}")
+        if name == "dependency-check":
+            self.node_status.setText("Node.js: CHECK FAILED")
+            self.node_status.setStyleSheet("color: #ff6666;")
+        elif name == "npm-install":
+            self._on_install_finished(False)
+        elif name == "service-stop":
+            self._on_stop_finished(False)
     
     def update_start_button_state(self):
         """Enable Start button only when all requirements are met."""
-        all_ok = getattr(self, 'node_ok', False) and getattr(self, 'deps_ok', False)
+        all_ok = (
+            getattr(self, 'node_ok', False)
+            and getattr(self, 'deps_ok', False)
+            and self.brave_ready
+        )
         self.start_btn.setEnabled(all_ok)
     
     def check_npm_dependencies(self):
@@ -190,7 +343,7 @@ class TradeSniperWidget(QWidget):
         self.update_start_button_state()
     
     def install_dependencies(self):
-        """Install npm dependencies."""
+        """Install npm dependencies outside the GUI thread."""
         self.install_deps_btn.setEnabled(False)
         self.install_deps_btn.setText("Installing...")
         self.deps_status.setText("Dependencies: Installing...")
@@ -198,66 +351,52 @@ class TradeSniperWidget(QWidget):
         self.log("Installing npm dependencies...")
         self.log(f"Working directory: {self.service.service_dir}")
         
-        # Run npm install using shell=True to access PATH
-        try:
-            result = subprocess.run(
-                "npm install",
-                cwd=self.service.service_dir,
-                capture_output=True,
-                text=True,
-                timeout=120,
-                shell=True  # Use shell to access PATH
-            )
-            
-            if result.returncode == 0:
-                self.log("Dependencies installed successfully!")
-                if result.stdout:
-                    self.log(result.stdout)
-                self.check_npm_dependencies()
-            else:
-                self.log(f"npm install failed:")
-                if result.stderr:
-                    self.log(result.stderr)
-                if result.stdout:
-                    self.log(result.stdout)
-                self.deps_status.setText("Dependencies: INSTALL FAILED")
-                self.deps_status.setStyleSheet("color: #ff6666;")
-        except subprocess.TimeoutExpired:
-            self.log("npm install timed out after 120 seconds")
-            self.deps_status.setText("Dependencies: INSTALL TIMEOUT")
+        self._start_background_task(
+            "npm-install",
+            self.service.install_dependencies,
+            self._on_install_finished,
+        )
+
+    def _on_install_finished(self, installed: bool):
+        if installed:
+            self.check_npm_dependencies()
+        else:
+            self.deps_status.setText("Dependencies: INSTALL FAILED")
             self.deps_status.setStyleSheet("color: #ff6666;")
-        except Exception as e:
-            self.log(f"Error installing dependencies: {e}")
-            self.deps_status.setText("Dependencies: ERROR")
-            self.deps_status.setStyleSheet("color: #ff6666;")
-        
         self.install_deps_btn.setEnabled(True)
         self.install_deps_btn.setText("Install")
     
     def check_brave_status(self):
-        """Check if Brave is running with remote debugging on port 9222."""
-        if self.is_brave_debug_running():
-            self.brave_status.setText("Brave: Connected (Debug Mode)")
+        """Verify the local DevTools endpoint and a compatible trade page."""
+        self.brave_ready, detail = self.probe_devtools_readiness()
+        if self.brave_ready:
+            self.brave_status.setText(f"Browser: {detail}")
             self.brave_status.setStyleSheet("color: #66ff66;")
             self.launch_brave_btn.setText("Brave Already Running")
             self.launch_brave_btn.setEnabled(False)
         else:
-            self.brave_status.setText("Brave: Not Running")
-            self.brave_status.setStyleSheet("color: #ff6666;")
+            self.brave_status.setText(f"Browser: {detail}")
+            self.brave_status.setStyleSheet("color: #ffaa66;")
             self.launch_brave_btn.setText("1. Launch Brave (Debug Mode)")
             self.launch_brave_btn.setEnabled(True)
             self.launch_brave_btn.setStyleSheet("background-color: #2a5a7a; font-weight: bold; padding: 8px;")
+        self.update_start_button_state()
+
+    def probe_devtools_readiness(self):
+        """Read bounded localhost CDP metadata without trusting an open port."""
+        try:
+            with urlopen("http://127.0.0.1:9222/json/version", timeout=0.5) as response:
+                version = json.load(response)
+            with urlopen("http://127.0.0.1:9222/json/list", timeout=0.5) as response:
+                targets = json.load(response)
+            return evaluate_devtools_readiness(version, targets, self.trade_url)
+        except (OSError, ValueError, TypeError):
+            return False, "DevTools unavailable on 127.0.0.1:9222"
     
     def is_brave_debug_running(self) -> bool:
-        """Check if something is listening on port 9222 (Brave debug port)."""
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(0.5)
-            result = sock.connect_ex(('127.0.0.1', 9222))
-            sock.close()
-            return result == 0
-        except:
-            return False
+        """Return whether a valid CDP endpoint and matching trade tab are ready."""
+        ready, _detail = self.probe_devtools_readiness()
+        return ready
     
     def launch_brave(self):
         """Launch Brave browser with remote debugging enabled."""
@@ -293,11 +432,9 @@ class TradeSniperWidget(QWidget):
             )
             return
         
-        # Create profile directory in trade_service folder
-        profile_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
-                                    "..", "trade_service", "brave-profile")
-        profile_dir = os.path.abspath(profile_dir)
-        os.makedirs(profile_dir, exist_ok=True)
+        # Keep mutable cookies/cache outside the source checkout. Migration only
+        # happens when the user explicitly launches Brave and no CDP browser is ready.
+        profile_dir = prepare_trade_profile_dir()
         
         try:
             # Launch Brave with remote debugging and open trade site
@@ -305,7 +442,7 @@ class TradeSniperWidget(QWidget):
                 brave_exe,
                 "--remote-debugging-port=9222",
                 f"--user-data-dir={profile_dir}",
-                "https://www.pathofexile.com/trade"
+                self.trade_url
             ]
             
             # Use subprocess.Popen to launch without blocking
@@ -314,7 +451,7 @@ class TradeSniperWidget(QWidget):
             self.brave_status.setText("Brave: Launched (Debug Mode)")
             self.brave_status.setStyleSheet("color: #66ff66;")
             self.log("Brave launched with remote debugging on port 9222")
-            self.log("Opening pathofexile.com/trade...")
+            self.log(f"Opening {self.trade_url}...")
             self.log("")
             self.log("Next steps:")
             self.log("  - Login if needed")
@@ -335,10 +472,28 @@ class TradeSniperWidget(QWidget):
         scrollbar = self.log_area.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
     
+    def _save_trade_setting(self, key: str, value):
+        """Persist a Trade Sniper setting in the shared configuration."""
+        self.trade_config[key] = value
+        ConfigManager.save(self.config)
+
     def on_auto_resume_toggled(self, checked: bool):
-        """Send auto-resume toggle to the running service."""
+        """Persist and send the auto-resume toggle to the running service."""
+        self._save_trade_setting("auto_resume", checked)
         if self.is_service_running:
             self.service.send_input(f"__auto_resume__:{'on' if checked else 'off'}\n")
+
+    def on_auto_resume_delay_changed(self, seconds: int):
+        """Persist and live-update the auto-resume delay."""
+        self._save_trade_setting("auto_resume_delay_ms", seconds * 1000)
+        if self.is_service_running:
+            self.service.send_input(f"__auto_resume_delay__:{seconds}\n")
+
+    def on_cooldown_changed(self, seconds: int):
+        """Persist and live-update the post-teleport click cooldown."""
+        self._save_trade_setting("cooldown_ms", seconds * 1000)
+        if self.is_service_running:
+            self.service.send_input(f"__cooldown__:{seconds}\n")
     
     def on_start_resume_click(self):
         """Handle start/resume button click based on current state."""
@@ -348,12 +503,31 @@ class TradeSniperWidget(QWidget):
         else:
             # Service not running, start it
             auto_resume = self.chk_auto_resume.isChecked()
+            auto_resume_delay_s = self.auto_resume_delay_spin.value()
             cooldown_s = self.cooldown_spin.value()
-            self.service.start(auto_resume=auto_resume, cooldown_s=cooldown_s)
+            self.service.start(
+                auto_resume=auto_resume,
+                auto_resume_delay_s=auto_resume_delay_s,
+                cooldown_s=cooldown_s,
+                game_id=self.game_id,
+            )
     
     def stop_service(self):
-        """Stop the trade service."""
-        self.service.stop()
+        """Stop the trade service without blocking the GUI thread."""
+        self.stop_btn.setEnabled(False)
+        self.stop_btn.setText("Stopping...")
+        self.status_label.setText("Status: Stopping")
+        self._start_background_task(
+            "service-stop",
+            self.service.stop,
+            self._on_stop_finished,
+        )
+
+    def _on_stop_finished(self, stopped: bool):
+        self.stop_btn.setText("Stop Service")
+        if not stopped and self.service.is_running:
+            self.stop_btn.setEnabled(True)
+            self.status_label.setText("Status: Stop failed")
     
     def on_status_changed(self, status: str):
         """Handle status changes."""
@@ -375,16 +549,30 @@ class TradeSniperWidget(QWidget):
             self.start_btn.setStyleSheet("background-color: #2a7a2a; font-weight: bold; padding: 10px;")
             self.update_start_button_state()  # Re-check if deps are OK
             self.stop_btn.setEnabled(False)
+            self.stop_btn.setText("Stop Service")
         else:
             self.status_label.setText(f"Status: {status}")
             self.status_label.setStyleSheet("font-size: 14px; color: #ffaa66;")
     
     def cleanup(self):
-        """Clean up resources."""
+        """Disconnect this disposable view without stopping the app-owned service."""
         if hasattr(self, 'brave_check_timer'):
             self.brave_check_timer.stop()
-        if self.service.is_running:
-            self.service.stop()
+        for task in self._background_tasks.values():
+            for signal_name in ("result", "error", "finished"):
+                try:
+                    getattr(task.signals, signal_name).disconnect()
+                except TypeError:
+                    pass
+        self._background_tasks.clear()
+        try:
+            self.service.status_changed.disconnect(self.on_status_changed)
+        except TypeError:
+            pass
+        try:
+            self.service.log_output.disconnect(self.log)
+        except TypeError:
+            pass
 
 
 class TradeSniperTool(BaseTool):
@@ -402,12 +590,13 @@ class TradeSniperTool(BaseTool):
     def description(self) -> str:
         return "Automated live search monitoring"
     
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, service: TradeService = None):
         self.config = config
+        self.service = service
         self.widget = None
     
     def create_widget(self, parent=None) -> QWidget:
-        self.widget = TradeSniperWidget(self.config, parent)
+        self.widget = TradeSniperWidget(self.config, parent, service=self.service)
         return self.widget
     
     def on_activated(self):

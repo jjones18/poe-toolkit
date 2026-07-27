@@ -4,7 +4,9 @@ echo.
 echo This will open Brave in a way that allows automation without detection.
 echo.
 
-start "" "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe" --remote-debugging-port=9222 --user-data-dir="%~dp0brave-profile"
+set "POE_TOOLKIT_PROFILE=%LOCALAPPDATA%\poe-toolkit\brave-profile"
+if not exist "%POE_TOOLKIT_PROFILE%" mkdir "%POE_TOOLKIT_PROFILE%"
+start "" "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe" --remote-debugging-port=9222 --user-data-dir="%POE_TOOLKIT_PROFILE%"
 
 echo.
 echo Brave should now be open with remote debugging enabled!

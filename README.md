@@ -38,6 +38,8 @@ Automated live search monitoring with browser integration:
 - Auto-clicks "Travel to Hideout" on new listings
 - Supports multiple live search tabs simultaneously
 - Pause/resume functionality
+- Adjustable auto-resume delay and teleport cooldown, both live-updated while running
+- Fail-closed controller lease and verified browser-worker cleanup on Stop
 
 ---
 

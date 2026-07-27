@@ -5,7 +5,7 @@ Ultimatum Helper Tool - Scan stash tabs for profitable Inscribed Ultimatums.
 import time
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
-    QPushButton, QSlider, QTextEdit, QMessageBox
+    QPushButton, QSlider, QTextEdit, QMessageBox, QComboBox
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QRect
 
@@ -23,6 +23,7 @@ from core.filters import (
 from ui.components.stash_selector import StashTabSelector
 from ui.components.filter_dialog import FilterConfigDialog
 from utils.logger import DebugLogger
+from utils.config import ConfigManager
 
 
 class ScanWorker(QThread):
@@ -190,6 +191,7 @@ class UltimatumWidget(QWidget):
     def __init__(self, config: dict, parent=None):
         super().__init__(parent)
         self.config = config
+        self.game_id = "poe1"
         self.ultimatum_config = config.get("ultimatum", {})
         self.cached_scan_data = None
         self.price_fetcher = None
@@ -207,23 +209,28 @@ class UltimatumWidget(QWidget):
         title.setStyleSheet("font-size: 24px; font-weight: bold; color: #ffffff;")
         layout.addWidget(title)
         
-        # Credentials Section
+        # Shared account settings
         creds_layout = QVBoxLayout()
-        creds_layout.addWidget(QLabel("POESESSID:"))
-        self.sess_id_input = QLineEdit()
-        self.sess_id_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.sess_id_input.setText(self.config.get("credentials", {}).get("session_id", ""))
-        creds_layout.addWidget(self.sess_id_input)
+        creds_layout.addWidget(QLabel("Account/POESESSID are managed in Settings."))
 
         creds_row = QHBoxLayout()
         creds_row.addWidget(QLabel("Account:"))
-        self.account_input = QLineEdit()
-        self.account_input.setText(self.config.get("credentials", {}).get("account_name", ""))
-        creds_row.addWidget(self.account_input)
+        self.account_label = QLabel(ConfigManager.get_account_name(self.config) or "Not set")
+        self.account_label.setStyleSheet("color: #cccccc;")
+        creds_row.addWidget(self.account_label)
         
-        creds_row.addWidget(QLabel("League:"))
-        self.league_input = QLineEdit()
-        self.league_input.setText(self.config.get("credentials", {}).get("league", "Settlers"))
+        creds_row.addWidget(QLabel("PoE 1 League:"))
+        self.league_input = QComboBox()
+        self.league_input.setEditable(False)
+        for league in ConfigManager.get_game_league_options(self.config, self.game_id):
+            self.league_input.addItem(league)
+        selected_league = ConfigManager.get_game_league(self.config, self.game_id)
+        if selected_league:
+            idx = self.league_input.findText(selected_league)
+            if idx < 0:
+                self.league_input.insertItem(0, selected_league)
+                idx = 0
+            self.league_input.setCurrentIndex(idx)
         creds_row.addWidget(self.league_input)
         creds_layout.addLayout(creds_row)
         layout.addLayout(creds_layout)
@@ -285,9 +292,9 @@ class UltimatumWidget(QWidget):
             self.apply_filters_and_update()
 
     def fetch_tab_list(self):
-        session_id = self.sess_id_input.text().strip()
-        account = self.account_input.text().strip()
-        league = self.league_input.text().strip()
+        session_id = ConfigManager.get_session_id(self.config)
+        account = ConfigManager.get_account_name(self.config)
+        league = self.league_input.currentText().strip()
         
         if not session_id or not account:
             self.log("Error: Credentials required.")
@@ -313,9 +320,9 @@ class UltimatumWidget(QWidget):
             self.log("No tabs selected!")
             return
 
-        session_id = self.sess_id_input.text().strip()
-        account = self.account_input.text().strip()
-        league = self.league_input.text().strip()
+        session_id = ConfigManager.get_session_id(self.config)
+        account = ConfigManager.get_account_name(self.config)
+        league = self.league_input.currentText().strip()
         
         self.scan_btn.setEnabled(False)
         
@@ -372,7 +379,7 @@ class UltimatumWidget(QWidget):
             engine.add_override(MonsterLifeIncludeOverride(included_pcts=self.ultimatum_config.get("included_tiers")))
 
         if not self.price_fetcher:
-            self.price_fetcher = NinjaPriceFetcher(self.league_input.text().strip())
+            self.price_fetcher = NinjaPriceFetcher(self.league_input.currentText().strip())
             self.price_fetcher.fetch_all_prices()
 
         valid_highlights = []
@@ -415,13 +422,24 @@ class UltimatumWidget(QWidget):
         self.cached_scan_data = None
         self.log("Overlay cleared.")
 
+    def sync_config(self):
+        """Tool-local settings persist elsewhere; shared league belongs to Settings."""
+
+    def refresh_shared_settings(self):
+        """Refresh mirrored account and league values from application Settings."""
+        self.account_label.setText(f"Account: {ConfigManager.get_account_name(self.config)}")
+        league = ConfigManager.get_game_league(self.config, self.game_id)
+        index = self.league_input.findText(league)
+        if league and index < 0:
+            self.league_input.insertItem(0, league)
+            index = 0
+        if index >= 0:
+            self.league_input.setCurrentIndex(index)
+
     def get_credentials(self):
-        """Return current credentials for saving."""
-        return {
-            "session_id": self.sess_id_input.text().strip(),
-            "account_name": self.account_input.text().strip(),
-            "league": self.league_input.text().strip()
-        }
+        """Legacy save hook: account credentials now live in Settings."""
+        self.sync_config()
+        return {}
 
 
 class UltimatumTool(BaseTool):
