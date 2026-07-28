@@ -13,6 +13,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor
+import os
+import shutil
 
 from tools.base_tool import BaseTool
 from core.valuation import NinjaPriceFetcher
@@ -21,13 +23,15 @@ from ui.components.stash_selector import StashTabSelector
 
 from .dust_data import DustDataFetcher, DustEfficiencyAnalyzer, DustDataCache
 from .scanner import (
-    StashScanWorker, TabListWorker, UniqueItemInfo, 
+    StashScanWorker, TabListWorker, UniqueItemInfo,
+    fetch_tab_list_operation, scan_stash_operation,
     group_items_by_tab, items_to_highlights
 )
 from .tab_tracker import TabTracker, TabTrackerWorker, TabRegionConfig, MultiTabHighlighter
 from ui.components.ocr_settings_dialog import OCRSettingsDialog
 from utils.config import ConfigManager
 from utils.workers import (
+    WorkerRegistry,
     disconnect_qt_signals,
     discard_queued_meta_calls,
     stop_legacy_qthread,
@@ -63,6 +67,9 @@ class KalguurDustWidget(QWidget):
         self.items_by_tab: dict = {}
         self.tab_worker = None
         self.scan_worker = None
+        self.worker_registry = WorkerRegistry(max_threads=3)
+        self._pending_scan_args: dict | None = None
+        self._price_service_signals_connected = False
         
         # Tab tracking
         self.tab_tracker: TabTracker = None
@@ -74,7 +81,34 @@ class KalguurDustWidget(QWidget):
         self.debug_mode = self.config.get("debug_mode", self.dust_config.get("debug_mode", False))
         
         self.setup_ui()
+        self._connect_price_service_signals()
     
+    def _connect_price_service_signals(self):
+        if self._price_service_signals_connected:
+            return
+        try:
+            self.price_service.refresh_completed.connect(self._on_price_refresh_completed)
+            self.price_service.refresh_failed.connect(self._on_price_refresh_failed)
+        except (AttributeError, TypeError, RuntimeError):
+            return
+        self._price_service_signals_connected = True
+
+    def _disconnect_price_service_signals(self):
+        if not self._price_service_signals_connected:
+            return
+        for signal_name, callback in (
+            ("refresh_completed", self._on_price_refresh_completed),
+            ("refresh_failed", self._on_price_refresh_failed),
+        ):
+            signal = getattr(self.price_service, signal_name, None)
+            if signal is None:
+                continue
+            try:
+                signal.disconnect(callback)
+            except (TypeError, RuntimeError):
+                pass
+        self._price_service_signals_connected = False
+
     def set_debug_mode(self, enabled: bool):
         """Set debug mode (called from main window)."""
         self.debug_mode = enabled
@@ -142,14 +176,48 @@ class KalguurDustWidget(QWidget):
         layout.addWidget(creds_group)
         
         # Fetch Tabs Button
+        fetch_row = QHBoxLayout()
         self.fetch_tabs_btn = QPushButton("1. Fetch Tab List")
         self.fetch_tabs_btn.clicked.connect(self.fetch_tab_list)
-        layout.addWidget(self.fetch_tabs_btn)
+        fetch_row.addWidget(self.fetch_tabs_btn)
+        self.cancel_tabs_btn = QPushButton("Cancel")
+        self.cancel_tabs_btn.clicked.connect(lambda: self.cancel_operation("tab-fetch"))
+        self.cancel_tabs_btn.setEnabled(False)
+        fetch_row.addWidget(self.cancel_tabs_btn)
+        self.retry_tabs_btn = QPushButton("Retry")
+        self.retry_tabs_btn.clicked.connect(self.fetch_tab_list)
+        self.retry_tabs_btn.setEnabled(False)
+        fetch_row.addWidget(self.retry_tabs_btn)
+        layout.addLayout(fetch_row)
+        self.phase_status = QLabel("Ready")
+        self.phase_status.setStyleSheet("color: #cccccc;")
+        layout.addWidget(self.phase_status)
+        self.provenance_label = QLabel("Dust/price data not prepared")
+        self.provenance_label.setStyleSheet("color: #888888;")
+        layout.addWidget(self.provenance_label)
         
         # Tab Selector
         layout.addWidget(QLabel("Select Tabs to Scan:"))
         self.tab_selector = StashTabSelector()
         layout.addWidget(self.tab_selector)
+        preset_row = QHBoxLayout()
+        preset_row.addWidget(QLabel("Preset:"))
+        self.preset_combo = QComboBox()
+        self._refresh_presets_combo()
+        preset_row.addWidget(self.preset_combo)
+        self.preset_name_input = QLineEdit()
+        self.preset_name_input.setPlaceholderText("Preset name")
+        preset_row.addWidget(self.preset_name_input)
+        self.apply_preset_btn = QPushButton("Apply")
+        self.apply_preset_btn.clicked.connect(self.apply_tab_preset)
+        preset_row.addWidget(self.apply_preset_btn)
+        self.save_preset_btn = QPushButton("Save")
+        self.save_preset_btn.clicked.connect(self.save_tab_preset)
+        preset_row.addWidget(self.save_preset_btn)
+        self.delete_preset_btn = QPushButton("Delete")
+        self.delete_preset_btn.clicked.connect(self.delete_tab_preset)
+        preset_row.addWidget(self.delete_preset_btn)
+        layout.addLayout(preset_row)
         
         # Scan Settings
         settings_row = QHBoxLayout()
@@ -177,10 +245,20 @@ class KalguurDustWidget(QWidget):
         layout.addLayout(settings_row)
         
         # Scan Button
+        scan_row = QHBoxLayout()
         self.scan_btn = QPushButton("2. Scan for Valuable Uniques")
         self.scan_btn.clicked.connect(self.start_scan)
         self.scan_btn.setEnabled(False)
-        layout.addWidget(self.scan_btn)
+        scan_row.addWidget(self.scan_btn)
+        self.cancel_scan_btn = QPushButton("Cancel")
+        self.cancel_scan_btn.clicked.connect(lambda: self.cancel_operation("scan"))
+        self.cancel_scan_btn.setEnabled(False)
+        scan_row.addWidget(self.cancel_scan_btn)
+        self.retry_scan_btn = QPushButton("Retry")
+        self.retry_scan_btn.clicked.connect(self.start_scan)
+        self.retry_scan_btn.setEnabled(False)
+        scan_row.addWidget(self.retry_scan_btn)
+        layout.addLayout(scan_row)
         
         # Results Table
         results_group = QGroupBox("Results")
@@ -302,86 +380,283 @@ class KalguurDustWidget(QWidget):
         self.log_area.append(message)
     
     
+    def _set_phase_status(self, progress):
+        if isinstance(progress, dict):
+            phase = progress.get("phase", "work")
+            message = progress.get("message") or phase.replace("_", " ")
+            current = progress.get("current")
+            total = progress.get("total")
+            if phase == "rate_limit":
+                message = f"Rate limited: retrying in {progress.get('retry_after', '?')}s"
+            suffix = f" ({current}/{total})" if current is not None and total is not None else ""
+            self.phase_status.setText(f"{phase}: {message}{suffix}")
+            self.log(self.phase_status.text(), debug_only=phase not in {"rate_limit", "scan_log"})
+        else:
+            self.phase_status.setText(str(progress))
+
+    def cancel_operation(self, operation: str):
+        names = {"tab-fetch": ("kalguur-tab-fetch", self.cancel_tabs_btn), "scan": ("kalguur-prepare", self.cancel_scan_btn)}
+        name, button = names.get(operation, (operation, None))
+        if operation == "scan" and self._pending_scan_args is not None:
+            self._pending_scan_args = None
+            self.scan_btn.setEnabled(True)
+            self.cancel_scan_btn.setEnabled(False)
+            self.retry_scan_btn.setEnabled(True)
+            self._set_phase_status({"phase": "cancelled", "message": "Price preparation cancelled locally; shared refresh continues."})
+            return
+        if self.worker_registry.cancel(name):
+            self._set_phase_status({"phase": "cancel", "message": f"Cancelling {operation}..."})
+            if button is not None:
+                button.setEnabled(False)
+
+    def _selected_tab_refs(self):
+        refs = []
+        for tab in self.tab_selector.tabs_list:
+            idx = tab.get('i')
+            if idx in self.tab_selector.selected_indices:
+                refs.append({"id": str(idx), "index": idx, "name": tab.get('n', f"Tab {idx}")})
+        return refs
+
+    def _selection_indices_from_config(self, tabs):
+        saved = self.dust_config.get("selected_tabs", [])
+        names = {str(entry.get("name")) for entry in saved if isinstance(entry, dict)}
+        ids = {str(entry.get("id")) for entry in saved if isinstance(entry, dict)}
+        indices = []
+        for tab in tabs:
+            idx = tab.get('i')
+            if str(idx) in ids or str(tab.get('n', '')) in names:
+                indices.append(idx)
+        return indices
+
+    def _refresh_presets_combo(self):
+        if not hasattr(self, "preset_combo"):
+            return
+        current = self.preset_combo.currentText()
+        self.preset_combo.clear()
+        for name in sorted(self.dust_config.get("tab_presets", {})):
+            self.preset_combo.addItem(name)
+        if current:
+            idx = self.preset_combo.findText(current)
+            if idx >= 0:
+                self.preset_combo.setCurrentIndex(idx)
+
+    def apply_tab_preset(self):
+        name = self.preset_combo.currentText().strip()
+        preset = self.dust_config.get("tab_presets", {}).get(name, [])
+        self.dust_config["selected_tabs"] = preset
+        indices = self._selection_indices_from_config(self.tab_selector.tabs_list)
+        self.tab_selector.load_tabs(self.tab_selector.tabs_list, preselected_indices=indices)
+        self.log(f"Applied tab preset '{name}' ({len(indices)} tabs)")
+
+    def save_tab_preset(self):
+        name = self.preset_name_input.text().strip() or self.preset_combo.currentText().strip()
+        if not name:
+            self.log("Enter a preset name before saving.")
+            return
+        self.dust_config.setdefault("tab_presets", {})[name] = self._selected_tab_refs()
+        self._refresh_presets_combo()
+        self.log(f"Saved tab preset '{name}'")
+
+    def delete_tab_preset(self):
+        name = self.preset_combo.currentText().strip()
+        if name:
+            self.dust_config.setdefault("tab_presets", {}).pop(name, None)
+            self._refresh_presets_combo()
+            self.log(f"Deleted tab preset '{name}'")
+
     def fetch_tab_list(self):
-        """Fetch list of stash tabs."""
+        """Fetch list of stash tabs in the shared worker registry."""
         session_id = ConfigManager.get_session_id(self.config)
         account = ConfigManager.get_account_name(self.config)
         league = self.league_input.currentText().strip()
-        
         if not session_id or not account:
-            self.log("Error: Credentials required.")
+            self.log("Error: Credentials required. Set account and POESESSID in Settings, then retry.")
             return
-        
-        self.fetch_tabs_btn.setEnabled(False)
-        self.log("Fetching tab list...")
-        
-        self.tab_worker = TabListWorker(session_id, account, league)
-        self.tab_worker.finished_signal.connect(self.on_tabs_fetched)
-        self.tab_worker.error_signal.connect(lambda e: self.log(f"Error: {e}"))
-        self.tab_worker.finished.connect(lambda: self.fetch_tabs_btn.setEnabled(True))
-        self.tab_worker.start()
-    
+        if "kalguur-tab-fetch" in self.worker_registry.active_names:
+            self.log("Tab fetch is already running; wait or Cancel first.")
+            return
+        self.fetch_tabs_btn.setEnabled(False); self.cancel_tabs_btn.setEnabled(True); self.retry_tabs_btn.setEnabled(False)
+        self._set_phase_status({"phase": "tab_fetch", "message": "Starting tab fetch"})
+        def operation(context):
+            return fetch_tab_list_operation(session_id, account, league, context=context)
+        if not self.worker_registry.start("kalguur-tab-fetch", operation, on_progress=self._set_phase_status, on_result=self.on_tabs_fetched, on_error=self._on_tab_fetch_error, on_cancelled=lambda: self._on_operation_cancelled("tab_fetch"), on_finished=lambda: self._on_fetch_finished()):
+            self.log("Tab fetch is already running; duplicate start ignored.")
+
+    def _on_fetch_finished(self):
+        self.fetch_tabs_btn.setEnabled(True); self.cancel_tabs_btn.setEnabled(False)
+
+    def _on_tab_fetch_error(self, error):
+        message = getattr(error, "message", str(error))
+        self.retry_tabs_btn.setEnabled(True)
+        self._set_phase_status({"phase": "error", "message": f"Tab fetch failed: {message}. Check credentials/league/network and Retry."})
+
+    def _on_operation_cancelled(self, phase):
+        self._set_phase_status({"phase": "cancelled", "message": f"{phase} cancelled"})
+        self.retry_tabs_btn.setEnabled(True)
+        self.retry_scan_btn.setEnabled(True)
+
     def on_tabs_fetched(self, tabs: list):
         """Handle fetched tab list."""
+        if not tabs:
+            self.retry_tabs_btn.setEnabled(True)
+            self.scan_btn.setEnabled(False)
+            self._set_phase_status({"phase": "error", "message": "No stash tabs were returned. Verify account/POESESSID/league and Retry."})
+            return
         self.log(f"Fetched {len(tabs)} tabs.")
-        self.tab_selector.load_tabs(tabs)
+        preselected = self._selection_indices_from_config(tabs)
+        self.tab_selector.load_tabs(tabs, preselected_indices=preselected)
         self.scan_btn.setEnabled(True)
-    
+
     def start_scan(self):
-        """Start scanning selected tabs for valuable uniques."""
-        selected_indices = self.tab_selector.get_selected_indices()
+        """Prepare dust/price data and scan selected tabs off the GUI thread."""
+        selected_indices = tuple(self.tab_selector.get_selected_indices())
         if not selected_indices:
             self.log("No tabs selected!")
-            return
-        
+            return False
         session_id = ConfigManager.get_session_id(self.config)
         account = ConfigManager.get_account_name(self.config)
         league = self.league_input.currentText().strip()
-        
-        self.scan_btn.setEnabled(False)
-        self.log("Initializing dust data...")
-        
-        # Initialize data fetchers
-        if not self.dust_fetcher:
-            self.dust_fetcher = DustDataFetcher(league)
-            success = self.dust_fetcher.fetch_dust_data()
-            dust_count = len(self.dust_fetcher.dust_values)
-            self.log(f"Dust data: {dust_count} items loaded", debug_only=True)
-            if dust_count < 50:
-                self.log("WARNING: Low dust data - many items will show 0 dust!")
-                if self.debug_mode:
-                    # Show which items we have data for
-                    items_list = list(self.dust_fetcher.dust_values.keys())[:10]
-                    self.log(f"  Known items: {', '.join(items_list)}...", debug_only=True)
-        
-        if not self.price_fetcher:
+        if "kalguur-prepare" in self.worker_registry.active_names or self._pending_scan_args is not None:
+            self.log("Preparation/scan is already running; wait or Cancel first.")
+            return False
+
+        pending_args = {
+            "session_id": session_id,
+            "account": account,
+            "league": league,
+            "game": self.game_id,
+            "selected_indices": selected_indices,
+            "selected_tabs": tuple(tuple(sorted(ref.items())) for ref in self._selected_tab_refs()),
+            "debug_mode": bool(self.debug_mode),
+        }
+        try:
             self.price_service.set_context(self.game_id, league)
-            self.price_fetcher = self.price_service.get_fetcher()
-            self.log(f"Price data: {len(self.price_fetcher.prices)} items loaded", debug_only=True)
-        
-        self.dust_analyzer = DustEfficiencyAnalyzer(
-            self.dust_fetcher, self.price_fetcher
-        )
-        
-        min_efficiency = self.efficiency_slider.value() * 100  # Slider is scaled x100
-        
-        self.log(f"Scanning {len(selected_indices)} tabs (min efficiency: {min_efficiency:,})...")
-        
-        # Scanner returns ALL items (min_efficiency=0), filtering happens in UI for real-time updates
-        
-        self.scan_worker = StashScanWorker(
-            session_id, account, league,
-            selected_indices, self.dust_analyzer,
-            0,  # Return ALL items, filtering done in UI for real-time slider
-            self.debug_mode
-        )
-        self.scan_worker.log_signal.connect(self.log)
-        self.scan_worker.debug_signal.connect(lambda msg: self.log(msg, debug_only=True))
-        self.scan_worker.progress_signal.connect(self.on_scan_progress)
-        self.scan_worker.result_signal.connect(self.on_scan_complete)
-        self.scan_worker.finished.connect(lambda: self.scan_btn.setEnabled(True))
-        self.scan_worker.start()
-    
+            price_fetcher = self._current_price_fetcher()
+        except Exception as error:
+            self.retry_scan_btn.setEnabled(True)
+            self._set_phase_status({"phase": "error", "message": f"Price preparation failed: {error}. Check league/network and Retry."})
+            return False
+
+        self.scan_btn.setEnabled(False)
+        self.cancel_scan_btn.setEnabled(True)
+        self.retry_scan_btn.setEnabled(False)
+        self.dust_config["selected_tabs"] = [dict(entries) for entries in pending_args["selected_tabs"]]
+        if price_fetcher is not None:
+            return self._dispatch_scan_with_prices(pending_args, price_fetcher)
+
+        self._pending_scan_args = pending_args
+        self._set_phase_status({"phase": "price_prepare", "message": "Preparing prices in background; scan will start when ready"})
+        try:
+            started = self.price_service.refresh_prices(force=False)
+        except Exception as error:
+            self._pending_scan_args = None
+            self.scan_btn.setEnabled(True)
+            self.cancel_scan_btn.setEnabled(False)
+            self.retry_scan_btn.setEnabled(True)
+            self._set_phase_status({"phase": "error", "message": f"Price preparation failed: {error}. Check league/network and Retry."})
+            return False
+        if not started:
+            active_context = self._active_price_refresh_context()
+            pending_context = (pending_args["game"], pending_args["league"])
+            if active_context == pending_context:
+                self._set_phase_status({"phase": "price_prepare", "message": "Waiting for shared price refresh already in progress"})
+                return True
+            self._pending_scan_args = None
+            self.scan_btn.setEnabled(True)
+            self.cancel_scan_btn.setEnabled(False)
+            self.retry_scan_btn.setEnabled(True)
+            self._set_phase_status({"phase": "error", "message": "Previous context price refresh is still stopping; Retry once it finishes."})
+            return False
+        return True
+
+    def _active_price_refresh_context(self):
+        active_context = getattr(self.price_service, "active_refresh_context", None)
+        if callable(active_context):
+            return active_context()
+        return None
+
+    def _current_price_fetcher(self):
+        current = getattr(self.price_service, "current_fetcher", None)
+        if callable(current):
+            return current()
+        return None
+
+    def _on_price_refresh_completed(self, result):
+        pending_args = self._pending_scan_args
+        if pending_args is None:
+            return
+        state = self.price_service.runtime_state()
+        if (state.get("game"), state.get("league")) != (pending_args["game"], pending_args["league"]):
+            return
+        price_fetcher = self._current_price_fetcher()
+        if price_fetcher is None:
+            detail = getattr(result, "detail", None) or state.get("last_error") or "no usable price snapshot"
+            self._pending_scan_args = None
+            self.scan_btn.setEnabled(True)
+            self.cancel_scan_btn.setEnabled(False)
+            self.retry_scan_btn.setEnabled(True)
+            self._set_phase_status({"phase": "error", "message": f"Price preparation failed: {detail}. Check league/network and Retry."})
+            return
+        self._pending_scan_args = None
+        self._dispatch_scan_with_prices(pending_args, price_fetcher)
+
+    def _on_price_refresh_failed(self, error_message):
+        if self._pending_scan_args is None:
+            return
+        self._pending_scan_args = None
+        self.scan_btn.setEnabled(True)
+        self.cancel_scan_btn.setEnabled(False)
+        self.retry_scan_btn.setEnabled(True)
+        self._set_phase_status({"phase": "error", "message": f"Price preparation failed: {error_message}. Check league/network and Retry."})
+
+    def _dispatch_scan_with_prices(self, pending_args, price_fetcher):
+        if "kalguur-prepare" in self.worker_registry.active_names:
+            self.log("Scan is already running; duplicate start ignored.")
+            return False
+        session_id = pending_args["session_id"]
+        account = pending_args["account"]
+        league = pending_args["league"]
+        selected_indices = pending_args["selected_indices"]
+        debug_mode = pending_args["debug_mode"]
+
+        def operation(context):
+            context.report_progress({"phase": "prepare", "message": "Preparing dust data and prices", "current": 0, "total": 2})
+            dust_fetcher = self.dust_fetcher if self.dust_fetcher and self.dust_fetcher.league == league else DustDataFetcher(league)
+            dust_fetcher.fetch_dust_data(context=context)
+            context.report_progress({"phase": "prepare", "message": "Using prepared price snapshot", "current": 1, "total": 2})
+            analyzer = DustEfficiencyAnalyzer(dust_fetcher, price_fetcher)
+            context.report_progress({"phase": "scan", "message": f"Scanning {len(selected_indices)} tabs", "current": 0, "total": len(selected_indices)})
+            items, stats = scan_stash_operation(session_id, account, league, list(selected_indices), analyzer, 0, debug_mode, context=context)
+            return dust_fetcher, price_fetcher, analyzer, items, stats
+        if not self.worker_registry.start("kalguur-prepare", operation, on_progress=self._set_phase_status, on_result=self._on_scan_payload, on_error=self._on_scan_error, on_cancelled=lambda: self._on_operation_cancelled("scan"), on_finished=lambda: self._on_scan_finished()):
+            self.log("Scan is already running; duplicate start ignored.")
+            return False
+        return True
+
+    def _on_scan_finished(self):
+        self.scan_btn.setEnabled(True); self.cancel_scan_btn.setEnabled(False)
+
+    def _on_scan_error(self, error):
+        message = getattr(error, "message", str(error))
+        self.retry_scan_btn.setEnabled(True)
+        self._set_phase_status({"phase": "error", "message": f"Scan failed: {message}. Verify credentials/network/OCR settings and Retry."})
+
+    def _on_scan_payload(self, payload):
+        self.dust_fetcher, self.price_fetcher, self.dust_analyzer, items, stats = payload
+        self._update_provenance()
+        self.on_scan_complete(items, stats)
+
+    def _update_provenance(self):
+        dust = getattr(self.dust_fetcher, "provenance", {}) or {}
+        price_state = self.price_service.runtime_state()
+        dust_label = f"dust={dust.get('source', 'unknown')}"
+        if dust.get("estimated"):
+            dust_label += " (bundled fallback estimate)" if "built-in" in str(dust.get("source", "")) else " (estimate)"
+        price_label = f"price={price_state.get('source')} status={price_state.get('status')} fetched={price_state.get('fetched_at') or 'n/a'}"
+        if price_state.get("status") == "partial":
+            price_label += " partial; last-known-good preserved"
+        self.provenance_label.setText(f"{dust_label}; {price_label}")
+
     def on_scan_progress(self, current: int, total: int):
         """Update progress during scan."""
         self.results_summary.setText(f"Scanning... {current}/{total} tabs")
@@ -486,6 +761,14 @@ class KalguurDustWidget(QWidget):
             return x + (w // 2)
         return -1
 
+    def _tesseract_path_is_valid(self, tesseract_path: str) -> bool:
+        """Return whether the configured Tesseract command/path can be executed."""
+        if not tesseract_path:
+            return False
+        if os.path.isabs(tesseract_path) or os.path.sep in tesseract_path:
+            return os.path.isfile(tesseract_path) and os.access(tesseract_path, os.X_OK)
+        return shutil.which(tesseract_path) is not None
+
     def start_highlighting(self):
         """Start the multi-tab highlighting workflow."""
         if not self.scan_results:
@@ -498,6 +781,16 @@ class KalguurDustWidget(QWidget):
         tesseract_path = self.config.get("league_vision", {}).get(
             "tesseract_path", "tesseract"
         )
+        if not self._tesseract_path_is_valid(tesseract_path):
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(
+                self,
+                "Tesseract Not Found",
+                f"Tesseract is configured as '{tesseract_path}', but it is not executable.\n\n"
+                "Install Tesseract or update Settings > OCR/Tesseract path, then Retry highlighting.",
+            )
+            self._set_phase_status({"phase": "error", "message": "Tesseract path is invalid. Configure OCR settings before starting highlighting."})
+            return
         
         # Check if tab bar is calibrated
         if not tab_bar_calibration:
@@ -818,6 +1111,7 @@ class KalguurDustWidget(QWidget):
         """Persist tool-local filters; shared league belongs to Settings."""
         self.dust_config["min_efficiency"] = self.efficiency_slider.value()
         self.dust_config["include_unknown_prices"] = self.include_unknown_prices.isChecked()
+        self.dust_config["selected_tabs"] = self._selected_tab_refs()
         self.config["kalguur_dust"] = self.dust_config
 
     def refresh_shared_settings(self):
@@ -847,7 +1141,12 @@ class KalguurDustWidget(QWidget):
         success = self.stop_highlighting()
         success = self._stop_worker("tab_worker") and success
         success = self._stop_worker("scan_worker") and success
+        registry = getattr(self, "worker_registry", None)
+        if registry is not None:
+            success = registry.close(timeout_ms=5000) and success
         if success:
+            self._pending_scan_args = None
+            self._disconnect_price_service_signals()
             discard_queued_meta_calls(self)
         self.clear_overlay()
         if success and getattr(self, "_owns_price_service", False):

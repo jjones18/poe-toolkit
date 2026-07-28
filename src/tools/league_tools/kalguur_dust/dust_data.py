@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
 from utils.app_paths import resolve_runtime_paths
+from utils.workers import bounded_http_request
 
 
 class DustDataCache:
@@ -378,7 +379,7 @@ class DustDataFetcher:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         })
     
-    def fetch_dust_data(self) -> bool:
+    def fetch_dust_data(self, context=None) -> bool:
         """
         Load dust values from poedust cache file or cache.
         
@@ -386,6 +387,8 @@ class DustDataFetcher:
             True if data was loaded successfully
         """
         # Try our cache first
+        if context is not None:
+            context.report_progress({"phase": "dust", "message": "Checking dust cache", "current": 0, "total": 3})
         cached = self.cache.load()
         if cached and 'dust_values' in cached and len(cached['dust_values']) > 100:
             self.dust_values = cached['dust_values']
@@ -395,7 +398,9 @@ class DustDataFetcher:
         
         # Try loading from poedust cache file (scraped data)
         print("[DustData] Loading dust values from poedust cache...")
-        if self._load_poedust_cache():
+        if context is not None:
+            context.report_progress({"phase": "dust", "message": "Loading dust source", "current": 1, "total": 3})
+        if self._load_poedust_cache(context=context):
             print(f"[DustData] SUCCESS: Loaded {len(self.dust_values)} items from poedust cache")
             self.cache.save(
                 self.dust_values,
@@ -408,7 +413,9 @@ class DustDataFetcher:
         
         # Fallback: try poe.ninja calculation
         print("[DustData] Poedust cache not found, trying poe.ninja...")
-        if self._fetch_from_ninja():
+        if context is not None:
+            context.report_progress({"phase": "dust", "message": "Loading poe.ninja dust estimates", "current": 2, "total": 3})
+        if self._fetch_from_ninja(context=context):
             print(f"[DustData] SUCCESS: Loaded {len(self.dust_values)} items from poe.ninja")
             self.cache.save(
                 self.dust_values,
@@ -421,6 +428,8 @@ class DustDataFetcher:
         
         # Last resort: built-in estimates
         print("[DustData] WARNING: Using built-in estimates")
+        if context is not None:
+            context.report_progress({"phase": "dust", "message": "Using bundled fallback estimate", "current": 3, "total": 3})
         self._load_builtin_estimates()
         self.provenance = {
             "source": "built-in estimates",
@@ -431,14 +440,16 @@ class DustDataFetcher:
         print(f"[DustData] Loaded {len(self.dust_values)} built-in estimates")
         return len(self.dust_values) > 0
     
-    def _load_poedust_cache(self) -> bool:
+    def _load_poedust_cache(self, context=None) -> bool:
         """Load dust data from GitHub gist or local cache."""
         # Try fetching from GitHub gist first (most up-to-date)
         gist_url = "https://gist.githubusercontent.com/alserom/22bdd4106806cbd4f85a5cb8c4345c08/raw/poe-dust.csv"
         
         try:
             print(f"[DustData] Fetching from GitHub gist...")
-            response = self.session.get(gist_url, timeout=30)
+            if context is not None:
+                context.raise_if_cancelled()
+            response = (bounded_http_request(self.session, "GET", gist_url, token=context.token, timeout=(5.0, 30.0)) if context is not None else self.session.get(gist_url, timeout=30))
             
             if response.status_code == 200:
                 import csv
@@ -509,7 +520,7 @@ class DustDataFetcher:
         
         return False
     
-    def _fetch_from_ninja(self) -> bool:
+    def _fetch_from_ninja(self, context=None) -> bool:
         """Fetch all unique items from poe.ninja and calculate dust values."""
         ninja_endpoints = {
             'UniqueWeapon': 'itemoverview?type=UniqueWeapon',
@@ -527,7 +538,9 @@ class DustDataFetcher:
                 url = f"{base_url}/{endpoint}&league={self.league}"
                 print(f"[DustData] Fetching {category}...")
                 
-                response = self.session.get(url, timeout=30)
+                if context is not None:
+                    context.raise_if_cancelled()
+                response = (bounded_http_request(self.session, "GET", url, token=context.token, timeout=(5.0, 30.0)) if context is not None else self.session.get(url, timeout=30))
                 if response.status_code != 200:
                     print(f"[DustData] Failed {category}: HTTP {response.status_code}")
                     continue
@@ -628,7 +641,7 @@ class DustDataFetcher:
         
         return 'Unknown'
     
-    def _fetch_from_poedust(self) -> bool:
+    def _fetch_from_poedust(self, context=None) -> bool:
         """Try to fetch data from poedust.com or related sources."""
         # Try multiple potential data sources
         sources = [
@@ -642,7 +655,9 @@ class DustDataFetcher:
         for url in sources:
             try:
                 print(f"[DustData] Trying: {url}")
-                response = self.session.get(url, timeout=15)
+                if context is not None:
+                    context.raise_if_cancelled()
+                response = (bounded_http_request(self.session, "GET", url, token=context.token, timeout=(5.0, 15.0)) if context is not None else self.session.get(url, timeout=15))
                 
                 if response.status_code == 200:
                     data = response.json()
@@ -677,9 +692,9 @@ class DustDataFetcher:
         try:
             # PoEDB doesn't have a public API, but we can try common endpoints
             # This is a placeholder for when/if PoEDB provides data
-            response = self.session.get(
-                "https://poedb.tw/us/Unique",
-                timeout=30
+            response = bounded_http_request(
+                self.session, "GET", "https://poedb.tw/us/Unique",
+                timeout=(5.0, 30.0)
             )
             
             if response.status_code == 200:

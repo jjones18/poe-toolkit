@@ -34,6 +34,7 @@ class PriceService(QObject):
         self._load_lock = Lock()
         self.last_result: PriceFetchResult | None = None
         self.last_error = None
+        self._active_refresh_context: tuple[str, str] | None = None
 
     def set_context(self, game: str, league: str) -> bool:
         """Switch active context and invalidate any incompatible in-memory data."""
@@ -67,6 +68,16 @@ class PriceService(QObject):
         if result.status == "failure":
             return False
         return fetcher is None or result.status in {"cache", "success"}
+
+    def current_fetcher(self) -> NinjaPriceFetcher | None:
+        """Return the active snapshot without doing I/O or blocking on loads."""
+        with self._lock:
+            return self._fetcher
+
+    def active_refresh_context(self) -> tuple[str, str] | None:
+        """Return the context currently owned by the shared refresh worker."""
+        with self._lock:
+            return self._active_refresh_context
 
     def get_fetcher(self, *, force=False, context=None) -> NinjaPriceFetcher:
         """Return the active snapshot, loading it once for this context."""
@@ -117,8 +128,10 @@ class PriceService(QObject):
 
     def refresh_prices(self, force: bool = True) -> bool:
         """Refresh in the shared cancellable worker registry."""
-        game = self.game
-        league = self.league
+        with self._lock:
+            game = self.game
+            league = self.league
+        refresh_context = (game, league)
 
         def operation(context):
             self.log.emit(f"Refreshing {game}/{league} prices from poe.ninja...")
@@ -131,12 +144,27 @@ class PriceService(QObject):
                     fetcher.close()
                 raise
 
-        return self._worker_registry.start(
+        with self._lock:
+            previous_refresh_context = self._active_refresh_context
+            self._active_refresh_context = refresh_context
+        started = self._worker_registry.start(
             "price-refresh",
             operation,
             on_result=self._on_refresh_result,
             on_error=self._on_refresh_error,
+            on_cancelled=lambda: self.log.emit("Price refresh cancelled"),
+            on_finished=lambda: self._clear_active_refresh_context(refresh_context),
         )
+        if not started:
+            with self._lock:
+                if self._active_refresh_context == refresh_context:
+                    self._active_refresh_context = previous_refresh_context
+        return started
+
+    def _clear_active_refresh_context(self, refresh_context):
+        with self._lock:
+            if self._active_refresh_context == refresh_context:
+                self._active_refresh_context = None
 
     def _on_refresh_result(self, payload):
         game, league, fetcher, result = payload

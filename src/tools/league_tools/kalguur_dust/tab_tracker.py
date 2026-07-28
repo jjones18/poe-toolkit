@@ -28,6 +28,7 @@ except ImportError:
 
 from utils import platform_utils
 from utils.logger import DebugLogger
+from utils.workers import CancellationToken, bounded_ocr_call
 
 
 @dataclass
@@ -209,21 +210,21 @@ class TabTracker(QObject):
             
         return final
     
-    def detect_text_with_strategies(self, processed: np.ndarray) -> str:
+    def detect_text_with_strategies(self, processed: np.ndarray, token=None) -> str:
         """Try multiple OCR strategies to get text."""
         cfg = self.region_config
         
         # If a specific PSM is forced, use only that
         if cfg.psm > 0:
             try:
-                text = pytesseract.image_to_string(processed, config=f'--psm {cfg.psm}').strip()
+                text = bounded_ocr_call(pytesseract.image_to_string, processed, token=token, config=f'--psm {cfg.psm}').strip()
                 return text
             except Exception:
                 return ""
                 
         # Strategy 1: PSM 6 (Assume a single uniform block of text) - best for multi-line
         try:
-            text = pytesseract.image_to_string(processed, config='--psm 6').strip()
+            text = bounded_ocr_call(pytesseract.image_to_string, processed, token=token, config='--psm 6').strip()
             if text:
                 return text
         except Exception:
@@ -231,7 +232,7 @@ class TabTracker(QObject):
             
         # Strategy 2: PSM 11 (Sparse text) - good for spread out tabs
         try:
-            text = pytesseract.image_to_string(processed, config='--psm 11').strip()
+            text = bounded_ocr_call(pytesseract.image_to_string, processed, token=token, config='--psm 11').strip()
             if text:
                 return text
         except Exception:
@@ -239,7 +240,7 @@ class TabTracker(QObject):
             
         # Strategy 3: PSM 7 (Single line) - fallback if calibration is tight
         try:
-            text = pytesseract.image_to_string(processed, config='--psm 7').strip()
+            text = bounded_ocr_call(pytesseract.image_to_string, processed, token=token, config='--psm 7').strip()
             if text:
                 return text
         except Exception:
@@ -247,7 +248,7 @@ class TabTracker(QObject):
             
         return ""
 
-    def detect_tab_name(self, img: np.ndarray = None) -> Optional[str]:
+    def detect_tab_name(self, img: np.ndarray = None, token=None) -> Optional[str]:
         """
         Detect the currently active tab name from screen.
         
@@ -274,8 +275,10 @@ class TabTracker(QObject):
         
         # OCR
         try:
-            text = pytesseract.image_to_string(
+            text = bounded_ocr_call(
+                pytesseract.image_to_string,
                 processed,
+                token=token,
                 config='--psm 7'  # Single line mode
             ).strip()
         except Exception as e:
@@ -406,7 +409,7 @@ class TabTracker(QObject):
         Returns:
             New tab name if changed, None otherwise
         """
-        detected = self.detect_tab_name()
+        detected = self.detect_tab_name(token=None)
         
         if detected and detected != self.current_tab:
             old_tab = self.current_tab
@@ -435,6 +438,7 @@ class TabTrackerWorker(QThread):
         self.running = False
         self.waiting_for_tab: Optional[str] = None
         self.ignore_focus_check = False  # If True, runs even if PoE not focused
+        self._token = CancellationToken()
     
     def set_ignore_focus(self, ignore: bool):
         """Set whether to ignore window focus check (for debugging)."""
@@ -447,6 +451,8 @@ class TabTrackerWorker(QThread):
     def stop(self):
         """Stop the monitoring loop."""
         self.running = False
+        self.requestInterruption()
+        self._token.cancel()
     
     def run(self):
         """Main monitoring loop."""
@@ -464,10 +470,11 @@ class TabTrackerWorker(QThread):
                 f"{region['width']}x{region['height']} - monitoring for tab changes..."
             )
         
-        while self.running:
+        while self.running and not self.isInterruptionRequested():
             # Skip OCR if not calibrated
             if not self.tracker.is_calibrated:
-                time.sleep(0.5)
+                if self._token.wait(0.5):
+                    break
                 continue
             
             # Check if PoE is focused (matches "Path of Exile" or "Path of Exile 2")
@@ -479,7 +486,8 @@ class TabTrackerWorker(QThread):
                         # Log every 5 seconds (25 attempts) to avoid spam
                         if ocr_attempts % 25 == 0:
                             self.status_signal.emit(f"Paused: Focus is on '{title}'")
-                        time.sleep(0.5)
+                        if self._token.wait(0.5):
+                            break
                         continue
                 except Exception as e:
                     self.status_signal.emit(f"Window check error: {e}")
@@ -493,7 +501,7 @@ class TabTrackerWorker(QThread):
             if img is not None:
                 processed = self.tracker.preprocess_image(img)
                 try:
-                    text = self.tracker.detect_text_with_strategies(processed)
+                    text = self.tracker.detect_text_with_strategies(processed, token=self._token)
                     matched = self.tracker._match_tab_name(text)
                     
                     # Emit debug signal for overlay - EVERY FRAME
@@ -529,7 +537,8 @@ class TabTrackerWorker(QThread):
                     self.status_signal.emit(f"OCR active - no text detected (attempt {ocr_attempts}) Raw: '{raw_text[:20]}'")
             
             # Sleep for interval
-            time.sleep(self.interval_ms / 1000.0)
+            if self._token.wait(self.interval_ms / 1000.0):
+                break
 
 
 class MultiTabHighlighter:

@@ -262,6 +262,58 @@ class PriceServiceTests(unittest.TestCase):
 
         registry.cancel.assert_called_once_with("price-refresh")
 
+    def test_active_refresh_context_tracks_until_finished_and_clears_on_success(self):
+        callbacks = {}
+
+        def capture_start(name, operation, **kwargs):
+            callbacks.update(kwargs)
+            return True
+
+        registry = Mock()
+        registry.start.side_effect = capture_start
+        service = PriceService(
+            "poe1", "Settlers",
+            fetcher_factory=Mock(),
+            worker_registry=registry,
+        )
+
+        self.assertTrue(service.refresh_prices())
+        self.assertEqual(service.active_refresh_context(), ("poe1", "Settlers"))
+
+        callbacks["on_finished"]()
+
+        self.assertIsNone(service.active_refresh_context())
+
+    def test_active_refresh_context_clears_on_error_and_cancel(self):
+        callbacks = {}
+
+        def capture_start(name, operation, **kwargs):
+            callbacks.update(kwargs)
+            return True
+
+        registry = Mock()
+        registry.start.side_effect = capture_start
+        service = PriceService(
+            "poe1", "Settlers",
+            fetcher_factory=Mock(),
+            worker_registry=registry,
+        )
+
+        self.assertTrue(service.refresh_prices())
+        self.assertEqual(service.active_refresh_context(), ("poe1", "Settlers"))
+        callbacks["on_error"](RuntimeError("offline"))
+        self.assertEqual(service.active_refresh_context(), ("poe1", "Settlers"))
+        callbacks["on_finished"]()
+        self.assertIsNone(service.active_refresh_context())
+
+        service.set_context("poe1", "Standard")
+        self.assertTrue(service.refresh_prices())
+        self.assertEqual(service.active_refresh_context(), ("poe1", "Standard"))
+        callbacks["on_cancelled"]()
+        self.assertEqual(service.active_refresh_context(), ("poe1", "Standard"))
+        callbacks["on_finished"]()
+        self.assertIsNone(service.active_refresh_context())
+
     def test_refresh_operation_closes_fetcher_when_fetch_raises(self):
         captured = {}
         registry = Mock()

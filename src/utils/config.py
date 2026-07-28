@@ -276,6 +276,12 @@ class ConfigManager:
             "auto_resume": False,
             "auto_resume_delay_ms": 60000
         },
+        "kalguur_dust": {
+            "min_efficiency": 10,
+            "include_unknown_prices": False,
+            "selected_tabs": [],
+            "tab_presets": {}
+        },
         "window": {
             "x": 100,
             "y": 100,
@@ -389,6 +395,15 @@ class ConfigManager:
 
         vision_config = config.setdefault("league_vision", {})
         legacy_client_log = vision_config.pop("client_log_path", None)
+
+        kalguur = config.setdefault("kalguur_dust", {})
+        defaults = cls.DEFAULTS.get("kalguur_dust", {})
+        kalguur.setdefault("min_efficiency", defaults.get("min_efficiency", 10))
+        kalguur.setdefault("include_unknown_prices", defaults.get("include_unknown_prices", False))
+        if not isinstance(kalguur.get("selected_tabs"), list):
+            kalguur["selected_tabs"] = []
+        if not isinstance(kalguur.get("tab_presets"), dict):
+            kalguur["tab_presets"] = {}
 
         game_settings = config.setdefault("game_settings", {})
         for game_id, defaults in cls.DEFAULTS["game_settings"].items():
