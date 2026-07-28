@@ -2,7 +2,7 @@
 
 A unified Path of Exile helper application combining multiple tools into a single, modern interface.
 
-![Version](https://img.shields.io/badge/Version-1.1.0-blue.svg)
+![Version](https://img.shields.io/badge/Version-1.5.0-blue.svg)
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
@@ -40,6 +40,15 @@ Automated live search monitoring with browser integration:
 - Pause/resume functionality
 - Adjustable auto-resume delay and teleport cooldown, both live-updated while running
 - Fail-closed controller lease and verified browser-worker cleanup on Stop
+
+### 🩺 Diagnostics & Data Freshness
+Inspect application health without displaying account names, session tokens, or
+cached item contents:
+- Active game/league, shared services, workers, Client.txt, and zone monitor
+- Explicit Node/npm, Tesseract, and local DevTools readiness tests
+- Price/dust cache source, league, schema, age, and item count
+- Open runtime directories, clear only known caches, and export redacted JSON
+- Dependency probes run only when requested and use cancellable bounded workers
 
 ---
 

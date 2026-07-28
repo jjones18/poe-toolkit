@@ -16,6 +16,7 @@ from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtWidgets import QApplication
 
 from services.trade_service import TradeService
+from tools.diagnostics_tool import DiagnosticsTool
 from tools.trade_sniper import TradeSniperTool
 from ui.main_window import MainWindow
 from utils import config as config_module
@@ -46,6 +47,49 @@ class MainWindowTradeLifecycleTests(unittest.TestCase):
         self.save_patcher = patch.object(ConfigManager, "save", return_value=True)
         self.save_patcher.start()
         self.addCleanup(self.save_patcher.stop)
+
+    def test_diagnostics_uses_application_service_and_runtime_provider(self):
+        config = copy.deepcopy(ConfigManager.DEFAULTS)
+        ConfigManager.set_active_game(config, "poe2")
+        service = Mock()
+        service.is_running = False
+
+        with (
+            patch.object(ConfigManager, "load", return_value=config),
+            patch("tools.trade_sniper.tool.TradeSniperWidget.check_setup"),
+            patch("tools.trade_sniper.tool.TradeSniperWidget.check_brave_status"),
+        ):
+            window = MainWindow(trade_service=service)
+
+        self.addCleanup(window.close)
+        diagnostics_tool = next(
+            tool for tool in window.tools if isinstance(tool, DiagnosticsTool)
+        )
+        self.assertIs(diagnostics_tool.widget.diagnostics.trade_service, service)
+
+        registry = Mock()
+        registry.active_names = ("refresh",)
+        zone_monitor = Mock()
+        zone_monitor.running = True
+        zone_monitor.get_current_zone.return_value = "Hideout"
+        widget = Mock()
+        widget._worker_registry = registry
+        widget.zone_monitor = zone_monitor
+        widget.scanner = None
+        widget.status_label.text.return_value = "Dependency failed safely"
+        tool = Mock()
+        tool.name = "Synthetic"
+        tool.widget = widget
+        window.tools = [tool]
+
+        runtime = window._diagnostic_runtime_state()
+
+        self.assertEqual(runtime["workers"], ["Synthetic: refresh"])
+        self.assertEqual(
+            runtime["zone_monitor"],
+            {"state": "running", "zone": "Hideout"},
+        )
+        self.assertEqual(runtime["last_error"], "Synthetic: Dependency failed safely")
 
     def test_mode_reload_reuses_application_trade_service_without_stopping_it(self):
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -157,9 +157,9 @@ This order intentionally defers tools that are not actively used. It first prote
 
 # Milestone 2 — Shared configuration, workers, and diagnostics
 
-**Status:** Sections 2.1 and 2.2 are complete in release 1.3.0. Section 2.3 is complete in release 1.4.0. Sections 2.4 and 2.5 remain the next application-wide work.
+**Status:** Sections 2.1 and 2.2 are complete in release 1.3.0, Section 2.3 in release 1.4.0, and Section 2.4 in release 1.5.0. Section 2.5 remains the next application-wide task.
 
-**Verification:** 88 Python tests, 14 Node tests, Python compilation, installer/template syntax checks, and the isolated offscreen UI smoke passed before release.
+**Verification:** 102 Python tests, 14 Node tests, Python compilation, installer/template syntax checks, and the isolated offscreen UI smoke passed before release 1.5.0.
 
 ## 2.1 Secure and relocate configuration
 
@@ -202,6 +202,15 @@ hidden behind a nominally cancellable wrapper.
 - No GUI API calls from worker threads.
 
 ## 2.4 Central Diagnostics/Data Freshness page
+
+**Implementation:** Complete in release 1.5.0. An always-available, redacted
+Diagnostics page reports active game/league, credential presence, explicit
+dependency readiness, shared runtime/worker state, Client.txt/zone state,
+per-user directories, and legacy price/dust cache provenance and freshness.
+Dependency and local DevTools probes run only on explicit request through the
+shared cancellable-worker registry. Cache deletion is allowlisted and confirmed;
+exports are recursively scrubbed of configured account/session values. Legacy
+cache paths remain visible until their relocation in Section 2.5.
 
 Display without exposing secrets:
 - Active game and league.

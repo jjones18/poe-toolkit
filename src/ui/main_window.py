@@ -270,12 +270,13 @@ class MainWindow(QMainWindow):
     
     def load_tools(self):
         """Load and initialize tool modules for the selected game."""
+        from tools.diagnostics_tool import DiagnosticsTool
         from tools.settings_tool import SettingsTool
         from tools.trade_sniper import TradeSniperTool
         
         active_game = ConfigManager.get_active_game(self.config)
-        tool_classes = [
-            (SettingsTool, {"config": self.config}),
+        tool_classes: list[tuple[type, dict]] = [
+            (SettingsTool, {"config": self.config})
         ]
 
         if active_game == "poe1":
@@ -291,6 +292,11 @@ class MainWindow(QMainWindow):
         tool_classes.append((TradeSniperTool, {
             "config": self.config,
             "service": self.trade_service,
+        }))
+        tool_classes.append((DiagnosticsTool, {
+            "config": self.config,
+            "trade_service": self.trade_service,
+            "runtime_provider": self._diagnostic_runtime_state,
         }))
         
         for tool_class, kwargs in tool_classes:
@@ -330,6 +336,55 @@ class MainWindow(QMainWindow):
                 
             except Exception as e:
                 print(f"Error loading tool {tool_class.__name__}: {e}")
+
+    def _diagnostic_runtime_state(self) -> dict:
+        """Return redacted runtime state without owning module-specific workers."""
+        workers = []
+        visible_errors = []
+        zone_state = {"state": "not running", "zone": "Unknown"}
+
+        status_text = self.status_label.text() if hasattr(self, "status_label") else ""
+        if any(marker in status_text.lower() for marker in ("error", "failed")):
+            visible_errors.append(status_text)
+
+        for tool in self.tools:
+            widget = getattr(tool, "widget", None)
+            if widget is None:
+                continue
+
+            tool_status = getattr(widget, "status_label", None)
+            read_status = getattr(tool_status, "text", None)
+            if callable(read_status):
+                tool_status_text = str(read_status())
+                if any(
+                    marker in tool_status_text.lower()
+                    for marker in ("error", "failed")
+                ):
+                    visible_errors.append(f"{tool.name}: {tool_status_text}")
+
+            registry = getattr(widget, "_worker_registry", None)
+            active_names = getattr(registry, "active_names", ()) if registry else ()
+            if isinstance(active_names, (tuple, list)):
+                workers.extend(f"{tool.name}: {name}" for name in active_names)
+
+            scanner = getattr(widget, "scanner", None)
+            is_running = getattr(scanner, "isRunning", None)
+            if callable(is_running) and is_running():
+                workers.append(f"{tool.name}: scanner")
+
+            monitor = getattr(widget, "zone_monitor", None)
+            if monitor is not None and getattr(monitor, "running", False):
+                get_zone = getattr(monitor, "get_current_zone", None)
+                zone_state = {
+                    "state": "running",
+                    "zone": str(get_zone() if callable(get_zone) else "Unknown"),
+                }
+
+        return {
+            "workers": workers,
+            "zone_monitor": zone_state,
+            "last_error": visible_errors[-1] if visible_errors else "",
+        }
 
     def on_settings_game_changed(self, game_id: str):
         """Synchronize game mode, rolling back if old workers cannot stop."""
