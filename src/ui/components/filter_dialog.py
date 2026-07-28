@@ -31,6 +31,15 @@ class FilterConfigDialog(QDialog):
         self.included_tiers = set(str(x) for x in self.config.get("included_tiers", []))
 
         layout = QVBoxLayout(self)
+
+        semantics_label = QLabel(
+            "Include override force-highlights a matching item and wins over Exclude, "
+            "minimum profit, and unknown prices. Exclude blocks only when no Include override matches."
+        )
+        semantics_label.setObjectName("filter_semantics_label")
+        semantics_label.setWordWrap(True)
+        semantics_label.setStyleSheet("color: #cccccc; padding: 4px;")
+        layout.addWidget(semantics_label)
         
         self.tabs = QTabWidget()
         
@@ -161,7 +170,7 @@ class FilterConfigDialog(QDialog):
             chk_exclude = QCheckBox("Exclude")
             chk_exclude.setChecked(item_text in excluded_set)
             
-            chk_include = QCheckBox("Include")
+            chk_include = QCheckBox("Include override")
             chk_include.setChecked(item_text in included_set)
             
             chk_exclude.toggled.connect(
@@ -209,7 +218,7 @@ class FilterConfigDialog(QDialog):
             chk_exclude = QCheckBox("Exclude")
             chk_exclude.setChecked(reward_name in excluded_set)
             
-            chk_include = QCheckBox("Include")
+            chk_include = QCheckBox("Include override")
             chk_include.setChecked(reward_name in included_set)
             
             chk_exclude.toggled.connect(
