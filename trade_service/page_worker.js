@@ -9,6 +9,22 @@
  */
 function installPageWorker(options) {
     const existing = window.poeAutoClicker;
+    const isOlderControllerGeneration = Boolean(
+        existing &&
+        existing.controllerId === options.controllerId &&
+        Number.isFinite(existing.generation) &&
+        Number.isFinite(options.generation) &&
+        options.generation < existing.generation
+    );
+    if (isOlderControllerGeneration) {
+        return {
+            installed: false,
+            stale: true,
+            runId: options.runId,
+            activeRunId: existing.runId,
+        };
+    }
+
     if (existing) {
         existing.running = false;
         existing.paused = true;
@@ -27,8 +43,13 @@ function installPageWorker(options) {
         cooldownMs: options.cooldownMs,
         isClicking: false,
         pendingConfirmation: false,
+        pendingListing: null,
+        confirmationRetryMs: options.confirmationRetryMs || 1_000,
+        lastConfirmationClickTime: Number.NEGATIVE_INFINITY,
         searchId: options.searchId,
         runId: options.runId,
+        controllerId: options.controllerId,
+        generation: options.generation,
         leaseExpiresAt: options.leaseExpiresAt,
         tradePath: options.tradePath,
         maxClicksPerListing: 3,
@@ -41,6 +62,7 @@ function installPageWorker(options) {
         state.paused = true;
         state.isClicking = false;
         state.pendingConfirmation = false;
+        state.pendingListing = null;
         if (state.observer) {
             state.observer.disconnect();
             state.observer = null;
@@ -92,17 +114,25 @@ function installPageWorker(options) {
             return false;
         }
 
+        const now = Date.now();
+        if (now - state.lastConfirmationClickTime < state.confirmationRetryMs) {
+            return false;
+        }
+
         const buttons = document.querySelectorAll('.results button');
         for (let i = 0; i < buttons.length; i++) {
-            const text = buttons[i].textContent;
-            if (text.indexOf('eleport') === -1 || text.indexOf('anyway') === -1) continue;
+            const button = buttons[i];
+            const text = (button.textContent || '').toLowerCase();
+            if (!text.includes('teleport') || !text.includes('anyway')) continue;
 
-            const listing = buttons[i].closest('.resultset');
+            const listing = button.closest('.resultset');
+            if (!listing || listing !== state.pendingListing || button.disabled) continue;
             if (isListingMaxed(listing)) continue;
 
             state.isClicking = true;
             try {
-                buttons[i].click();
+                button.click();
+                state.lastConfirmationClickTime = now;
                 const count = addListingClick(listing);
                 console.log(`[${state.searchId}] Clicked "Teleport anyway" (${count}/${state.maxClicksPerListing})`);
                 return true;
@@ -154,6 +184,7 @@ function installPageWorker(options) {
                 state.lastClickTime = now;
                 state.paused = true;
                 state.pendingConfirmation = true;
+                state.pendingListing = listing;
                 button.click();
                 state.clickCount += 1;
                 console.log(`[${state.searchId}] Clicked item #${state.clickCount}`);
@@ -205,6 +236,30 @@ function updatePageWorkerCooldown(options) {
     return true;
 }
 
+/** Disarm a worker only when it still belongs to the expected controller run. */
+function disarmPageWorkerForRun(expectedRunId) {
+    const state = window.poeAutoClicker;
+    if (!state) return { disarmed: false, reason: 'not-installed' };
+    if (state.runId !== expectedRunId) {
+        return { disarmed: false, reason: 'ownership-mismatch', runId: state.runId };
+    }
+
+    state.running = false;
+    state.paused = true;
+    state.isClicking = false;
+    state.pendingConfirmation = false;
+    state.pendingListing = null;
+    if (state.observer) {
+        state.observer.disconnect();
+        state.observer = null;
+    }
+    if (state.intervalId) {
+        clearInterval(state.intervalId);
+        state.intervalId = null;
+    }
+    return { disarmed: true, runId: state.runId, searchId: state.searchId };
+}
+
 /** Unconditionally disarm any Trade Sniper worker in the current page. */
 function disarmPageWorker() {
     const state = window.poeAutoClicker;
@@ -214,6 +269,7 @@ function disarmPageWorker() {
     state.paused = true;
     state.isClicking = false;
     state.pendingConfirmation = false;
+    state.pendingListing = null;
     if (state.observer) {
         state.observer.disconnect();
         state.observer = null;
@@ -229,5 +285,6 @@ module.exports = {
     installPageWorker,
     renewPageWorkerLease,
     updatePageWorkerCooldown,
+    disarmPageWorkerForRun,
     disarmPageWorker,
 };

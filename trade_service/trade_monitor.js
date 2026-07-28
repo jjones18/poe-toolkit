@@ -20,6 +20,7 @@ const {
     installPageWorker,
     renewPageWorkerLease,
     updatePageWorkerCooldown,
+    disarmPageWorkerForRun,
     disarmPageWorker,
 } = require('./page_worker');
 
@@ -30,12 +31,32 @@ const LEASE_RENEW_INTERVAL_MS = 1000;
 const runtime = {
     browser: null,
     input: null,
+    controllerId: randomUUID(),
+    runGeneration: 0,
+    activeGeneration: null,
     activeRunId: null,
     monitorTimers: new Set(),
+    responseHandlers: new Map(),
     reconnecting: false,
     shuttingDown: false,
     shutdownPromise: null,
 };
+
+function isMonitoringRunActive(runId, generation = null) {
+    return !runtime.shuttingDown &&
+        runtime.activeRunId === runId &&
+        (generation === null || runtime.activeGeneration === generation);
+}
+
+async function getActiveRunPages(
+    browser,
+    runId,
+    isActive = isMonitoringRunActive,
+) {
+    if (!isActive(runId)) return null;
+    const pages = await browser.pages();
+    return isActive(runId) ? pages : null;
+}
 
 function addMonitorInterval(callback, delayMs) {
     const timer = setInterval(callback, delayMs);
@@ -46,6 +67,9 @@ function addMonitorInterval(callback, delayMs) {
 function clearMonitorTimers() {
     for (const timer of runtime.monitorTimers) clearInterval(timer);
     runtime.monitorTimers.clear();
+    for (const page of [...runtime.responseHandlers.keys()]) {
+        detachTravelResponseLogging(page);
+    }
 }
 
 function delay(ms) {
@@ -106,6 +130,7 @@ async function shutdownService(reason = 'requested') {
     runtime.shutdownPromise = (async () => {
         runtime.shuttingDown = true;
         runtime.activeRunId = null;
+        runtime.activeGeneration = null;
         clearMonitorTimers();
 
         console.log(`\n🛑 Stopping automation (${reason})...`);
@@ -188,6 +213,144 @@ function parseRuntimeControl(message) {
     };
 }
 
+function classifyTravelResponse(status, payload) {
+    if (status >= 200 && status < 300 && payload?.success === true) {
+        return { kind: 'confirmed', detail: 'Teleport accepted by Path of Exile' };
+    }
+    const logicalError = payload?.error?.message || payload?.message;
+    if (logicalError) {
+        return { kind: 'failed', detail: `HTTP ${status}: ${logicalError}` };
+    }
+    if (status >= 200 && status < 300 && payload?.success === false) {
+        return {
+            kind: 'confirmation-required',
+            detail: 'Item is in demand; sending "Teleport anyway" confirmation',
+        };
+    }
+
+    const message = payload?.error?.message || payload?.message || 'Request rejected';
+    return { kind: 'failed', detail: `HTTP ${status}: ${message}` };
+}
+
+function attachTravelResponseLogging(page, searchId, runId) {
+    detachTravelResponseLogging(page);
+
+    const handler = async (response) => {
+        if (runtime.shuttingDown || runtime.activeRunId !== runId) return;
+
+        let url;
+        try {
+            url = new URL(response.url());
+        } catch (err) {
+            return;
+        }
+        if (url.hostname !== 'www.pathofexile.com' || url.pathname !== '/api/trade/whisper') {
+            return;
+        }
+
+        let payload = null;
+        try {
+            payload = await response.json();
+        } catch (err) {
+            // Status still provides an actionable result when the body is unavailable.
+        }
+        if (runtime.shuttingDown || runtime.activeRunId !== runId) return;
+        const outcome = classifyTravelResponse(response.status(), payload);
+        if (outcome.kind === 'confirmed') {
+            console.log(`✅ [${searchId}] ${outcome.detail}`);
+        } else if (outcome.kind === 'confirmation-required') {
+            console.log(`⚠️  [${searchId}] ${outcome.detail}`);
+        } else {
+            console.log(`❌ [${searchId}] Teleport request failed: ${outcome.detail}`);
+        }
+    };
+
+    page.on('response', handler);
+    runtime.responseHandlers.set(page, handler);
+    return handler;
+}
+
+function detachTravelResponseLogging(page, expectedHandler = null) {
+    const handler = runtime.responseHandlers.get(page);
+    if (!handler || (expectedHandler && handler !== expectedHandler)) return false;
+    page.off('response', handler);
+    runtime.responseHandlers.delete(page);
+    return true;
+}
+
+async function cleanupStalePageInstall(page, runId, responseHandler) {
+    detachTravelResponseLogging(page, responseHandler);
+    try {
+        await page.evaluate(disarmPageWorkerForRun, runId);
+    } catch (error) {
+        // A closed/navigating page will fail closed when its short lease expires.
+    }
+}
+
+async function installMonitoredPageWorker(
+    page,
+    searchId,
+    runId,
+    workerOptions,
+    isActive = () => isMonitoringRunActive(runId, workerOptions.generation),
+) {
+    if (!isActive()) return { installed: false, stale: true, runId };
+    const responseHandler = attachTravelResponseLogging(page, searchId, runId);
+    try {
+        const result = await page.evaluate(installPageWorker, workerOptions);
+        if (!isActive() || result?.stale || result?.installed !== true) {
+            await cleanupStalePageInstall(page, runId, responseHandler);
+            return { ...result, installed: false, stale: true, runId };
+        }
+        return { ...result, responseHandler };
+    } catch (error) {
+        detachTravelResponseLogging(page, responseHandler);
+        if (!isActive()) {
+            await cleanupStalePageInstall(page, runId, responseHandler);
+            return { installed: false, stale: true, runId };
+        }
+        throw error;
+    }
+}
+
+async function installMonitoredPageSet(
+    pages,
+    tabLabels,
+    runId,
+    createWorkerOptions,
+    onInstalled = () => {},
+    isActive = () => isMonitoringRunActive(runId),
+) {
+    const installedPages = [];
+    try {
+        for (const page of pages) {
+            const searchId = tabLabels.get(page);
+            const result = await installMonitoredPageWorker(
+                page,
+                searchId,
+                runId,
+                createWorkerOptions(searchId),
+                isActive,
+            );
+            if (!result.installed) {
+                throw new Error('Monitoring run was superseded during page installation');
+            }
+            installedPages.push({ page, responseHandler: result.responseHandler });
+            onInstalled(searchId);
+        }
+        return installedPages.length;
+    } catch (error) {
+        for (const installed of installedPages) {
+            await cleanupStalePageInstall(
+                installed.page,
+                runId,
+                installed.responseHandler,
+            );
+        }
+        throw error;
+    }
+}
+
 async function updateActiveWorkerCooldown(browser, runId, cooldownMs) {
     if (!browser || !runId) return { updated: 0, failed: 0 };
     const result = { updated: 0, failed: 0 };
@@ -225,6 +388,7 @@ async function reconnectBrowser(gameConfig) {
     runtime.reconnecting = true;
     runtime.browser = null;
     runtime.activeRunId = null;
+    runtime.activeGeneration = null;
     clearMonitorTimers();
 
     console.log('\n' + '='.repeat(60));
@@ -326,10 +490,14 @@ async function main() {
 
 
 async function startMonitoring(browser, gameConfig) {
+    let runId = null;
+    let generation = null;
     try {
         clearMonitorTimers();
-        const runId = randomUUID();
+        runId = randomUUID();
+        generation = ++runtime.runGeneration;
         runtime.activeRunId = runId;
+        runtime.activeGeneration = generation;
         const pages = await browser.pages();
         
         if (pages.length === 0) {
@@ -383,21 +551,22 @@ async function startMonitoring(browser, gameConfig) {
         console.log('⏹️  Press Ctrl+C to stop completely\n');
 
         // Inject monitoring script into ALL tabs. Polling remains at the existing 50 ms.
-        for (let i = 0; i < tradePages.length; i++) {
-            const page = tradePages[i];
-            const searchId = tabLabels.get(page);
-
-            await page.evaluate(installPageWorker, {
+        await installMonitoredPageSet(
+            tradePages,
+            tabLabels,
+            runId,
+            searchId => ({
                 runId,
+                controllerId: runtime.controllerId,
+                generation,
                 searchId,
                 cooldownMs: state.cooldownMs,
                 leaseExpiresAt: Date.now() + CONTROLLER_LEASE_MS,
                 tradePath: gameConfig.tradePath,
                 pollIntervalMs: PAGE_POLL_INTERVAL_MS,
-            });
-
-            console.log(`  ${searchId} - monitoring enabled`);
-        }
+            }),
+            searchId => console.log(`  ${searchId} - monitoring enabled`),
+        );
 
         console.log('\nAll tabs are being monitored!\n');
         console.log('Auto-detecting new tabs every 30 seconds...\n');
@@ -426,11 +595,14 @@ async function startMonitoring(browser, gameConfig) {
         // Auto-detect new tabs every 30 seconds
         addMonitorInterval(async () => {
             try {
-                const allPages = await browser.pages();
+                const runIsActive = () => isMonitoringRunActive(runId, generation);
+                const allPages = await getActiveRunPages(browser, runId, runIsActive);
+                if (!allPages) return;
                 const pagesToRefresh = [];
                 
                 // Find new tabs and tabs whose SPA route changed searches.
                 for (const p of allPages) {
+                    if (!runIsActive()) return;
                     const url = p.url();
                     if (isLiveTradeUrl(url, gameConfig.tradePath)) {
                         const currentSearchId = getSearchId(url);
@@ -444,20 +616,33 @@ async function startMonitoring(browser, gameConfig) {
                     console.log(`\nDetected ${pagesToRefresh.length} new/changed tab(s)!`);
                     
                     for (const page of pagesToRefresh) {
+                        if (!runIsActive()) return;
                         const searchId = getSearchId(page.url());
-                        if (!tradePages.includes(page)) tradePages.push(page);
+                        const wasTracked = tradePages.includes(page);
+                        const previousSearchId = tabLabels.get(page);
+                        if (!wasTracked) tradePages.push(page);
                         tabLabels.set(page, searchId);
                         
                         console.log(`   Adding: ${searchId}`);
-                        
-                        await page.evaluate(installPageWorker, {
+                        const result = await installMonitoredPageWorker(page, searchId, runId, {
                             runId,
+                            controllerId: runtime.controllerId,
+                            generation,
                             searchId,
                             cooldownMs: state.cooldownMs,
                             leaseExpiresAt: Date.now() + CONTROLLER_LEASE_MS,
                             tradePath: gameConfig.tradePath,
                             pollIntervalMs: PAGE_POLL_INTERVAL_MS,
-                        });
+                        }, runIsActive);
+                        if (!result.installed || !runIsActive()) {
+                            if (!wasTracked) {
+                                const index = tradePages.indexOf(page);
+                                if (index !== -1) tradePages.splice(index, 1);
+                            }
+                            if (previousSearchId === undefined) tabLabels.delete(page);
+                            else tabLabels.set(page, previousSearchId);
+                            return;
+                        }
                         
                         console.log(`   ${searchId} - monitoring enabled`);
                     }
@@ -513,7 +698,9 @@ async function startMonitoring(browser, gameConfig) {
                 if (closedPages.length > 0) {
                     for (let i = closedPages.length - 1; i >= 0; i--) {
                         const index = closedPages[i];
-                        tabLabels.delete(tradePages[index]);
+                        const closedPage = tradePages[index];
+                        detachTravelResponseLogging(closedPage);
+                        tabLabels.delete(closedPage);
                         tradePages.splice(index, 1);
                     }
                     console.log(`\nRemoved ${closedPages.length} closed tab(s)`);
@@ -568,6 +755,7 @@ async function startMonitoring(browser, gameConfig) {
                                         window.poeAutoClicker.paused = false;
                                         window.poeAutoClicker.isClicking = false;
                                         window.poeAutoClicker.pendingConfirmation = false;
+                                        window.poeAutoClicker.pendingListing = null;
                                     }
                                 }, runId);
                             }
@@ -591,6 +779,11 @@ async function startMonitoring(browser, gameConfig) {
         }, 500);
 
     } catch (err) {
+        if (runtime.activeRunId === runId) {
+            runtime.activeRunId = null;
+            runtime.activeGeneration = null;
+            clearMonitorTimers();
+        }
         console.error('❌ Error during monitoring:', err.message);
         console.log('⚠️  Monitoring stopped. Script will continue running.');
         console.log('    Waiting for browser reconnect...\n');
@@ -709,6 +902,12 @@ module.exports = {
     disarmAllBrowserWorkers,
     createLineInput,
     parseRuntimeControl,
+    classifyTravelResponse,
+    attachTravelResponseLogging,
+    detachTravelResponseLogging,
+    installMonitoredPageWorker,
+    installMonitoredPageSet,
+    getActiveRunPages,
     updateActiveWorkerCooldown,
     waitForEnterOrTimeout,
 };

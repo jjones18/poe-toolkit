@@ -7,17 +7,23 @@ const {
     installPageWorker,
     renewPageWorkerLease,
     updatePageWorkerCooldown,
+    disarmPageWorkerForRun,
     disarmPageWorker,
 } = require('../page_worker');
 
-function createButton(text) {
-    const listing = { textContent: '' };
+function createListing(text = '') {
+    return { textContent: text };
+}
+
+function createButton(text, options = {}) {
+    const listing = options.listing || createListing();
     return {
         textContent: text,
-        disabled: false,
+        disabled: Boolean(options.disabled),
         clicks: 0,
+        listing,
         click() {
-            this.clicks += 1;
+            if (!this.disabled) this.clicks += 1;
         },
         closest(selector) {
             return selector === '.resultset' ? listing : null;
@@ -106,6 +112,8 @@ function withFakeBrowser(options, callback) {
 function installDefaultWorker(overrides = {}) {
     return installPageWorker({
         runId: 'run-1',
+        controllerId: 'controller-1',
+        generation: 1,
         searchId: 'abc',
         cooldownMs: 5_000,
         leaseExpiresAt: 4_000,
@@ -113,6 +121,38 @@ function installDefaultWorker(overrides = {}) {
         ...overrides,
     });
 }
+
+test('older controller generation cannot overwrite a newer page worker', () => {
+    withFakeBrowser({}, () => {
+        installDefaultWorker({ runId: 'run-new', generation: 2 });
+        const stale = installDefaultWorker({ runId: 'run-old', generation: 1 });
+
+        assert.deepEqual(stale, {
+            installed: false,
+            stale: true,
+            runId: 'run-old',
+            activeRunId: 'run-new',
+        });
+        assert.equal(global.window.poeAutoClicker.runId, 'run-new');
+        assert.equal(global.window.poeAutoClicker.generation, 2);
+        assert.equal(global.window.poeAutoClicker.running, true);
+    });
+});
+
+test('stale-run cleanup cannot disarm a newer page worker', () => {
+    withFakeBrowser({}, () => {
+        installDefaultWorker({ runId: 'run-new', generation: 2 });
+        const result = disarmPageWorkerForRun('run-old');
+
+        assert.deepEqual(result, {
+            disarmed: false,
+            reason: 'ownership-mismatch',
+            runId: 'run-new',
+        });
+        assert.equal(global.window.poeAutoClicker.running, true);
+        assert.equal(global.window.poeAutoClicker.runId, 'run-new');
+    });
+});
 
 test('expired controller lease prevents a delayed click', () => {
     withFakeBrowser({}, ({ now, buttons, tickIntervals }) => {
@@ -150,11 +190,73 @@ test('Teleport anyway remains immediate after this run initiates Travel', () => 
         assert.equal(travel.clicks, 1);
         assert.equal(global.window.poeAutoClicker.paused, true);
 
-        const teleport = createButton('Teleport anyway');
+        const teleport = createButton('Teleport anyway', { listing: travel.listing });
         buttons.splice(0, buttons.length, teleport);
         tickIntervals();
 
         assert.equal(teleport.clicks, 1);
+    });
+});
+
+test('disabled Teleport anyway is neither clicked nor counted', () => {
+    withFakeBrowser({ now: 6_000 }, ({ buttons, tickIntervals }) => {
+        const listing = createListing();
+        const travel = createButton('Travel to Hideout', { listing });
+        buttons.push(travel);
+        installDefaultWorker({ leaseExpiresAt: 10_000 });
+
+        const teleport = createButton('In demand. Teleport anyway?', {
+            listing,
+            disabled: true,
+        });
+        buttons.splice(0, buttons.length, teleport);
+        tickIntervals();
+        tickIntervals();
+
+        assert.equal(teleport.clicks, 0);
+        assert.equal(global.window.poeAutoClicker.listingClicks.get(listing), 1);
+    });
+});
+
+test('Teleport anyway is limited to the listing this run selected', () => {
+    withFakeBrowser({ now: 6_000 }, ({ buttons, tickIntervals }) => {
+        const selectedListing = createListing();
+        const unrelatedListing = createListing();
+        const travel = createButton('Travel to Hideout', { listing: selectedListing });
+        buttons.push(travel);
+        installDefaultWorker({ leaseExpiresAt: 10_000 });
+
+        const unrelated = createButton('Teleport anyway', { listing: unrelatedListing });
+        const selected = createButton('Teleport anyway', { listing: selectedListing });
+        buttons.splice(0, buttons.length, unrelated, selected);
+        tickIntervals();
+
+        assert.equal(unrelated.clicks, 0);
+        assert.equal(selected.clicks, 1);
+    });
+});
+
+test('Teleport anyway retries are paced instead of firing every poll', () => {
+    withFakeBrowser({ now: 6_000 }, ({ now, buttons, tickIntervals }) => {
+        const listing = createListing();
+        const travel = createButton('Travel to Hideout', { listing });
+        buttons.push(travel);
+        installDefaultWorker({
+            leaseExpiresAt: 10_000,
+            confirmationRetryMs: 1_000,
+        });
+
+        const teleport = createButton('Teleport anyway', { listing });
+        buttons.splice(0, buttons.length, teleport);
+        tickIntervals();
+        tickIntervals();
+        now.value += 999;
+        tickIntervals();
+        assert.equal(teleport.clicks, 1);
+
+        now.value += 1;
+        tickIntervals();
+        assert.equal(teleport.clicks, 2);
     });
 });
 

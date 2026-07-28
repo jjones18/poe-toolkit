@@ -11,6 +11,12 @@ const {
     disarmAllBrowserWorkers,
     createLineInput,
     parseRuntimeControl,
+    classifyTravelResponse,
+    attachTravelResponseLogging,
+    detachTravelResponseLogging,
+    installMonitoredPageWorker,
+    installMonitoredPageSet,
+    getActiveRunPages,
     updateActiveWorkerCooldown,
     waitForEnterOrTimeout,
 } = require('../trade_monitor');
@@ -53,6 +59,144 @@ test('runtime control parser accepts timing updates in seconds', () => {
     });
     assert.equal(parseRuntimeControl('__auto_resume_delay__:0'), null);
     assert.equal(parseRuntimeControl('__cooldown__:not-a-number'), null);
+});
+
+test('travel response classifier distinguishes confirmation from accepted teleport', () => {
+    assert.deepEqual(classifyTravelResponse(200, { success: false }), {
+        kind: 'confirmation-required',
+        detail: 'Item is in demand; sending "Teleport anyway" confirmation',
+    });
+    assert.deepEqual(classifyTravelResponse(200, { success: true }), {
+        kind: 'confirmed',
+        detail: 'Teleport accepted by Path of Exile',
+    });
+});
+
+test('travel response classifier reports server rejection details', () => {
+    assert.deepEqual(
+        classifyTravelResponse(404, {
+            error: { code: 1, message: 'The item is no longer available' },
+        }),
+        {
+            kind: 'failed',
+            detail: 'HTTP 404: The item is no longer available',
+        },
+    );
+});
+
+test('travel response classifier treats 2xx logical errors as failures', () => {
+    assert.deepEqual(
+        classifyTravelResponse(200, {
+            success: false,
+            error: { message: 'The item is no longer available' },
+        }),
+        {
+            kind: 'failed',
+            detail: 'HTTP 200: The item is no longer available',
+        },
+    );
+});
+
+test('travel response logger attachment replaces and detaches handlers cleanly', () => {
+    const page = new EventEmitter();
+    attachTravelResponseLogging(page, 'search-a', 'run-a');
+    assert.equal(page.listenerCount('response'), 1);
+
+    attachTravelResponseLogging(page, 'search-a', 'run-a');
+    assert.equal(page.listenerCount('response'), 1);
+
+    assert.equal(detachTravelResponseLogging(page), true);
+    assert.equal(page.listenerCount('response'), 0);
+    assert.equal(detachTravelResponseLogging(page), false);
+});
+
+test('failed worker installation removes its response logger', async () => {
+    const page = new EventEmitter();
+    page.evaluate = async () => {
+        throw new Error('navigation race');
+    };
+
+    await assert.rejects(
+        installMonitoredPageWorker(page, 'search-a', 'run-a', {}, () => true),
+        /navigation race/,
+    );
+    assert.equal(page.listenerCount('response'), 0);
+});
+
+test('successful worker installation keeps one response logger', async () => {
+    const page = new EventEmitter();
+    page.evaluate = async () => ({ installed: true, runId: 'run-a' });
+
+    await installMonitoredPageWorker(page, 'search-a', 'run-a', {}, () => true);
+    assert.equal(page.listenerCount('response'), 1);
+    detachTravelResponseLogging(page);
+});
+
+test('ownership loss during page install detaches logger and disarms only that run', async () => {
+    const page = new EventEmitter();
+    let active = true;
+    const evaluated = [];
+    page.evaluate = async (fn) => {
+        evaluated.push(fn.name);
+        if (fn.name === 'installPageWorker') {
+            active = false;
+            return { installed: true, runId: 'old-run' };
+        }
+        return { disarmed: true, runId: 'old-run' };
+    };
+
+    const result = await installMonitoredPageWorker(
+        page,
+        'search-a',
+        'old-run',
+        { runId: 'old-run', controllerId: 'controller-1', generation: 1 },
+        () => active,
+    );
+
+    assert.equal(result.stale, true);
+    assert.equal(page.listenerCount('response'), 0);
+    assert.deepEqual(evaluated, ['installPageWorker', 'disarmPageWorkerForRun']);
+});
+
+test('partial multi-page startup rolls back every installed response logger', async () => {
+    const first = new EventEmitter();
+    first.evaluate = async () => ({ installed: true, runId: 'run-a' });
+    const second = new EventEmitter();
+    second.evaluate = async () => {
+        throw new Error('second tab navigation race');
+    };
+    const labels = new Map([
+        [first, 'search-a'],
+        [second, 'search-b'],
+    ]);
+
+    await assert.rejects(
+        installMonitoredPageSet(
+            [first, second],
+            labels,
+            'run-a',
+            searchId => ({ runId: 'run-a', searchId }),
+            () => {},
+            () => true,
+        ),
+        /second tab navigation race/,
+    );
+    assert.equal(first.listenerCount('response'), 0);
+    assert.equal(second.listenerCount('response'), 0);
+});
+
+test('tab discovery drops pages when run ownership changes during browser lookup', async () => {
+    let active = true;
+    const page = {};
+    const browser = {
+        pages: async () => {
+            active = false;
+            return [page];
+        },
+    };
+
+    const pages = await getActiveRunPages(browser, 'old-run', () => active);
+    assert.equal(pages, null);
 });
 
 test('stdin line input separates coalesced runtime updates', () => {
