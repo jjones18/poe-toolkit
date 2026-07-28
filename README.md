@@ -64,7 +64,6 @@ poe-toolkit/
 ├── trade_service/              # Node.js trade service
 ├── config/
 │   ├── config.json             # Shareable settings (presets, keywords)
-│   ├── user_config.json        # Your PC-specific settings (gitignored)
 │   └── user_config.template.json  # Template for new users
 ├── setup.bat                   # Easy setup launcher (double-click)
 ├── setup.ps1                   # PowerShell setup script
@@ -92,13 +91,13 @@ poe-toolkit/
    The setup script will automatically:
    - ✅ Check for Python 3.10+, Node.js 18+, Tesseract OCR, Brave Browser
    - ✅ Install any missing prerequisites via winget
-   - ✅ Create your `user_config.json` from template (won't overwrite existing)
+   - ✅ Create your private per-user `user_config.json` from template (won't overwrite existing)
    - ✅ Install Python dependencies (`pip install`)
    - ✅ Install Node.js dependencies (`npm install`)
    
    > **Note:** Safe to run multiple times - only installs what's missing!
 
-3. **Edit `config/user_config.json`** with your settings:
+3. **Use the toolkit Settings page**, or edit the per-user config path listed under Configuration:
    - `session_id` - Your POESESSID cookie from pathofexile.com
    - `account_name` - Your PoE account name  
    - `league` - Current league name
@@ -121,9 +120,6 @@ If you prefer manual installation:
 ```powershell
 # Install Python dependencies
 pip install -r requirements.txt
-
-# Create user config
-copy config\user_config.template.json config\user_config.json
 
 # Install Node.js dependencies (for Trade Sniper)
 cd trade_service
@@ -159,14 +155,22 @@ python src/main.py
 
 ## ⚙️ Configuration
 
-Settings are split into two files:
+Configuration has a read-only checked-in base and a private per-user override:
 
 | File | Purpose | Git Status |
 |------|---------|------------|
-| `config.json` | Shareable presets, keywords, thresholds | ✅ Tracked |
-| `user_config.json` | Personal settings (credentials, paths, calibration) | ❌ Gitignored |
+| `config/config.json` | Shipped defaults and shareable presets | ✅ Tracked and never rewritten at runtime |
+| Per-user `user_config.json` | All mutable settings, credentials, paths, and calibration | Outside the checkout |
 
-Your personal settings stay private while filter presets can be shared.
+Per-user locations:
+
+- Windows: `%APPDATA%\poe-toolkit\user_config.json`
+- Linux: `$XDG_CONFIG_HOME/poe-toolkit/user_config.json`, or `~/.config/poe-toolkit/user_config.json`
+- macOS: `~/Library/Application Support/poe-toolkit/user_config.json`
+
+Existing `config/user_config.json` files are migrated automatically only when no new-location config exists. A successful migration verifies the new file before removing the legacy copy. Linux files use mode `0600` inside a `0700` directory; the Windows installer restricts the directory ACL to the current user.
+
+Saves use a same-directory temporary file, `fsync`, and atomic replacement. Before replacing a valid config, the toolkit stores `user_config.json.bak` as the last-known-good copy. If the primary is malformed, the backup is loaded with a visible warning; if neither is valid, saves remain blocked so application shutdown cannot overwrite the damaged file with defaults.
 
 ---
 

@@ -1,6 +1,7 @@
 {
-    "_comment": "Copy this file to user_config.json and fill in your settings",
-    "_note": "user_config.json is gitignored and will not be uploaded",
+    "config_schema_version": 2,
+    "_comment": "Copy this template to the per-user poe-toolkit config directory and fill in your settings",
+    "_note": "Use the Settings page or the OS-specific paths documented in README.md; never commit live credentials",
     
     "app": {
         "active_game": "poe1"

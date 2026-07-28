@@ -17,7 +17,7 @@ from ui.calibration import (
     get_calibration_status_text
 )
 from utils import APP_VERSION
-from utils.config import ConfigManager
+from utils.config import ConfigManager, ConfigSaveError
 from utils.coordinate_mapper import StashGridMapper
 from services.trade_service import TradeService
 
@@ -90,7 +90,7 @@ class MainWindow(QMainWindow):
         # Create calibration manager
         self.calibration_manager = CalibrationManager(
             self.config,
-            save_callback=lambda: ConfigManager.save(self.config)
+            save_callback=self._persist_config_callback
         )
         self.calibration_manager.on_complete = self.on_calibration_complete
         
@@ -126,6 +126,16 @@ class MainWindow(QMainWindow):
         if self.sidebar_buttons:
             self.sidebar_buttons[0].setChecked(True)
             self.on_tool_selected(0)
+        self._show_config_load_status()
+
+    def _show_config_load_status(self):
+        """Expose config recovery/failure state after the status UI exists."""
+        if ConfigManager.last_error:
+            self.status_label.setStyleSheet("color: #ff6666;")
+            self.status_label.setText(f"Config error: {ConfigManager.last_error}")
+        elif ConfigManager.last_warning:
+            self.status_label.setStyleSheet("color: #ffaa66;")
+            self.status_label.setText(f"Config warning: {ConfigManager.last_warning}")
     
     def create_sidebar(self) -> QWidget:
         """Create the sidebar navigation panel."""
@@ -345,14 +355,31 @@ class MainWindow(QMainWindow):
     def on_game_combo_changed(self):
         """Switch between PoE 1 and PoE 2 toolsets."""
         game_id = self.game_combo.currentData()
-        if not game_id or game_id == ConfigManager.get_active_game(self.config):
+        previous_game = ConfigManager.get_active_game(self.config)
+        if not game_id or game_id == previous_game:
             return
-        self.save_config()
+        if not self.save_config():
+            self._restore_game_combo(previous_game)
+            return
         ConfigManager.set_active_game(self.config, game_id)
-        ConfigManager.save(self.config)
+        if not self._persist_config():
+            ConfigManager.set_active_game(self.config, previous_game)
+            self._restore_game_combo(previous_game)
+            return
         self.reload_tools()
         profile = ConfigManager.get_game_profile(game_id)
         self.status_label.setText(f"Toolkit mode: {profile['label']}")
+
+    def _restore_game_combo(self, game_id):
+        """Restore a rejected mode selection without re-entering its signal handler."""
+        index = self.game_combo.findData(game_id)
+        if index < 0:
+            return
+        signals_were_blocked = self.game_combo.blockSignals(True)
+        try:
+            self.game_combo.setCurrentIndex(index)
+        finally:
+            self.game_combo.blockSignals(signals_were_blocked)
 
     def clear_tools(self):
         """Remove loaded tool widgets/buttons before rebuilding for another game."""
@@ -568,7 +595,22 @@ class MainWindow(QMainWindow):
                             credentials["league"]
                         )
         
-        ConfigManager.save(self.config)
+        return self._persist_config()
+
+    def _persist_config_callback(self):
+        """Calibration callback adapter, whose contract has no return value."""
+        self._persist_config()
+
+    def _persist_config(self):
+        """Persist shared config and expose failures through the main status UI."""
+        try:
+            ConfigManager.save(self.config)
+        except ConfigSaveError as error:
+            if hasattr(self, "status_label"):
+                self.status_label.setStyleSheet("color: #ff6666;")
+                self.status_label.setText(f"Config save failed: {error}")
+            return False
+        return True
 
     @staticmethod
     def _ordered_config_widgets(widgets):

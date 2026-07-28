@@ -157,7 +157,13 @@ This order intentionally defers tools that are not actively used. It first prote
 
 # Milestone 2 — Shared configuration, workers, and diagnostics
 
+**Status:** Sections 2.1 and 2.2 are complete and verified in release 1.3.0. Sections 2.3–2.5 remain the next application-wide work.
+
+**Verification:** 55 Python tests, 14 Node tests, Python compilation, installer/template syntax checks, and the isolated offscreen UI smoke passed before release.
+
 ## 2.1 Secure and relocate configuration
+
+**Implementation:** Complete. The runtime now uses OS-standard per-user paths, migrates the ignored legacy file without overwriting an existing destination, enforces private Linux modes, and updates Windows/Linux installers to create the private destination directly.
 
 - Move user config to an OS-standard per-user directory.
 - Enforce mode `0600` on Linux and user-only ACLs on Windows.
@@ -165,6 +171,8 @@ This order intentionally defers tools that are not actively used. It first prote
 - Preserve/migrate existing user configuration.
 
 ## 2.2 Atomic configuration writes and recovery
+
+**Implementation:** Complete. The checked-in base is read-only at runtime; the complete mutable override is schema-versioned and atomically persisted with a last-known-good backup. Parse/save failures are visible, and unrecoverable configs block replacement.
 
 - Write temporary file, flush/fsync, then atomic replace.
 - Keep a last-known-good/timestamped backup.

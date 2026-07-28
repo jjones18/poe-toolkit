@@ -10,6 +10,40 @@ import copy
 import json
 import os
 import sys
+import tempfile
+from pathlib import Path
+
+
+def _resolve_user_config_file(platform_name=None, environ=None, home=None):
+    """Resolve the per-user config file without depending on the checkout."""
+    platform_name = platform_name or sys.platform
+    environ = os.environ if environ is None else environ
+    home = Path.home() if home is None else Path(home)
+
+    if platform_name == "win32":
+        base_dir = (
+            environ.get("APPDATA")
+            or environ.get("LOCALAPPDATA")
+            or str(home / "AppData" / "Roaming")
+        )
+    elif platform_name == "darwin":
+        base_dir = str(home / "Library" / "Application Support")
+    else:
+        base_dir = environ.get("XDG_CONFIG_HOME") or str(home / ".config")
+
+    return str(Path(base_dir) / "poe-toolkit" / "user_config.json")
+
+
+class ConfigError(Exception):
+    """Base error for configuration persistence failures."""
+
+
+class ConfigLoadError(ConfigError):
+    """Raised when configuration cannot be safely interpreted."""
+
+
+class ConfigSaveError(ConfigError):
+    """Raised when configuration cannot be safely persisted."""
 
 
 class ConfigManager:
@@ -21,8 +55,109 @@ class ConfigManager:
     # Base config with shareable defaults (checked into git)
     CONFIG_FILE = os.path.join(_PROJECT_ROOT, "config", "config.json")
     
-    # User-specific config (gitignored)
-    USER_CONFIG_FILE = os.path.join(_PROJECT_ROOT, "config", "user_config.json")
+    # Legacy checkout-local user config (gitignored) and its new per-user home.
+    LEGACY_USER_CONFIG_FILE = os.path.join(_PROJECT_ROOT, "config", "user_config.json")
+    USER_CONFIG_FILE = _resolve_user_config_file()
+    USER_CONFIG_BACKUP_FILE = USER_CONFIG_FILE + ".bak"
+    CURRENT_SCHEMA_VERSION = 2
+    last_warning = ""
+    last_error = ""
+    save_blocked = False
+    _recovered_from_backup = False
+
+    @staticmethod
+    def resolve_user_config_file(platform_name=None, environ=None, home=None):
+        return _resolve_user_config_file(platform_name, environ, home)
+
+    @classmethod
+    def _ensure_private_directory(cls, path):
+        directory = os.path.dirname(path)
+        os.makedirs(directory, mode=0o700, exist_ok=True)
+        if os.name != "nt":
+            os.chmod(directory, 0o700)
+
+    @classmethod
+    def _secure_existing_file(cls, path, secure_parent=True):
+        """Apply private modes or convert permission failures into load errors."""
+        try:
+            if secure_parent:
+                cls._ensure_private_directory(path)
+            if os.name != "nt" and os.path.exists(path):
+                os.chmod(path, 0o600)
+        except OSError as error:
+            raise ConfigLoadError(
+                "Configuration permission hardening failed; refusing to load it"
+            ) from error
+
+    @classmethod
+    def _atomic_write_json(cls, path, payload, mode=0o600):
+        """Write JSON through a same-directory temporary file and atomic replace."""
+        cls._ensure_private_directory(path)
+        directory = os.path.dirname(path)
+        descriptor, temp_path = tempfile.mkstemp(prefix=".user-config-", dir=directory)
+        try:
+            if os.name != "nt":
+                os.fchmod(descriptor, mode)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                json.dump(payload, handle, indent=4)
+                handle.write("\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temp_path, path)
+            if os.name != "nt":
+                os.chmod(path, mode)
+                directory_fd = os.open(directory, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+                try:
+                    os.fsync(directory_fd)
+                finally:
+                    os.close(directory_fd)
+        except Exception:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+            try:
+                os.remove(temp_path)
+            except FileNotFoundError:
+                pass
+            raise
+
+    @staticmethod
+    def _read_json(path):
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                payload = json.load(handle)
+        except (json.JSONDecodeError, UnicodeError, OSError) as error:
+            raise ConfigLoadError(f"{path} could not be loaded: {error}") from error
+        if not isinstance(payload, dict):
+            raise ConfigLoadError(f"{path} must contain a JSON object")
+        return payload
+
+    @classmethod
+    def _migrate_payload(cls, payload):
+        """Return a copy upgraded to the current explicit config schema."""
+        migrated = copy.deepcopy(payload)
+        raw_version = migrated.get("config_schema_version", 1)
+        if isinstance(raw_version, bool) or not isinstance(raw_version, int):
+            raise ConfigLoadError("Configuration schema version must be an integer")
+        if raw_version > cls.CURRENT_SCHEMA_VERSION:
+            raise ConfigLoadError(
+                f"Configuration uses newer schema {raw_version}; "
+                f"this build supports {cls.CURRENT_SCHEMA_VERSION}"
+            )
+        if raw_version < 1:
+            raise ConfigLoadError(f"Unsupported configuration schema {raw_version}")
+
+        if raw_version == 1:
+            credentials = migrated.setdefault("credentials", {})
+            legacy_league = credentials.pop("league", None)
+            if legacy_league:
+                migrated.setdefault("game_settings", {}).setdefault("poe1", {})[
+                    "league"
+                ] = legacy_league
+
+        migrated["config_schema_version"] = cls.CURRENT_SCHEMA_VERSION
+        return migrated
     
     # Keys that are PC/user-specific and should be saved to user_config.json
     USER_SPECIFIC_KEYS = {
@@ -59,6 +194,7 @@ class ConfigManager:
     }
 
     DEFAULTS = {
+        "config_schema_version": CURRENT_SCHEMA_VERSION,
         "version": "1.0.0",
         "theme": "dark",
         "app": {
@@ -138,33 +274,96 @@ class ConfigManager:
 
     @classmethod
     def load(cls) -> dict:
-        """Load config from both base and user config files."""
+        """Load checked-in defaults plus a recoverable private override."""
+        cls.last_warning = ""
+        cls.last_error = ""
+        cls.save_blocked = False
+        cls._recovered_from_backup = False
         config = copy.deepcopy(cls.DEFAULTS)
-        
-        # Load base config (shareable settings)
+
+        # The checked-in base remains read-only at runtime.
         if os.path.exists(cls.CONFIG_FILE):
             try:
-                with open(cls.CONFIG_FILE, 'r') as f:
-                    base_config = json.load(f)
-                    config = cls._deep_merge(config, base_config)
-            except (json.JSONDecodeError, OSError):
-                pass
-        
-        # Load user config (PC-specific settings) - overrides base
+                base_config = cls._migrate_payload(cls._read_json(cls.CONFIG_FILE))
+                config = cls._deep_merge(config, base_config)
+            except ConfigLoadError as error:
+                cls.last_warning = f"Checked-in base configuration was ignored: {error}"
+
+        user_config = None
         if os.path.exists(cls.USER_CONFIG_FILE):
             try:
-                with open(cls.USER_CONFIG_FILE, 'r') as f:
-                    user_config = json.load(f)
-                    config = cls._deep_merge(config, user_config)
-            except (json.JSONDecodeError, OSError):
-                pass
-        
+                cls._secure_existing_file(cls.USER_CONFIG_FILE)
+                user_config = cls._migrate_payload(cls._read_json(cls.USER_CONFIG_FILE))
+            except ConfigLoadError as primary_error:
+                try:
+                    cls._secure_existing_file(cls.USER_CONFIG_BACKUP_FILE)
+                    user_config = cls._migrate_payload(
+                        cls._read_json(cls.USER_CONFIG_BACKUP_FILE)
+                    )
+                    cls._recovered_from_backup = True
+                    cls.last_warning = (
+                        "User configuration was recovered from the last-known-good "
+                        f"backup because the primary could not be loaded: {primary_error}"
+                    )
+                except ConfigLoadError as backup_error:
+                    cls.save_blocked = True
+                    cls.last_error = (
+                        f"User configuration could not be loaded: {primary_error}. "
+                        f"No valid backup is available: {backup_error}"
+                    )
+        elif os.path.exists(cls.LEGACY_USER_CONFIG_FILE):
+            try:
+                cls._secure_existing_file(
+                    cls.LEGACY_USER_CONFIG_FILE,
+                    secure_parent=False,
+                )
+                user_config = cls._migrate_payload(
+                    cls._read_json(cls.LEGACY_USER_CONFIG_FILE)
+                )
+            except ConfigLoadError as error:
+                cls.save_blocked = True
+                cls.last_error = f"Legacy user configuration could not be loaded: {error}"
+
+            if user_config is not None:
+                try:
+                    cls._atomic_write_json(cls.USER_CONFIG_FILE, user_config)
+                    verified_config = cls._migrate_payload(
+                        cls._read_json(cls.USER_CONFIG_FILE)
+                    )
+                    if verified_config != user_config:
+                        raise ConfigSaveError(
+                            "migration verification failed: destination content differs"
+                        )
+                    os.remove(cls.LEGACY_USER_CONFIG_FILE)
+                except Exception as error:
+                    cleanup_error = None
+                    if os.path.exists(cls.USER_CONFIG_FILE):
+                        try:
+                            os.remove(cls.USER_CONFIG_FILE)
+                        except OSError as removal_error:
+                            cleanup_error = removal_error
+                    if cleanup_error is not None:
+                        cls.save_blocked = True
+                        cls.last_error = (
+                            "User configuration migration failed and its incomplete "
+                            f"destination could not be removed: {cleanup_error}"
+                        )
+                    else:
+                        cls.last_warning = (
+                            "User configuration migration could not be completed; "
+                            f"the untouched legacy file is still in use: {error}"
+                        )
+
+        if isinstance(user_config, dict):
+            config = cls._deep_merge(config, user_config)
+
         cls.normalize(config)
         return config
 
     @classmethod
     def normalize(cls, config: dict) -> dict:
         """Normalize new/legacy config shapes in-place."""
+        config["config_schema_version"] = cls.CURRENT_SCHEMA_VERSION
         app_config = config.setdefault("app", {})
         active_game = app_config.get("active_game", "poe1")
         if active_game not in cls.GAME_PROFILES:
@@ -270,48 +469,44 @@ class ConfigManager:
 
     @classmethod
     def save(cls, config: dict):
-        """Save config, splitting user-specific settings to user_config.json."""
-        os.makedirs(os.path.dirname(cls.CONFIG_FILE), exist_ok=True)
-        cls.normalize(config)
-        
-        # Split config into base and user-specific
-        base_config = {}
-        user_config = {}
-        
-        for key, value in config.items():
-            if key in cls.USER_SPECIFIC_KEYS:
-                # Entirely user-specific section
-                user_config[key] = value
-            elif key == "league_vision":
-                # Split league_vision into user and base parts
-                base_lv = {}
-                user_lv = {}
-                for lv_key, lv_value in value.items():
-                    if lv_key in cls.USER_SPECIFIC_LEAGUE_VISION_KEYS:
-                        user_lv[lv_key] = lv_value
-                    else:
-                        base_lv[lv_key] = lv_value
-                if base_lv:
-                    base_config["league_vision"] = base_lv
-                if user_lv:
-                    user_config["league_vision"] = user_lv
-            else:
-                # Generic setting
-                base_config[key] = value
-        
-        # Save base config
+        """Atomically save the complete private override; never rewrite the checkout."""
+        if cls.save_blocked:
+            message = cls.last_error or (
+                "Saving is blocked because the existing user configuration could not "
+                "be loaded safely"
+            )
+            raise ConfigSaveError(message)
+
+        payload = copy.deepcopy(config)
+        cls.normalize(payload)
+
         try:
-            with open(cls.CONFIG_FILE, 'w') as f:
-                json.dump(base_config, f, indent=4)
-        except OSError as e:
-            print(f"Error saving config: {e}")
-        
-        # Save user config
-        try:
-            with open(cls.USER_CONFIG_FILE, 'w') as f:
-                json.dump(user_config, f, indent=4)
-        except OSError as e:
-            print(f"Error saving user config: {e}")
+            if os.path.exists(cls.USER_CONFIG_FILE):
+                try:
+                    previous = cls._read_json(cls.USER_CONFIG_FILE)
+                    cls._migrate_payload(previous)  # Validate before making it a backup.
+                except ConfigLoadError as error:
+                    if not cls._recovered_from_backup:
+                        cls.save_blocked = True
+                        cls.last_error = str(error)
+                        raise ConfigSaveError(
+                            "Refusing to overwrite an unreadable user configuration: "
+                            f"{error}"
+                        ) from error
+                else:
+                    cls._atomic_write_json(cls.USER_CONFIG_BACKUP_FILE, previous)
+
+            cls._atomic_write_json(cls.USER_CONFIG_FILE, payload)
+        except ConfigSaveError:
+            raise
+        except Exception as error:
+            cls.last_error = f"User configuration could not be saved: {error}"
+            raise ConfigSaveError(cls.last_error) from error
+
+        cls.last_error = ""
+        cls.save_blocked = False
+        cls._recovered_from_backup = False
+        return True
 
     @classmethod
     def _deep_merge(cls, base: dict, override: dict) -> dict:

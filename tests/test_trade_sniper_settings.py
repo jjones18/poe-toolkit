@@ -21,7 +21,7 @@ from tools.trade_sniper.tool import (
     get_trade_profile_dir,
     prepare_trade_profile_dir,
 )
-from utils.config import ConfigManager
+from utils.config import ConfigManager, ConfigSaveError
 
 ORIGINAL_CHECK_SETUP = TradeSniperWidget.check_setup
 
@@ -74,6 +74,31 @@ class TradeSniperSettingsTests(unittest.TestCase):
             ],
         )
         self.assertEqual(save.call_count, 3)
+
+    def test_setting_save_failure_is_visible_in_status_and_log(self):
+        with patch.object(
+            ConfigManager,
+            "save",
+            side_effect=ConfigSaveError("simulated disk failure"),
+        ):
+            saved = self.widget._save_trade_setting("cooldown_ms", 9_000)
+
+        self.assertFalse(saved)
+        self.assertIn("config save failed", self.widget.status_label.text().lower())
+        self.assertIn("simulated disk failure", self.widget.log_area.toPlainText().lower())
+
+    def test_setting_save_failure_does_not_apply_live_service_update(self):
+        self.widget.is_service_running = True
+        self.widget.service.send_input = Mock()
+
+        with patch.object(
+            ConfigManager,
+            "save",
+            side_effect=ConfigSaveError("simulated disk failure"),
+        ):
+            self.widget.cooldown_spin.setValue(9)
+
+        self.widget.service.send_input.assert_not_called()
 
     def test_start_passes_current_auto_resume_delay(self):
         self.widget.service.start = Mock()

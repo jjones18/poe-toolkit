@@ -121,13 +121,21 @@ if [ -d "trade_service" ] && command -v npm &>/dev/null; then
 fi
 
 # ── User config ───────────────────────────────────────────────────────────────
-if [ ! -f "config/user_config.json" ]; then
-    cp config/user_config.template.json config/user_config.json
-    ok "Created config/user_config.json from template"
-    warn "Edit config/user_config.json and fill in your POESESSID and account name."
+USER_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/poe-toolkit"
+USER_CONFIG_PATH="$USER_CONFIG_DIR/user_config.json"
+LEGACY_USER_CONFIG="$SCRIPT_DIR/config/user_config.json"
+
+install -d -m 700 "$USER_CONFIG_DIR"
+if [ -f "$LEGACY_USER_CONFIG" ] && [ ! -f "$USER_CONFIG_PATH" ]; then
+    warn "Legacy config found at $LEGACY_USER_CONFIG."
+    warn "The toolkit will migrate it safely to $USER_CONFIG_PATH on first launch."
+elif [ ! -f "$USER_CONFIG_PATH" ]; then
+    install -m 600 config/user_config.template.json "$USER_CONFIG_PATH"
+    ok "Created $USER_CONFIG_PATH from template"
+    warn "Edit $USER_CONFIG_PATH and fill in your POESESSID and account name."
     warn "Set 'client_log_path' to your PoE Client.txt path (check your Wine/Proton prefix)."
 else
-    ok "config/user_config.json already exists (not overwritten)"
+    ok "$USER_CONFIG_PATH already exists (not overwritten)"
 fi
 
 echo ""

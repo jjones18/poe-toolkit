@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
 )
 
 from tools.base_tool import BaseTool
-from utils.config import ConfigManager
+from utils.config import ConfigManager, ConfigSaveError
 
 
 class LeagueFetchWorker(QThread):
@@ -262,13 +262,19 @@ class SettingsWidget(QWidget):
         ConfigManager.set_game_league(self.config, "poe2", self.current_combo_text(self.poe2_league_combo))
         ConfigManager.set_active_game(self.config, new_game)
         ConfigManager.set_client_log_path(self.config, self.client_log_input.text())
-        ConfigManager.save(self.config)
+        try:
+            ConfigManager.save(self.config)
+        except ConfigSaveError as error:
+            self.status_label.setStyleSheet("color: #ff6666;")
+            self.status_label.setText(f"Save failed: {error}")
+            return False
 
         self.status_label.setStyleSheet("color: #66ff66;")
         self.status_label.setText("Saved")
         self.settings_saved.emit()
         if new_game != old_game:
             self.game_changed.emit(new_game)
+        return True
 
     def sync_config(self):
         """Push visible field values into the shared config before app save."""

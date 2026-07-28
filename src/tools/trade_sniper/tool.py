@@ -18,7 +18,7 @@ from PyQt6.QtCore import QObject, QRunnable, Qt, QThreadPool, QTimer, pyqtSignal
 
 from tools.base_tool import BaseTool
 from services.trade_service import TradeService
-from utils.config import ConfigManager
+from utils.config import ConfigManager, ConfigSaveError
 
 
 def get_trade_profile_dir(platform_name=None, environ=None, home=None):
@@ -475,23 +475,33 @@ class TradeSniperWidget(QWidget):
     def _save_trade_setting(self, key: str, value):
         """Persist a Trade Sniper setting in the shared configuration."""
         self.trade_config[key] = value
-        ConfigManager.save(self.config)
+        try:
+            ConfigManager.save(self.config)
+        except ConfigSaveError as error:
+            self.status_label.setText(f"Status: Config save failed: {error}")
+            self.status_label.setStyleSheet("font-size: 14px; color: #ff6666;")
+            self.log(f"ERROR: Config save failed: {error}")
+            return False
+        return True
 
     def on_auto_resume_toggled(self, checked: bool):
         """Persist and send the auto-resume toggle to the running service."""
-        self._save_trade_setting("auto_resume", checked)
+        if not self._save_trade_setting("auto_resume", checked):
+            return
         if self.is_service_running:
             self.service.send_input(f"__auto_resume__:{'on' if checked else 'off'}\n")
 
     def on_auto_resume_delay_changed(self, seconds: int):
         """Persist and live-update the auto-resume delay."""
-        self._save_trade_setting("auto_resume_delay_ms", seconds * 1000)
+        if not self._save_trade_setting("auto_resume_delay_ms", seconds * 1000):
+            return
         if self.is_service_running:
             self.service.send_input(f"__auto_resume_delay__:{seconds}\n")
 
     def on_cooldown_changed(self, seconds: int):
         """Persist and live-update the post-teleport click cooldown."""
-        self._save_trade_setting("cooldown_ms", seconds * 1000)
+        if not self._save_trade_setting("cooldown_ms", seconds * 1000):
+            return
         if self.is_service_running:
             self.service.send_input(f"__cooldown__:{seconds}\n")
     

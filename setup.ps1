@@ -220,15 +220,34 @@ if ($needsInstall.Count -gt 0 -and -not $SkipInstalls) {
 Write-Host "--- Setting Up Configuration ---" -ForegroundColor Yellow
 Write-Host ""
 
-$userConfigPath = Join-Path $scriptDir "config\user_config.json"
+$configBase = $env:APPDATA
+if ([string]::IsNullOrWhiteSpace($configBase)) {
+    $configBase = $env:LOCALAPPDATA
+}
+if ([string]::IsNullOrWhiteSpace($configBase)) {
+    $configBase = Join-Path $HOME "AppData\Roaming"
+}
+$userConfigDir = Join-Path $configBase "poe-toolkit"
+$userConfigPath = Join-Path $userConfigDir "user_config.json"
+$legacyUserConfigPath = Join-Path $scriptDir "config\user_config.json"
 $templatePath = Join-Path $scriptDir "config\user_config.template.json"
 
-if (-not (Test-Path $userConfigPath) -or $Force) {
+New-Item -ItemType Directory -Path $userConfigDir -Force | Out-Null
+$currentIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+& icacls $userConfigDir /inheritance:r /grant:r "${currentIdentity}:(OI)(CI)F" | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning "Could not restrict the configuration directory ACL automatically."
+}
+
+if ((Test-Path $legacyUserConfigPath) -and -not (Test-Path $userConfigPath)) {
+    Write-Warning "Legacy config found at $legacyUserConfigPath"
+    Write-Warning "The toolkit will migrate it safely to $userConfigPath on first launch."
+} elseif (-not (Test-Path $userConfigPath) -or $Force) {
     if (Test-Path $templatePath) {
         Write-Status "Creating user_config.json from template..."
         Copy-Item $templatePath $userConfigPath
-        Write-Success "Created config/user_config.json"
-        Write-Warning "IMPORTANT: Edit config/user_config.json with your settings:"
+        Write-Success "Created $userConfigPath"
+        Write-Warning "IMPORTANT: Edit $userConfigPath with your settings:"
         Write-Host "  - session_id: Your POESESSID cookie" -ForegroundColor Gray
         Write-Host "  - account_name: Your PoE account name" -ForegroundColor Gray
         Write-Host "  - league: Current league name" -ForegroundColor Gray
@@ -237,7 +256,7 @@ if (-not (Test-Path $userConfigPath) -or $Force) {
         Write-Error "Template file not found: $templatePath"
     }
 } else {
-    Write-Success "user_config.json already exists (use -Force to overwrite)"
+    Write-Success "$userConfigPath already exists (use -Force to overwrite)"
 }
 
 Write-Host ""
@@ -308,7 +327,7 @@ Write-Host "          Setup Complete!              " -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Cyan
-Write-Host "  1. Edit config/user_config.json with your settings" -ForegroundColor White
+Write-Host "  1. Edit $userConfigPath with your settings" -ForegroundColor White
 Write-Host "  2. Run: python src/main.py" -ForegroundColor White
 Write-Host "  3. Calibrate your stash overlay (Settings menu)" -ForegroundColor White
 Write-Host ""

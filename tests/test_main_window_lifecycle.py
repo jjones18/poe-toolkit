@@ -17,7 +17,9 @@ from PyQt6.QtWidgets import QApplication
 from services.trade_service import TradeService
 from tools.trade_sniper import TradeSniperTool
 from ui.main_window import MainWindow
-from utils.config import ConfigManager
+from utils import config as config_module
+
+ConfigManager = config_module.ConfigManager
 
 
 class RunningProcess:
@@ -38,6 +40,11 @@ class MainWindowTradeLifecycleTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
+
+    def setUp(self):
+        self.save_patcher = patch.object(ConfigManager, "save", return_value=True)
+        self.save_patcher.start()
+        self.addCleanup(self.save_patcher.stop)
 
     def test_mode_reload_reuses_application_trade_service_without_stopping_it(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -67,6 +74,92 @@ class MainWindowTradeLifecycleTests(unittest.TestCase):
                 service.stop.assert_called_once_with()
                 service.process = None
                 service._running = False
+
+    def test_load_error_is_visible_after_window_construction(self):
+        config = copy.deepcopy(ConfigManager.DEFAULTS)
+        ConfigManager.set_active_game(config, "poe2")
+        ConfigManager.last_error = "User configuration could not be loaded"
+        service = Mock()
+        service.is_running = False
+
+        with (
+            patch.object(ConfigManager, "load", return_value=config),
+            patch("tools.trade_sniper.tool.TradeSniperWidget.check_setup"),
+            patch("tools.trade_sniper.tool.TradeSniperWidget.check_brave_status"),
+        ):
+            window = MainWindow(trade_service=service)
+
+        self.addCleanup(window.close)
+        self.addCleanup(setattr, ConfigManager, "last_error", "")
+        self.assertIn("config error", window.status_label.text().lower())
+        self.assertIn("could not be loaded", window.status_label.text().lower())
+
+    def test_save_failure_is_visible_and_returns_false(self):
+        config = copy.deepcopy(ConfigManager.DEFAULTS)
+        ConfigManager.set_active_game(config, "poe2")
+        service = Mock()
+        service.is_running = False
+
+        with (
+            patch.object(ConfigManager, "load", return_value=config),
+            patch("tools.trade_sniper.tool.TradeSniperWidget.check_setup"),
+            patch("tools.trade_sniper.tool.TradeSniperWidget.check_brave_status"),
+        ):
+            window = MainWindow(trade_service=service)
+
+        with patch.object(
+            ConfigManager,
+            "save",
+            side_effect=config_module.ConfigSaveError("simulated disk failure"),
+        ):
+            saved = window.save_config()
+
+        self.assertFalse(saved)
+        self.assertIn("config save failed", window.status_label.text().lower())
+        window.close()
+
+    def test_game_combo_rolls_back_when_pre_switch_save_fails(self):
+        config = copy.deepcopy(ConfigManager.DEFAULTS)
+        ConfigManager.set_active_game(config, "poe2")
+        service = Mock()
+        service.is_running = False
+
+        with (
+            patch.object(ConfigManager, "load", return_value=config),
+            patch("tools.trade_sniper.tool.TradeSniperWidget.check_setup"),
+            patch("tools.trade_sniper.tool.TradeSniperWidget.check_brave_status"),
+        ):
+            window = MainWindow(trade_service=service)
+
+        self.addCleanup(window.close)
+        with patch.object(window, "save_config", return_value=False):
+            window.game_combo.setCurrentIndex(window.game_combo.findData("poe1"))
+
+        self.assertEqual(window.game_combo.currentData(), "poe2")
+        self.assertEqual(ConfigManager.get_active_game(window.config), "poe2")
+
+    def test_game_combo_rolls_back_when_mode_persist_fails(self):
+        config = copy.deepcopy(ConfigManager.DEFAULTS)
+        ConfigManager.set_active_game(config, "poe2")
+        service = Mock()
+        service.is_running = False
+
+        with (
+            patch.object(ConfigManager, "load", return_value=config),
+            patch("tools.trade_sniper.tool.TradeSniperWidget.check_setup"),
+            patch("tools.trade_sniper.tool.TradeSniperWidget.check_brave_status"),
+        ):
+            window = MainWindow(trade_service=service)
+
+        self.addCleanup(window.close)
+        with (
+            patch.object(window, "save_config", return_value=True),
+            patch.object(window, "_persist_config", return_value=False),
+        ):
+            window.game_combo.setCurrentIndex(window.game_combo.findData("poe1"))
+
+        self.assertEqual(window.game_combo.currentData(), "poe2")
+        self.assertEqual(ConfigManager.get_active_game(window.config), "poe2")
 
 
 if __name__ == "__main__":

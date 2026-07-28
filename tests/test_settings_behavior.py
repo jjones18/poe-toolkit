@@ -15,7 +15,9 @@ from PyQt6.QtWidgets import QApplication
 
 from tools.settings_tool import SettingsWidget
 from ui.main_window import MainWindow
-from utils.config import ConfigManager
+from utils import config as config_module
+
+ConfigManager = config_module.ConfigManager
 
 
 class SettingsOwnershipTests(unittest.TestCase):
@@ -77,6 +79,25 @@ class SettingsOwnershipTests(unittest.TestCase):
 
         settings_owner.refresh_shared_settings.assert_called_once_with()
         dependent.refresh_shared_settings.assert_called_once_with()
+
+    def test_settings_save_failure_is_visible_and_does_not_emit_success(self):
+        config = self.make_config()
+        with patch.object(SettingsWidget, "fetch_leagues"):
+            widget = SettingsWidget(config)
+            self.addCleanup(widget.close)
+        saved = Mock()
+        widget.settings_saved.connect(saved)
+
+        with patch.object(
+            ConfigManager,
+            "save",
+            side_effect=config_module.ConfigSaveError("simulated disk failure"),
+        ):
+            widget.save_settings()
+
+        self.assertIn("save failed", widget.status_label.text().lower())
+        self.assertIn("simulated disk failure", widget.status_label.text().lower())
+        saved.assert_not_called()
 
 
 if __name__ == "__main__":
