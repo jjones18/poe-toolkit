@@ -86,11 +86,7 @@ class ScannerWorker(QThread):
         
         # Clear debug log on start
         if self.debug_mode:
-            try:
-                with open("debug.log", "w", encoding="utf-8") as f:
-                    f.write("--- Scanner Debug Log Started ---\n")
-            except:
-                pass
+            DebugLogger.reset("--- Scanner Debug Log Started ---")
             DebugLogger.log(f"Scanner initialized. Tesseract: {tesseract_path}", "Vision")
         
         # Setup hotkey (Shift+Esc to stop)

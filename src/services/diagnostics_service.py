@@ -60,7 +60,7 @@ class DiagnosticsService:
         self.devtools_probe = devtools_probe or self._probe_devtools
 
     def _default_cache_targets(self) -> list[CacheTarget]:
-        return [
+        targets = [
             CacheTarget(
                 key="price-user",
                 label="Price cache (per-user)",
@@ -79,6 +79,8 @@ class DiagnosticsService:
                 stale_after=timedelta(hours=24),
                 clearable=True,
             ),
+        ]
+        legacy_targets = [
             CacheTarget(
                 key="price-root",
                 label="Price cache (project root)",
@@ -104,6 +106,7 @@ class DiagnosticsService:
                 stale_after=timedelta(hours=24),
             ),
         ]
+        return targets + [target for target in legacy_targets if target.path.exists()]
 
     @staticmethod
     def _unknown_dependencies() -> dict:

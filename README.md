@@ -2,7 +2,7 @@
 
 A unified Path of Exile helper application combining multiple tools into a single, modern interface.
 
-![Version](https://img.shields.io/badge/Version-1.5.0-blue.svg)
+![Version](https://img.shields.io/badge/Version-1.6.0-blue.svg)
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
@@ -47,7 +47,7 @@ cached item contents:
 - Active game/league, shared services, workers, Client.txt, and zone monitor
 - Explicit Node/npm, Tesseract, and local DevTools readiness tests
 - Price/dust cache source, league, schema, age, and item count
-- Open runtime directories, clear only known caches, and export redacted JSON
+- Open runtime directories, clear only per-user caches, and export redacted JSON
 - Dependency probes run only when requested and use cancellable bounded workers
 
 ---
@@ -180,6 +180,20 @@ Per-user locations:
 Existing `config/user_config.json` files are migrated automatically only when no new-location config exists. A successful migration verifies the new file before removing the legacy copy. Linux files use mode `0600` inside a `0700` directory; the Windows installer restricts the directory ACL to the current user.
 
 Saves use a same-directory temporary file, `fsync`, and atomic replacement. Before replacing a valid config, the toolkit stores `user_config.json.bak` as the last-known-good copy. If the primary is malformed, the backup is loaded with a visible warning; if neither is valid, saves remain blocked so application shutdown cannot overwrite the damaged file with defaults.
+
+Mutable runtime data also stays outside the checkout:
+
+- Windows: caches/logs under `%LOCALAPPDATA%\poe-toolkit`
+- Linux: caches under `$XDG_CACHE_HOME/poe-toolkit` and logs under `$XDG_STATE_HOME/poe-toolkit/logs`
+- macOS: caches under `~/Library/Caches/poe-toolkit` and logs under `~/Library/Logs/poe-toolkit`
+
+Legacy checkout-local price and dust caches are migrated once. A valid existing
+per-user destination wins; otherwise the newest valid legacy cache is copied
+atomically and verified before checkout duplicates are removed. Debug logs and
+opt-in screenshots use the per-user log/cache directories, and screenshot
+retention is bounded. If the per-user cache is malformed but a valid legacy
+cache exists, the malformed file is preserved with a `.invalid` suffix before
+recovery.
 
 ---
 

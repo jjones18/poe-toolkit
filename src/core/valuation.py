@@ -8,12 +8,16 @@ import time
 import os
 from datetime import datetime, timedelta
 
+from utils.app_paths import resolve_runtime_paths
+
 
 class PriceCache:
     """Manages price data caching to reduce API calls."""
     
-    def __init__(self, cache_file='price_cache.json', cache_duration_hours=4):
-        self.cache_file = cache_file
+    def __init__(self, cache_file=None, cache_duration_hours=4):
+        if cache_file is None:
+            cache_file = resolve_runtime_paths().prepare_price_cache()
+        self.cache_file = str(cache_file)
         self.cache_duration = timedelta(hours=cache_duration_hours)
 
     def load(self):
@@ -39,6 +43,7 @@ class PriceCache:
             'prices': prices,
             'categories': categories
         }
+        os.makedirs(os.path.dirname(os.path.abspath(self.cache_file)), exist_ok=True)
         with open(self.cache_file, 'w') as f:
             json.dump(data, f)
 

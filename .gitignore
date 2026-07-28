@@ -48,8 +48,10 @@ ENV/
 
 # Cache files
 price_cache.json
+dust_cache.json
 *.log
 debug.log
+debug_tab_capture_*.png
 
 # Config with secrets/user-specific settings
 config/settings.json

@@ -27,6 +27,7 @@ except ImportError:
     print("Warning: mss not found. Screen capture disabled.")
 
 from utils import platform_utils
+from utils.logger import DebugLogger
 
 
 @dataclass
@@ -159,7 +160,10 @@ class TabTracker(QObject):
         # Save debug image if needed
         if self.debug_mode:
             try:
-                cv2.imwrite("debug_tab_capture_raw.png", img)
+                cv2.imwrite(
+                    str(DebugLogger.capture_path("debug_tab_capture_raw.png")),
+                    img,
+                )
             except: pass
         
         # Upscale for better OCR
@@ -197,7 +201,10 @@ class TabTracker(QObject):
         
         if self.debug_mode:
             try:
-                cv2.imwrite("debug_tab_capture_processed.png", final)
+                cv2.imwrite(
+                    str(DebugLogger.capture_path("debug_tab_capture_processed.png")),
+                    final,
+                )
             except: pass
             
         return final

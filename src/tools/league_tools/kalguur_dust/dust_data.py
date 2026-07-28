@@ -14,18 +14,17 @@ import requests
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
+from utils.app_paths import resolve_runtime_paths
+
 
 class DustDataCache:
     """Manages caching of dust data to reduce API calls."""
     
-    def __init__(self, cache_file: str = None, cache_duration_hours: int = 24):
+    def __init__(self, cache_file: str | os.PathLike | None = None, cache_duration_hours: int = 24):
         if cache_file is None:
-            # Store in project root config area
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
-            cache_file = os.path.join(project_root, "dust_cache.json")
+            cache_file = resolve_runtime_paths().prepare_dust_cache()
         
-        self.cache_file = cache_file
+        self.cache_file = str(cache_file)
         self.cache_duration = timedelta(hours=cache_duration_hours)
     
     def load(self) -> Optional[dict]:
@@ -54,6 +53,7 @@ class DustDataCache:
             'dust_values': dust_data
         }
         try:
+            os.makedirs(os.path.dirname(os.path.abspath(self.cache_file)), exist_ok=True)
             with open(self.cache_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2)
         except OSError as e:

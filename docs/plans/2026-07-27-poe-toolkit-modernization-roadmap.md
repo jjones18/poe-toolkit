@@ -157,9 +157,9 @@ This order intentionally defers tools that are not actively used. It first prote
 
 # Milestone 2 — Shared configuration, workers, and diagnostics
 
-**Status:** Sections 2.1 and 2.2 are complete in release 1.3.0, Section 2.3 in release 1.4.0, and Section 2.4 in release 1.5.0. Section 2.5 remains the next application-wide task.
+**Status:** Sections 2.1 and 2.2 are complete in release 1.3.0, Section 2.3 in release 1.4.0, Section 2.4 in release 1.5.0, and Section 2.5 in release 1.6.0.
 
-**Verification:** 102 Python tests, 14 Node tests, Python compilation, installer/template syntax checks, and the isolated offscreen UI smoke passed before release 1.5.0.
+**Verification:** 113 Python tests, 14 Node tests, Python compilation, installer/template syntax checks, and the isolated offscreen UI smoke passed before release 1.6.0.
 
 ## 2.1 Secure and relocate configuration
 
@@ -210,7 +210,7 @@ per-user directories, and legacy price/dust cache provenance and freshness.
 Dependency and local DevTools probes run only on explicit request through the
 shared cancellable-worker registry. Cache deletion is allowlisted and confirmed;
 exports are recursively scrubbed of configured account/session values. Legacy
-cache paths remain visible until their relocation in Section 2.5.
+legacy cache paths are shown only when an unmigrated leftover still exists.
 
 Display without exposing secrets:
 - Active game and league.
@@ -229,6 +229,16 @@ Actions:
 - Export redacted diagnostics.
 
 ## 2.5 Mutable data cleanup
+
+**Implementation:** Complete in release 1.6.0. Price and dust cache defaults,
+debug logs, and opt-in debug captures now use OS-standard per-user directories.
+Cache migration is destination-wins, selects the newest valid legacy JSON when
+needed, uses an atomic verified copy, and removes checkout duplicates only after
+the destination is valid. Malformed destinations are retained as `.invalid`
+before recovery from a valid legacy source. Debug capture names are sanitized
+and retention is bounded. Tracked runtime dust data and generated tab captures
+were removed from the repository and ignored going forward; the Brave profile
+was already in its per-user data directory.
 
 - Move logs, caches, screenshots, and browser profiles out of the repository.
 - Remove/ignore generated `debug_tab_capture_*.png` and runtime `dust_cache.json`.

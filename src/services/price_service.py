@@ -14,13 +14,16 @@ class PriceRefreshWorker(QThread):
     log_signal = pyqtSignal(str)
     finished_signal = pyqtSignal(object)  # Emits the price fetcher
     
-    def __init__(self, league: str, cache_path: str = 'price_cache.json'):
+    def __init__(self, league: str, cache_path: str | os.PathLike | None = None):
         super().__init__()
         self.league = league
         self.cache_path = cache_path
         
     def run(self):
         self.log_signal.emit("Fetching fresh prices from poe.ninja...")
+
+        cache = PriceCache(self.cache_path)
+        self.cache_path = cache.cache_file
         
         # Force cache invalidation
         if os.path.exists(self.cache_path):
@@ -30,7 +33,7 @@ class PriceRefreshWorker(QThread):
             except Exception as e:
                 self.log_signal.emit(f"Error clearing cache: {e}")
         
-        fetcher = NinjaPriceFetcher(self.league, PriceCache(self.cache_path))
+        fetcher = NinjaPriceFetcher(self.league, cache)
         fetcher.fetch_all_prices()
         self.log_signal.emit(f"Prices updated: {len(fetcher.prices)} items.")
         self.finished_signal.emit(fetcher)
