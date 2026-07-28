@@ -322,6 +322,10 @@ Milestones 4–6.
 
 # Milestone 4 — League Vision
 
+Status: Complete in v1.8.0. League Vision now persists and applies settings live,
+uses bounded OCR, exact PoE client matching, fail-closed scanner shutdown, and
+validated import/calibration flows with focused offscreen coverage.
+
 - Persist feature checkboxes immediately or with debounce.
 - Apply changes live or label them `next scanner start`.
 - Save map-device calibration immediately; do not claim saved before persistence.

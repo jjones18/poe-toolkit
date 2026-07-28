@@ -2,7 +2,7 @@
 
 A unified Path of Exile helper application combining multiple tools into a single, modern interface.
 
-![Version](https://img.shields.io/badge/Version-1.7.0-blue.svg)
+![Version](https://img.shields.io/badge/Version-1.8.0-blue.svg)
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
