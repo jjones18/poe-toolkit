@@ -91,11 +91,6 @@ class HighlightOverlay(BaseOverlay):
         self.highlights = [QRect(*r) if isinstance(r, tuple) else r for r in rects]
         self.highlight_states = [False] * len(self.highlights)
         self.update()
-        
-        if self.highlights:
-            self.show()
-        else:
-            self.hide()
 
     def paintEvent(self, event):
         if not self.highlights:

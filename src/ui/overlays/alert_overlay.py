@@ -1,5 +1,5 @@
 from PyQt6.QtGui import QPainter, QColor, QPen, QFont
-from PyQt6.QtCore import QRect, Qt, QTimer
+from PyQt6.QtCore import QRect, Qt
 from .base_overlay import BaseOverlay
 
 class AlertOverlay(BaseOverlay):
@@ -12,6 +12,9 @@ class AlertOverlay(BaseOverlay):
         self.guidance_text = ""
         self.guidance_x = -1
         self.guidance_y = -1
+
+    def has_visible_content(self) -> bool:
+        return bool(self.message or self.guidance_text)
         
     def show_alert(self, message: str, color: str = "red", duration_ms: int = 2000):
         self.message = message
@@ -22,26 +25,18 @@ class AlertOverlay(BaseOverlay):
         else:
             self.color = QColor(color)
             
-        self.show()
         self.update()
-        QTimer.singleShot(duration_ms, self._clear_alert)
 
     def set_guidance(self, text: str, x: int = -1, y: int = -1):
         """Set persistent guidance text. If x/y > 0, text is anchored there."""
         self.guidance_text = text
         self.guidance_x = x
         self.guidance_y = y
-        if text:
-            self.show()
-        elif not self.message:
-            self.hide()
         self.update()
 
-    def _clear_alert(self):
+    def clear_alert(self):
         self.message = ""
         self.update()
-        if not self.guidance_text:
-            self.hide()
 
     def paintEvent(self, event):
         painter = QPainter(self)

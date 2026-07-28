@@ -3,60 +3,109 @@ from .overlays.debug_overlay import DebugOverlay
 from .overlays.calibration_overlay import CalibrationOverlay
 from .overlays.alert_overlay import AlertOverlay
 from .overlay import BlockerWindow # Reuse existing blocker window logic
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, QTimer, pyqtSignal
+
 
 class OverlayManager(QObject):
     """
-    Manages multiple overlay layers.
-    Replacement for the monolithic OverlayWindow.
+    Manages multiple overlay layers and owns the single Show Overlay state.
     """
-    
+
     calibration_clicked = pyqtSignal(int, int)
-    
+
     def __init__(self):
         super().__init__()
-        
-        # Create layers
+        self.overlay_enabled = False
         self.highlight_layer = HighlightOverlay()
         self.debug_layer = DebugOverlay()
         self.calibration_layer = CalibrationOverlay()
         self.alert_layer = AlertOverlay()
-        
+        self._alert_timer = QTimer(self)
+        self._alert_timer.setSingleShot(True)
+        self._alert_timer.timeout.connect(self._expire_alert)
         self.blockers = []
-        
-        # Connect signals
         self.calibration_layer.calibration_clicked.connect(self.calibration_clicked)
-        
-        # Stack layers (Debug and Alert on top)
-        self.highlight_layer.show()
-        self.debug_layer.show()
-        self.calibration_layer.hide()
-        self.alert_layer.hide()
-        
-        # Raise to top
+        self._all_layers = [
+            self.highlight_layer,
+            self.debug_layer,
+            self.calibration_layer,
+            self.alert_layer,
+        ]
+        self._sync_layer_geometries()
+        self._hide_all_layers()
+
+    def _sync_layer_geometries(self):
+        try:
+            from PyQt6.QtGui import QGuiApplication
+            geometry = QGuiApplication.primaryScreen().virtualGeometry()
+        except Exception:
+            geometry = None
+        if geometry:
+            for layer in self._all_layers:
+                layer.setGeometry(geometry)
+
+    def _hide_all_layers(self):
+        for layer in self._all_layers:
+            layer.hide()
+        for blocker in self.blockers:
+            blocker.hide()
+
+    def _raise_visible_layers(self):
         self.debug_layer.raise_()
         self.calibration_layer.raise_()
         self.alert_layer.raise_()
 
+    def _apply_visibility(self):
+        if not self.overlay_enabled:
+            self._hide_all_layers()
+            return
+        if getattr(self.highlight_layer, "highlights", None):
+            self.highlight_layer.show()
+        else:
+            self.highlight_layer.hide()
+        if getattr(self.debug_layer, "debug_rect", None) or getattr(self.debug_layer, "debug_text", "") or getattr(self.debug_layer, "debug_boxes", None):
+            self.debug_layer.show()
+        else:
+            self.debug_layer.hide()
+        if self.calibration_layer.has_visible_content():
+            self.calibration_layer.show()
+        else:
+            self.calibration_layer.hide()
+        if self.alert_layer.has_visible_content():
+            self.alert_layer.show()
+        else:
+            self.alert_layer.hide()
+        for blocker in self.blockers:
+            blocker.show()
+        self._raise_visible_layers()
+
+    def set_overlay_enabled(self, enabled: bool):
+        self.overlay_enabled = bool(enabled)
+        self._sync_layer_geometries()
+        self._apply_visibility()
+
+    def enable_for_calibration(self):
+        """Controlled path for callers that intentionally start calibration."""
+        self.set_overlay_enabled(True)
+
     def create_blocker(self, rect: dict, message: str = "UNSAFE"):
-        """Create a blocking overlay at the specified location."""
         if rect.get('w', 0) <= 0 or rect.get('h', 0) <= 0:
             return
-        
-        # Don't create duplicate blockers
         if self.blockers:
             return
-        
         blocker = BlockerWindow(rect, message)
         blocker.dismissed.connect(lambda: self.remove_blocker(blocker))
-        blocker.show()
         self.blockers.append(blocker)
-    
+        if self.overlay_enabled:
+            blocker.show()
+        else:
+            blocker.hide()
+
     def remove_blocker(self, blocker):
         if blocker in self.blockers:
             self.blockers.remove(blocker)
             blocker.close()
-    
+
     def clear_blockers(self):
         for blocker in self.blockers:
             blocker.close()
@@ -64,99 +113,101 @@ class OverlayManager(QObject):
 
     def set_highlights(self, rects):
         self.highlight_layer.set_highlights(rects)
+        self._apply_visibility()
 
     def set_highlights_from_items(self, items, mapper, base_cell_size, is_quad=False):
-        # Helper logic moved here or kept in layer? 
-        # Let's implement the rect calculation here to keep layer dumb
         rects = []
         for item in items:
             item_is_quad = item.get('is_quad', False)
             current_cell_size = base_cell_size
-            
             if is_quad and not item_is_quad:
                 current_cell_size = base_cell_size * 2
             elif not is_quad and item_is_quad:
                 current_cell_size = base_cell_size / 2
-            
             pixel_x = mapper.offset_x + (item['x'] * current_cell_size)
             pixel_y = mapper.offset_y + (item['y'] * current_cell_size)
             pixel_w = item.get('w', 1) * current_cell_size
             pixel_h = item.get('h', 1) * current_cell_size
-            
             rects.append((int(pixel_x), int(pixel_y), int(pixel_w), int(pixel_h)))
-        
-        self.highlight_layer.set_highlights(rects)
+        self.set_highlights(rects)
 
     def show_alert(self, message: str, color: str = "red", duration_ms: int = 2000):
         self.alert_layer.show_alert(message, color, duration_ms)
-        self.alert_layer.raise_()
+        if duration_ms > 0:
+            self._alert_timer.start(duration_ms)
+        else:
+            self._alert_timer.stop()
+        self._apply_visibility()
+
+    def _expire_alert(self):
+        self.alert_layer.clear_alert()
+        self._apply_visibility()
 
     def set_guidance_text(self, text: str, x: int = -1, y: int = -1):
-        """Set persistent guidance text on the overlay."""
         self.alert_layer.set_guidance(text, x, y)
-        self.alert_layer.raise_()
+        self._apply_visibility()
 
     def add_debug_box(self, x, y, w, h, color="red"):
-        # DebugOverlay doesn't implement add_debug_box yet, need to add it there too
-        # For now, pass it if supported, or ignore
         if hasattr(self.debug_layer, 'add_debug_box'):
             self.debug_layer.add_debug_box(x, y, w, h, color)
-    
+        self._apply_visibility()
+
     def set_debug_rect(self, x, y, w, h, color="yellow"):
         self.debug_layer.set_rect(x, y, w, h, color)
-        self.debug_layer.raise_() # Ensure top
+        self._apply_visibility()
 
     def set_debug_text(self, text, x=10, y=10):
         self.debug_layer.set_text(text, x, y)
-        self.debug_layer.raise_()
+        self._apply_visibility()
 
     def clear_debug(self):
         self.debug_layer.clear()
+        self._apply_visibility()
 
     def set_calibration_mode(self, active, message=""):
         self.calibration_layer.set_mode(active, message)
-        if active:
-            self.calibration_layer.raise_()
+        self._apply_visibility()
 
-    def set_calibration_preview(self, ox, oy, cell, is_quad=False):
-        # Logic to calculate preview rects
-        grid_size = 24 if is_quad else 12
-        total_size = grid_size * cell
-        corner = cell
-        
+    def set_calibration_preview(self, ox, oy, cell, is_quad=False, cols=None, rows=None, cell_width=None, cell_height=None):
         from PyQt6.QtCore import QRect
+        grid_cols = int(cols or (24 if is_quad else 12))
+        grid_rows = int(rows or grid_cols)
+        cw = float(cell_width if cell_width is not None else cell)
+        ch = float(cell_height if cell_height is not None else cell)
+        total_w = int(round(grid_cols * cw))
+        total_h = int(round(grid_rows * ch))
         rects = {
-            'top_left': QRect(ox, oy, corner, corner),
-            'top_right': QRect(ox + total_size - corner, oy, corner, corner),
-            'bottom_left': QRect(ox, oy + total_size - corner, corner, corner),
-            'bottom_right': QRect(ox + total_size - corner, oy + total_size - corner, corner, corner),
-            'offset_x': ox, 'offset_y': oy, 'total_size': total_size
+            'grid': QRect(int(ox), int(oy), total_w, total_h),
+            'offset_x': int(ox), 'offset_y': int(oy),
+            'cell_width': cw, 'cell_height': ch,
+            'cols': grid_cols, 'rows': grid_rows,
+            'total_size': total_w,
+            'total_width': total_w, 'total_height': total_h,
         }
         self.calibration_layer.set_preview(rects)
+        self._apply_visibility()
 
     def set_calibration_region_preview(self, x, y, w, h):
         from PyQt6.QtCore import QRect
         self.calibration_layer.set_region_preview(QRect(x, y, w, h))
+        self._apply_visibility()
 
     def clear_calibration_preview(self):
         self.calibration_layer.set_preview(None)
         self.calibration_layer.set_region_preview(None)
+        self._apply_visibility()
 
     def close(self):
-        self.highlight_layer.close()
-        self.debug_layer.close()
-        self.calibration_layer.close()
-        self.alert_layer.close()
+        self._alert_timer.stop()
+        for layer in self._all_layers:
+            layer.close()
         self.clear_blockers()
-    
-    def isVisible(self):
-        return self.highlight_layer.isVisible() or self.calibration_layer.isVisible()
-    
-    def hide(self):
-        self.highlight_layer.hide()
-        # self.debug_layer.hide() # Keep debug active?
-        self.calibration_layer.hide()
-    
-    def show(self):
-        self.highlight_layer.show()
 
+    def isVisible(self):
+        return self.overlay_enabled
+
+    def hide(self):
+        self.set_overlay_enabled(False)
+
+    def show(self):
+        self.set_overlay_enabled(True)

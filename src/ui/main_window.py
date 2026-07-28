@@ -8,14 +8,15 @@ from PyQt6.QtWidgets import (
     QMenuBar, QMenu, QComboBox
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QAction
+from PyQt6.QtGui import QFont, QAction, QGuiApplication
 
 from ui.overlay_manager import OverlayManager
 from ui.theme import apply_dark_theme
 from ui.calibration import (
-    CalibrationManager, CalibrationType, CALIBRATION_CONFIGS,
+    CalibrationManager, CalibrationType, CALIBRATION_CONFIGS, StashGridProfile,
     get_calibration_status_text
 )
+from ui.geometry_utils import RectSpec, clamp_window_geometry
 from utils import APP_VERSION
 from utils.config import ConfigManager, ConfigSaveError
 from utils.coordinate_mapper import StashGridMapper
@@ -69,18 +70,9 @@ class MainWindow(QMainWindow):
         self.price_service = price_service or PriceService(active_game, active_league)
         self.price_service.set_context(active_game, active_league)
         
-        # Restore window geometry
-        win_config = self.config.get("window", {})
-        
-        # Ensure window is visible on screen (prevent off-screen title bar)
-        x = win_config.get("x", 100)
-        y = max(30, win_config.get("y", 100))  # Force at least 30px from top
-        
-        self.setGeometry(
-            x, y,
-            win_config.get("width", 1100),
-            win_config.get("height", 800)
-        )
+        # Restore window geometry safely across monitor changes.
+        geometry = self._safe_restored_geometry(self.config.get("window", {}))
+        self.setGeometry(geometry.x, geometry.y, geometry.width, geometry.height)
         
         # Create overlay
         self.overlay = OverlayManager()
@@ -143,6 +135,27 @@ class MainWindow(QMainWindow):
         elif ConfigManager.last_warning:
             self.status_label.setStyleSheet("color: #ffaa66;")
             self.status_label.setText(f"Config warning: {ConfigManager.last_warning}")
+
+    @staticmethod
+    def _available_screen_rects():
+        rects = []
+        app = QGuiApplication.instance()
+        if app is None:
+            return rects
+        for screen in app.screens():
+            geometry = screen.availableGeometry()
+            rects.append(RectSpec(
+                geometry.x(), geometry.y(), geometry.width(), geometry.height()
+            ))
+        return rects
+
+    @classmethod
+    def _safe_restored_geometry(cls, win_config):
+        return clamp_window_geometry(
+            win_config,
+            cls._available_screen_rects(),
+            RectSpec(100, 100, 1100, 800),
+        )
     
     def create_sidebar(self) -> QWidget:
         """Create the sidebar navigation panel."""
@@ -209,6 +222,9 @@ class MainWindow(QMainWindow):
         
         # Overlay controls
         self.overlay_btn = SidebarButton("Show Overlay")
+        self.overlay_btn.setAccessibleName("Show Overlay")
+        self.overlay_btn.setToolTip("Toggle all overlay layers on or off (highlight, debug, calibration, alerts, blockers)")
+        self.overlay_btn.setShortcut("Ctrl+O")
         self.overlay_btn.clicked.connect(self.toggle_overlay)
         layout.addWidget(self.overlay_btn)
         
@@ -229,16 +245,22 @@ class MainWindow(QMainWindow):
         # Calibration submenu
         calibration_menu = settings_menu.addMenu("Calibration")
         
-        # Add action for each calibration type
-        for cal_type in CalibrationType:
-            config = CALIBRATION_CONFIGS[cal_type]
-            action = QAction(f"{config.name}...", self)
-            action.setStatusTip(config.description)
-            # Use lambda with default arg to capture cal_type
+        # Explicit stash grid profiles: no width inference.
+        for profile in StashGridProfile:
+            action = QAction(f"Stash Grid - {profile.label}...", self)
+            action.setStatusTip(f"Calibrate and preview the full {profile.grid_size}x{profile.grid_size} stash grid before saving")
+            action.setToolTip(action.statusTip())
             action.triggered.connect(
-                lambda checked, ct=cal_type: self.start_calibration(ct)
+                lambda checked, sp=profile: self.start_calibration(CalibrationType.STASH_GRID, sp)
             )
             calibration_menu.addAction(action)
+
+        tab_config = CALIBRATION_CONFIGS[CalibrationType.TAB_BAR]
+        tab_action = QAction(f"{tab_config.name}...", self)
+        tab_action.setStatusTip(tab_config.description)
+        tab_action.setToolTip(tab_config.description)
+        tab_action.triggered.connect(lambda checked: self.start_calibration(CalibrationType.TAB_BAR))
+        calibration_menu.addAction(tab_action)
         
         # Add separator and status action
         calibration_menu.addSeparator()
@@ -550,54 +572,57 @@ class MainWindow(QMainWindow):
             self.tools[index].on_activated()
     
     def on_overlay_update(self, highlights: list):
-        """Handle overlay updates from tools."""
+        """Handle overlay content updates without overriding Show Overlay state."""
+        self.overlay.clear_calibration_preview()
         if highlights:
             calibrated_is_quad = self.config.get("overlay", {}).get("is_quad_calibrated", False)
-            self.overlay.clear_calibration_preview()  # Clear preview when showing real highlights
             self.overlay.set_highlights_from_items(
-                highlights, 
-                self.mapper, 
+                highlights,
+                self.mapper,
                 self.mapper.cell_size,
                 calibrated_is_quad
             )
-            self.overlay.show()
-            self.overlay_btn.setChecked(True)
         else:
             self.overlay.set_highlights([])
-            self.overlay.clear_calibration_preview()
-            self.overlay.hide()
-            self.overlay_btn.setChecked(False)
+        self.overlay_btn.setChecked(self.overlay.isVisible())
     
     def toggle_overlay(self):
-        """Toggle overlay visibility."""
+        """Toggle overlay visibility through OverlayManager's single state."""
         if self.overlay.isVisible():
             self.overlay.hide()
             self.overlay.clear_calibration_preview()
             self.overlay_btn.setChecked(False)
         else:
-            # Show calibration preview corners when no highlights are active
             overlay_config = self.config.get("overlay", {})
             is_quad = overlay_config.get("is_quad_calibrated", False)
+            grid = 24 if is_quad else 12
             self.overlay.set_calibration_preview(
                 self.mapper.offset_x,
                 self.mapper.offset_y,
                 self.mapper.cell_size,
-                is_quad
+                is_quad,
+                cols=grid,
+                rows=grid,
             )
             self.overlay.show()
             self.overlay_btn.setChecked(True)
     
-    def start_calibration(self, cal_type: CalibrationType = CalibrationType.STASH_GRID):
+    def start_calibration(self, cal_type: CalibrationType = CalibrationType.STASH_GRID,
+                          stash_profile: StashGridProfile = StashGridProfile.STANDARD):
         """Start calibration for a specific region type."""
-        # Start calibration and get first instruction
-        msg = self.calibration_manager.start_calibration(cal_type)
-        
-        # Enable calibration mode in overlay
+        msg = self.calibration_manager.start_calibration(cal_type, stash_profile)
+        self.overlay.enable_for_calibration()
+        self.overlay_btn.setChecked(True)
         self.overlay.set_calibration_mode(True, msg)
+        try:
+            self.overlay.calibration_clicked.disconnect(self.on_calibration_click)
+        except TypeError:
+            pass
         self.overlay.calibration_clicked.connect(self.on_calibration_click)
-        
+
         config = CALIBRATION_CONFIGS[cal_type]
-        self.status_label.setText(f"Calibrating: {config.name}")
+        suffix = f" - {stash_profile.label}" if cal_type == CalibrationType.STASH_GRID else ""
+        self.status_label.setText(f"Calibrating: {config.name}{suffix}")
     
     def on_calibration_click(self, x: int, y: int):
         """Handle calibration clicks using CalibrationManager."""
@@ -626,7 +651,11 @@ class MainWindow(QMainWindow):
                 result.get('x_offset', result.get('x', 0)),
                 result.get('y_offset', result.get('y', 0)),
                 result.get('cell_size', 52),
-                is_quad
+                is_quad,
+                cols=result.get('grid_cols'),
+                rows=result.get('grid_rows'),
+                cell_width=result.get('cell_width'),
+                cell_height=result.get('cell_height'),
             )
         else:
             # For other regions, show a simple rect preview
@@ -642,10 +671,11 @@ class MainWindow(QMainWindow):
             self.mapper.offset_y = result.get('y_offset', result.get('y', 0))
             self.mapper.cell_size = result.get('cell_size', 52)
             
-            tab_type = "QUAD" if result.get('is_quad_calibrated', False) else "STANDARD"
-            status_msg = (f"Offset: ({self.mapper.offset_x}, {self.mapper.offset_y})\n"
-                          f"Cell Size: {self.mapper.cell_size}\n"
-                          f"Tab Type: {tab_type}")
+            profile = StashGridProfile.from_value(result.get('profile'))
+            status_msg = (f"Profile: {profile.label}\n"
+                          f"Grid: {result.get('grid_cols', profile.grid_size)} x {result.get('grid_rows', profile.grid_size)}\n"
+                          f"Offset: ({self.mapper.offset_x}, {self.mapper.offset_y})\n"
+                          f"Cell Size: {self.mapper.cell_size}")
         else:
             status_msg = (f"Region: ({result['x']}, {result['y']}) - "
                           f"({result['x2']}, {result['y2']})\n"
@@ -656,7 +686,7 @@ class MainWindow(QMainWindow):
             self,
             "Confirm Calibration",
             f"{config.name} calibrated!\n\n{status_msg}\n\n"
-            "Is the highlighted region correct?",
+            "Is the full-grid preview correct? Calibration will only be saved if you choose Yes.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         

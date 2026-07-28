@@ -30,5 +30,4 @@ class BaseOverlay(QMainWindow):
             flags |= Qt.WindowType.WindowTransparentForInput
             self.setCursor(Qt.CursorShape.ArrowCursor)
         self.setWindowFlags(flags)
-        self.show()
 

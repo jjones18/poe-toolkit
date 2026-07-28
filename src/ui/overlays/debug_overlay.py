@@ -19,21 +19,18 @@ class DebugOverlay(BaseOverlay):
             self.debug_color = QColor(0, 255, 255, 200)
         else:
             self.debug_color = QColor(255, 255, 0, 200)
-        self.show()
         self.update()
 
     def set_text(self, text, x, y):
         self.debug_text = text
         self.debug_text_pos = (x, y)
-        if text:
-            self.show()
         self.update()
 
     def clear(self):
         self.debug_rect = None
         self.debug_text = ""
         self.debug_boxes = []
-        self.hide()
+        self.update()
 
     def add_debug_box(self, x: int, y: int, w: int, h: int, color="red"):
         rect = QRect(x, y, w, h)
@@ -48,7 +45,6 @@ class DebugOverlay(BaseOverlay):
         else:
             qcolor = QColor(255, 0, 0, 200)
         self.debug_boxes.append((rect, qcolor))
-        self.show()
         self.update()
 
     def paintEvent(self, event):

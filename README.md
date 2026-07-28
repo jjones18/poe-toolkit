@@ -22,7 +22,6 @@ Optimize your Thaumaturgic Dust disenchanting:
 - Scan stash tabs for high-value unique items (Dust/Chaos ratio)
 - **Multi-Tab Support**: Automatically highlights items across multiple tabs
 - **OCR Tab Detection**: Smart detection of your current stash tab
-- **Unique Tab Workflow**: Guided clipboard-based workflow for unique stash tabs
 
 ### 👁️ League Vision
 OCR-based screen scanning for various league mechanics:
@@ -184,6 +183,8 @@ Configuration has a read-only checked-in base and a private per-user override:
 |------|---------|------------|
 | `config/config.json` | Shipped defaults and shareable presets | ✅ Tracked and never rewritten at runtime |
 | Per-user `user_config.json` | All mutable settings, credentials, paths, and calibration | Outside the checkout |
+
+Stash grid calibration uses explicit named profiles: Standard (12x12) and Quad (24x24). The app previews the full grid and only persists calibration after confirmation.
 
 Per-user locations:
 

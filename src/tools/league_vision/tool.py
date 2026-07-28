@@ -820,10 +820,10 @@ class LeagueVisionWidget(QWidget):
 
         self.scanner.start()
 
-        # Show overlay for debug visualization
+        # Debug data is routed through OverlayManager, which owns the single
+        # Show Overlay gate. Starting the scanner must not force overlays on.
         if self.overlay and config.get("debug_mode"):
-            self.overlay.show()
-            self.log("Debug overlay visible - showing scan region outline")
+            self.log("Debug overlay data enabled - visibility follows Show Overlay")
 
         self.start_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
