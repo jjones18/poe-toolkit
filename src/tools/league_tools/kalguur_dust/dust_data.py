@@ -9,6 +9,7 @@ Data sources:
 
 import json
 import os
+import tempfile
 import time
 import requests
 from datetime import datetime, timedelta
@@ -18,46 +19,208 @@ from utils.app_paths import resolve_runtime_paths
 
 
 class DustDataCache:
-    """Manages caching of dust data to reduce API calls."""
-    
-    def __init__(self, cache_file: str | os.PathLike | None = None, cache_duration_hours: int = 24):
+    """Schema-validated dust cache with explicit provenance."""
+
+    SCHEMA_VERSION = 2
+
+    def __init__(
+        self,
+        cache_file: str | os.PathLike | None = None,
+        cache_duration_hours: int = 24,
+        *,
+        game="poe1",
+        league="unknown",
+        now_provider=None,
+    ):
         if cache_file is None:
             cache_file = resolve_runtime_paths().prepare_dust_cache()
-        
+
         self.cache_file = str(cache_file)
         self.cache_duration = timedelta(hours=cache_duration_hours)
-    
-    def load(self) -> Optional[dict]:
-        """Load cached dust data if valid."""
-        if not os.path.exists(self.cache_file):
+        self.game = game
+        self.league = league
+        self.now_provider = now_provider or datetime.now
+        self.last_error = None
+
+    @staticmethod
+    def _valid_dust_values(dust_values) -> bool:
+        if not isinstance(dust_values, dict):
+            return False
+        numeric_fields = {"base_dust", "dust_ilvl84", "dust_ilvl84_q20"}
+        for name, values in dust_values.items():
+            if not isinstance(name, str) or not name or not isinstance(values, dict):
+                return False
+            for field in numeric_fields.intersection(values):
+                value = values[field]
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
+                    return False
+        return True
+
+    def load(self, allow_stale=False) -> Optional[dict]:
+        """Load a matching validated cache entry."""
+        self.last_error = None
+        path = os.path.abspath(self.cache_file)
+        if not os.path.exists(path):
             return None
-        
+
         try:
-            with open(self.cache_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            
-            timestamp = datetime.fromisoformat(data.get('timestamp', '2000-01-01'))
-            if datetime.now() - timestamp > self.cache_duration:
-                print("Dust cache expired.")
+            with open(path, "r", encoding="utf-8") as handle:
+                data = json.load(handle)
+            metadata = data.get("metadata")
+            if (
+                data.get("schema_version") != self.SCHEMA_VERSION
+                or not isinstance(metadata, dict)
+                or metadata.get("schema_version") != self.SCHEMA_VERSION
+                or metadata.get("game") != self.game
+                or metadata.get("league") != self.league
+                or not isinstance(metadata.get("source"), str)
+                or not self._valid_dust_values(data.get("dust_values"))
+            ):
+                raise ValueError("dust cache schema or context mismatch")
+            timestamp = datetime.fromisoformat(metadata["timestamp"])
+            stale = self.now_provider() - timestamp > self.cache_duration
+            if stale and not allow_stale:
                 return None
-            
-            return data
-        except (json.JSONDecodeError, KeyError, ValueError, OSError) as e:
-            print(f"Error loading dust cache: {e}")
+            loaded = dict(data)
+            loaded["stale"] = stale
+            return loaded
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError, OSError) as error:
+            self.last_error = f"Dust cache read failed: {error}"
             return None
-    
-    def save(self, dust_data: dict):
-        """Save dust data to cache."""
-        data = {
-            'timestamp': datetime.now().isoformat(),
-            'dust_values': dust_data
-        }
+
+    def _preserve_legacy_v1(self) -> bool:
+        source = os.path.abspath(self.cache_file)
+        if not os.path.isfile(source):
+            return True
         try:
-            os.makedirs(os.path.dirname(os.path.abspath(self.cache_file)), exist_ok=True)
-            with open(self.cache_file, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2)
-        except OSError as e:
-            print(f"Error saving dust cache: {e}")
+            with open(source, "rb") as handle:
+                legacy_bytes = handle.read()
+            payload = json.loads(legacy_bytes.decode("utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            return True
+        if not (
+            isinstance(payload, dict)
+            and "schema_version" not in payload
+            and isinstance(payload.get("timestamp"), str)
+            and self._valid_dust_values(payload.get("dust_values"))
+        ):
+            return True
+
+        backup = f"{source}.legacy-v1"
+        if os.path.exists(backup):
+            try:
+                with open(backup, "rb") as handle:
+                    if handle.read() == legacy_bytes:
+                        return True
+            except OSError:
+                pass
+            suffix = 1
+            while os.path.exists(backup):
+                backup = f"{source}.legacy-v1.{suffix}"
+                suffix += 1
+
+        temporary = None
+        try:
+            descriptor, temporary = tempfile.mkstemp(
+                prefix=f".{os.path.basename(backup)}.",
+                suffix=".tmp",
+                dir=os.path.dirname(backup),
+            )
+            with os.fdopen(descriptor, "wb") as handle:
+                handle.write(legacy_bytes)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, backup)
+            temporary = None
+            if os.name != "nt":
+                directory_fd = os.open(
+                    os.path.dirname(backup),
+                    os.O_RDONLY | getattr(os, "O_DIRECTORY", 0),
+                )
+                try:
+                    os.fsync(directory_fd)
+                finally:
+                    os.close(directory_fd)
+            with open(backup, "rb") as handle:
+                return handle.read() == legacy_bytes
+        except OSError as error:
+            self.last_error = f"Legacy dust cache backup failed: {error}"
+            return False
+        finally:
+            if temporary is not None:
+                try:
+                    os.unlink(temporary)
+                except OSError:
+                    pass
+
+    def save(
+        self,
+        dust_data: dict,
+        *,
+        source="unknown",
+        estimated=False,
+        source_timestamp=None,
+        status="success",
+    ) -> bool:
+        """Atomically persist validated dust data and provenance."""
+        self.last_error = None
+        if not self._valid_dust_values(dust_data):
+            self.last_error = "Dust cache data failed schema validation"
+            return False
+        if not self._preserve_legacy_v1():
+            return False
+        timestamp = self.now_provider().isoformat()
+        data = {
+            "schema_version": self.SCHEMA_VERSION,
+            "metadata": {
+                "schema_version": self.SCHEMA_VERSION,
+                "game": self.game,
+                "league": self.league,
+                "source": str(source),
+                "timestamp": timestamp,
+                "source_timestamp": source_timestamp,
+                "estimated": bool(estimated),
+                "status": str(status),
+                "item_count": len(dust_data),
+            },
+            "dust_values": dust_data,
+        }
+        destination = os.path.abspath(self.cache_file)
+        directory = os.path.dirname(destination)
+        temporary = None
+        try:
+            os.makedirs(directory, exist_ok=True)
+            descriptor, temporary = tempfile.mkstemp(
+                prefix=f".{os.path.basename(destination)}.",
+                suffix=".tmp",
+                dir=directory,
+            )
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                json.dump(data, handle, indent=2, sort_keys=True)
+                handle.write("\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, destination)
+            temporary = None
+            if os.name != "nt":
+                directory_fd = os.open(
+                    directory,
+                    os.O_RDONLY | getattr(os, "O_DIRECTORY", 0),
+                )
+                try:
+                    os.fsync(directory_fd)
+                finally:
+                    os.close(directory_fd)
+            return True
+        except (OSError, TypeError, ValueError) as error:
+            self.last_error = f"Dust cache write failed: {error}"
+            return False
+        finally:
+            if temporary is not None:
+                try:
+                    os.unlink(temporary)
+                except OSError:
+                    pass
 
 
 class DustCalculator:
@@ -200,10 +363,16 @@ class DustDataFetcher:
         'Cluster Jewel': 8,
     }
     
-    def __init__(self, league: str, cache: DustDataCache = None):
+    def __init__(self, league: str, cache: DustDataCache | None = None):
         self.league = league
-        self.cache = cache if cache else DustDataCache()
+        self.cache = cache if cache else DustDataCache(game="poe1", league=league)
         self.dust_values: Dict[str, dict] = {}  # name -> {base_dust, item_type, tier}
+        self.provenance = {
+            "source": "not loaded",
+            "source_timestamp": None,
+            "estimated": False,
+            "status": "not loaded",
+        }
         self.session = requests.Session()
         self.session.headers.update({
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
@@ -220,6 +389,7 @@ class DustDataFetcher:
         cached = self.cache.load()
         if cached and 'dust_values' in cached and len(cached['dust_values']) > 100:
             self.dust_values = cached['dust_values']
+            self.provenance = dict(cached.get('metadata', self.provenance))
             print(f"[DustData] Loaded {len(self.dust_values)} dust values from cache.")
             return True
         
@@ -227,19 +397,37 @@ class DustDataFetcher:
         print("[DustData] Loading dust values from poedust cache...")
         if self._load_poedust_cache():
             print(f"[DustData] SUCCESS: Loaded {len(self.dust_values)} items from poedust cache")
-            self.cache.save(self.dust_values)
+            self.cache.save(
+                self.dust_values,
+                source=self.provenance["source"],
+                estimated=self.provenance["estimated"],
+                source_timestamp=self.provenance["source_timestamp"],
+                status=self.provenance["status"],
+            )
             return True
         
         # Fallback: try poe.ninja calculation
         print("[DustData] Poedust cache not found, trying poe.ninja...")
         if self._fetch_from_ninja():
             print(f"[DustData] SUCCESS: Loaded {len(self.dust_values)} items from poe.ninja")
-            self.cache.save(self.dust_values)
+            self.cache.save(
+                self.dust_values,
+                source=self.provenance["source"],
+                estimated=self.provenance["estimated"],
+                source_timestamp=self.provenance["source_timestamp"],
+                status=self.provenance["status"],
+            )
             return True
         
         # Last resort: built-in estimates
         print("[DustData] WARNING: Using built-in estimates")
         self._load_builtin_estimates()
+        self.provenance = {
+            "source": "built-in estimates",
+            "source_timestamp": None,
+            "estimated": True,
+            "status": "last-resort fallback",
+        }
         print(f"[DustData] Loaded {len(self.dust_values)} built-in estimates")
         return len(self.dust_values) > 0
     
@@ -271,6 +459,12 @@ class DustDataFetcher:
                     }
                 
                 if len(self.dust_values) > 100:
+                    self.provenance = {
+                        "source": "poedust gist",
+                        "source_timestamp": response.headers.get("Last-Modified"),
+                        "estimated": False,
+                        "status": "external source",
+                    }
                     print(f"[DustData] Loaded {len(self.dust_values)} items from gist")
                     return True
         except Exception as e:
@@ -301,7 +495,15 @@ class DustDataFetcher:
                             'base_type': '',
                         }
                     
-                    return len(self.dust_values) > 50
+                    loaded = len(self.dust_values) > 50
+                    if loaded:
+                        self.provenance = {
+                            "source": "bundled-poedust",
+                            "source_timestamp": data.get("scraped_date", "2025-01-26"),
+                            "estimated": True,
+                            "status": "stale fallback",
+                        }
+                    return loaded
             except Exception as e:
                 print(f"[DustData] Error loading {cache_path}: {e}")
         
@@ -367,7 +569,15 @@ class DustDataFetcher:
             except Exception as e:
                 print(f"[DustData] Error {category}: {e}")
         
-        return total_items > 100
+        loaded = total_items > 100
+        if loaded:
+            self.provenance = {
+                "source": "poe.ninja-derived estimates",
+                "source_timestamp": datetime.now().isoformat(),
+                "estimated": True,
+                "status": "estimated fallback",
+            }
+        return loaded
     
     def _get_item_type(self, base_type: str, category: str) -> str:
         """Determine item type from base type string."""
@@ -774,10 +984,16 @@ class DustEfficiencyAnalyzer:
             item_name, ilvl, quality, corrupted
         )
         
-        chaos_price = self.price_fetcher.get_price(item_name) if self.price_fetcher else 0
-        
-        # Calculate efficiency (dust per chaos)
-        efficiency = dust_actual / chaos_price if chaos_price > 0 else float('inf')
+        chaos_price = self.price_fetcher.get_price(item_name) if self.price_fetcher else None
+        price_known = chaos_price is not None
+
+        # A zero-valued quote is known, but cannot produce a meaningful ratio.
+        # Unknown and zero prices are never promoted to infinite efficiency.
+        efficiency = (
+            dust_actual / chaos_price
+            if chaos_price is not None and chaos_price > 0
+            else None
+        )
         
         return {
             'item_name': item_name,
@@ -785,12 +1001,14 @@ class DustEfficiencyAnalyzer:
             'dust_potential': dust_potential,
             'chaos_price': chaos_price,
             'efficiency': efficiency,
+            'price_known': price_known,
             'ilvl': ilvl,
             'quality': quality,
             'corrupted': corrupted,
         }
     
-    def get_all_efficiencies(self, min_efficiency: float = 1.0) -> List[dict]:
+    def get_all_efficiencies(self, min_efficiency: float = 1.0,
+                             include_unknown_prices: bool = False) -> List[dict]:
         """
         Get efficiency data for all known items.
         
@@ -804,10 +1022,16 @@ class DustEfficiencyAnalyzer:
         
         for name in self.dust_fetcher.dust_values:
             info = self.get_efficiency(name)
-            if info['efficiency'] >= min_efficiency:
+            if (
+                info['efficiency'] is not None
+                and info['efficiency'] >= min_efficiency
+            ) or (include_unknown_prices and not info['price_known']):
                 results.append(info)
         
         # Sort by efficiency (highest first)
-        results.sort(key=lambda x: x['efficiency'], reverse=True)
+        results.sort(
+            key=lambda x: x['efficiency'] if x['efficiency'] is not None else -1,
+            reverse=True,
+        )
         return results
 

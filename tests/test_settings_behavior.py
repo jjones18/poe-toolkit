@@ -33,7 +33,20 @@ class SettingsOwnershipTests(unittest.TestCase):
         ConfigManager.set_game_league_options(config, "poe2", ["Standard", "Current Two"])
         ConfigManager.set_game_league(config, "poe1", "Current One")
         ConfigManager.set_game_league(config, "poe2", "Current Two")
+        ConfigManager.set_client_log_path(config, "/games/poe1/logs/Client.txt", "poe1")
+        ConfigManager.set_client_log_path(config, "/games/poe2/logs/Client.txt", "poe2")
         return config
+
+    def test_default_client_log_accessor_follows_active_game(self):
+        config = self.make_config()
+
+        ConfigManager.set_active_game(config, "poe2")
+
+        self.assertEqual(
+            ConfigManager.get_client_log_path(config),
+            "/games/poe2/logs/Client.txt",
+        )
+
 
     def test_settings_construction_uses_cached_leagues_without_network_refresh(self):
         config = self.make_config()
@@ -42,8 +55,8 @@ class SettingsOwnershipTests(unittest.TestCase):
             self.addCleanup(widget.close)
 
         fetch.assert_not_called()
-        self.assertEqual(widget.poe1_league_combo.currentText(), "Current One")
-        self.assertEqual(widget.poe2_league_combo.currentText(), "Current Two")
+        self.assertEqual(widget.league_combo.currentText(), "Current One")
+        self.assertEqual(widget.client_log_input.text(), "/games/poe1/logs/Client.txt")
 
     def test_league_refresh_error_preserves_last_known_selections(self):
         config = self.make_config()
@@ -53,9 +66,50 @@ class SettingsOwnershipTests(unittest.TestCase):
 
         widget.on_league_fetch_error("temporary failure")
 
-        self.assertEqual(widget.poe1_league_combo.currentText(), "Current One")
-        self.assertEqual(widget.poe2_league_combo.currentText(), "Current Two")
+        self.assertEqual(widget.league_combo.currentText(), "Current One")
         self.assertIn("temporary failure", widget.status_label.text())
+
+    def test_active_game_switch_swaps_league_and_client_log_without_losing_edits(self):
+        widget = SettingsWidget(self.make_config())
+        self.addCleanup(widget.close)
+
+        widget.client_log_input.setText("/edited/poe1/Client.txt")
+        widget.active_game_combo.setCurrentIndex(
+            widget.active_game_combo.findData("poe2")
+        )
+
+        self.assertEqual(widget.league_combo.currentText(), "Current Two")
+        self.assertEqual(widget.client_log_input.text(), "/games/poe2/logs/Client.txt")
+        widget.client_log_input.setText("/edited/poe2/Client.txt")
+
+        widget.active_game_combo.setCurrentIndex(
+            widget.active_game_combo.findData("poe1")
+        )
+
+        self.assertEqual(widget.league_combo.currentText(), "Current One")
+        self.assertEqual(widget.client_log_input.text(), "/edited/poe1/Client.txt")
+
+    def test_save_persists_independent_client_logs_for_both_games(self):
+        config = self.make_config()
+        widget = SettingsWidget(config)
+        self.addCleanup(widget.close)
+        widget.client_log_input.setText("/edited/poe1/Client.txt")
+        widget.active_game_combo.setCurrentIndex(
+            widget.active_game_combo.findData("poe2")
+        )
+        widget.client_log_input.setText("/edited/poe2/Client.txt")
+
+        with patch.object(ConfigManager, "save", return_value=True):
+            self.assertTrue(widget.save_settings())
+
+        self.assertEqual(
+            ConfigManager.get_client_log_path(config, "poe1"),
+            "/edited/poe1/Client.txt",
+        )
+        self.assertEqual(
+            ConfigManager.get_client_log_path(config, "poe2"),
+            "/edited/poe2/Client.txt",
+        )
 
     def test_league_refresh_uses_bounded_shared_worker(self):
         config = self.make_config()
@@ -144,11 +198,17 @@ class SettingsOwnershipTests(unittest.TestCase):
 
     def test_settings_save_failure_is_visible_and_does_not_emit_success(self):
         config = self.make_config()
+        original = copy.deepcopy(config)
         with patch.object(SettingsWidget, "fetch_leagues"):
             widget = SettingsWidget(config)
             self.addCleanup(widget.close)
         saved = Mock()
         widget.settings_saved.connect(saved)
+        widget.account_input.setText("UnsavedAccount")
+        widget.active_game_combo.setCurrentIndex(
+            widget.active_game_combo.findData("poe2")
+        )
+        widget.client_log_input.setText("/unsaved/poe2/Client.txt")
 
         with patch.object(
             ConfigManager,
@@ -159,6 +219,7 @@ class SettingsOwnershipTests(unittest.TestCase):
 
         self.assertIn("save failed", widget.status_label.text().lower())
         self.assertIn("simulated disk failure", widget.status_label.text().lower())
+        self.assertEqual(config, original)
         saved.assert_not_called()
 
 

@@ -12,6 +12,7 @@ from PyQt6.QtCore import Qt
 from tools.base_tool import BaseTool
 from tools.league_vision.scanner import ScannerWorker, ScanResult
 from services.zone_monitor import ZoneMonitor
+from utils.config import ConfigManager
 
 
 class LeagueVisionWidget(QWidget):
@@ -50,7 +51,7 @@ class LeagueVisionWidget(QWidget):
         # Client Log Path
         log_row = QHBoxLayout()
         log_row.addWidget(QLabel("Client.txt Path:"))
-        self.log_path_label = QLabel(self.vision_config.get("client_log_path", "Not Set"))
+        self.log_path_label = QLabel(ConfigManager.get_client_log_path(self.config) or "Not Set")
         self.log_path_label.setStyleSheet("color: #aaaaaa;")
         log_row.addWidget(self.log_path_label, 1)
         
@@ -157,7 +158,7 @@ class LeagueVisionWidget(QWidget):
     
     def setup_zone_monitor(self):
         """Initialize zone monitoring."""
-        log_path = self.vision_config.get("client_log_path", "")
+        log_path = ConfigManager.get_client_log_path(self.config)
         if log_path and os.path.exists(log_path):
             self.zone_monitor = ZoneMonitor(log_path)
             self.zone_monitor.zone_changed.connect(self.on_zone_changed)

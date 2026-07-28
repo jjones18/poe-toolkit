@@ -1,5 +1,5 @@
 {
-    "config_schema_version": 2,
+    "config_schema_version": 3,
     "_comment": "Copy this template to the per-user poe-toolkit config directory and fill in your settings",
     "_note": "Use the Settings page or the OS-specific paths documented in README.md; never commit live credentials",
     
@@ -13,11 +13,13 @@
     "game_settings": {
         "poe1": {
             "league": "Settlers",
-            "league_options": []
+            "league_options": [],
+            "client_log_path": "C:/Path/To/Path of Exile/logs/Client.txt"
         },
         "poe2": {
             "league": "Standard",
-            "league_options": []
+            "league_options": [],
+            "client_log_path": "C:/Path/To/Path of Exile 2/logs/Client.txt"
         }
     },
     "overlay": {
@@ -33,9 +35,6 @@
         "height": 800
     },
     "league_vision": {
-        "client_log_path": "C:/Path/To/Your/PoE/logs/Client.txt",
-        "_client_log_path_settings_note": "This is editable in the toolkit Settings page under Local Paths.",
-        "_client_log_path_linux": "On Linux (Steam/Proton): ~/.steam/steam/steamapps/compatdata/<appid>/pfx/drive_c/users/steamuser/AppData/Local/Path of Exile/logs/Client.txt",
         "tesseract_path": "C:/Program Files/Tesseract-OCR/tesseract.exe",
         "_tesseract_path_linux": "On Linux: leave as 'tesseract' (install with: sudo apt install tesseract-ocr)",
         "map_device_button": {

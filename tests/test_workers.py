@@ -25,8 +25,33 @@ from utils.workers import (
     bounded_http_request,
     bounded_ocr_call,
     run_cancellable_process,
+    stop_legacy_qthread,
 )
 worker_utils = sys.modules["utils.workers"]
+
+
+class LegacyQThreadShutdownTests(unittest.TestCase):
+    def test_running_thread_gets_custom_stop_interruption_and_bounded_wait(self):
+        thread = Mock()
+        thread.isRunning.return_value = True
+        thread.wait.return_value = False
+        custom_stop = Mock()
+
+        stopped = stop_legacy_qthread(thread, timeout_ms=123, stop=custom_stop)
+
+        self.assertFalse(stopped)
+        custom_stop.assert_called_once_with()
+        thread.requestInterruption.assert_called_once_with()
+        thread.wait.assert_called_once_with(123)
+
+    def test_already_stopped_thread_needs_no_shutdown_calls(self):
+        thread = Mock()
+        thread.isRunning.return_value = False
+
+        self.assertTrue(stop_legacy_qthread(thread))
+
+        thread.requestInterruption.assert_not_called()
+        thread.wait.assert_not_called()
 
 
 class CancellationTokenTests(unittest.TestCase):

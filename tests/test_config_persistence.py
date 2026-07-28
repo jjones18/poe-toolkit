@@ -315,6 +315,25 @@ class ConfigPersistenceTests(unittest.TestCase):
         self.assertEqual(loaded["game_settings"]["poe1"]["league"], "Legacy League")
         self.assertNotIn("league", loaded["credentials"])
 
+    def test_schema_v2_single_client_log_path_migrates_to_poe1(self):
+        legacy_path = "/games/Path of Exile/logs/Client.txt"
+        self._write_json(
+            self.user_file,
+            {
+                "config_schema_version": 2,
+                "league_vision": {"client_log_path": legacy_path},
+            },
+        )
+
+        loaded = ConfigManager.load()
+
+        self.assertEqual(
+            ConfigManager.get_client_log_path(loaded, "poe1"),
+            legacy_path,
+        )
+        self.assertEqual(ConfigManager.get_client_log_path(loaded, "poe2"), "")
+        self.assertNotIn("client_log_path", loaded["league_vision"])
+
     def test_future_schema_is_not_silently_loaded_or_overwritten(self):
         self._write_json(
             self.user_file,

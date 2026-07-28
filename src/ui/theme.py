@@ -29,7 +29,7 @@ def apply_dark_theme(app):
     palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.red)
     palette.setColor(QPalette.ColorRole.Link, accent_color)
     palette.setColor(QPalette.ColorRole.Highlight, accent_color)
-    palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.black)
+    palette.setColor(QPalette.ColorRole.HighlightedText, text_color)
     
     palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText, disabled_text)
     palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, disabled_text)
@@ -50,6 +50,10 @@ def apply_dark_theme(app):
             color: #f0f0f0;
             border: 1px solid #555;
             border-radius: 2px;
+        }
+        QAbstractItemView::item:selected {
+            background-color: #2a82da;
+            color: #f0f0f0;
         }
         QLineEdit:focus {
             border: 1px solid #2a82da;

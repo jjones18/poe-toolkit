@@ -84,7 +84,8 @@ This order intentionally defers tools that are not actively used. It first prote
 
 **Tasks:**
 - Child tools stop persisting shared credentials/league copies.
-- Settings writes account, session, active game, and per-game leagues.
+- Settings writes shared account/session values plus active game, per-game leagues,
+  and per-game Client.txt paths; the active-game selector swaps both game-owned fields.
 - Settings save refreshes read-only dependent labels/views.
 - Failed league refresh preserves last-known selections.
 - League lists use cached/manual refresh rather than automatic private requests on every widget rebuild.
@@ -189,10 +190,9 @@ suppression, bounded HTTP/OCR/subprocess adapters, and verified pool shutdown.
 Settings league refresh and Trade Sniper generic tasks use the framework;
 reload and application close fail closed when cleanup cannot be verified.
 Module-specific scanner migration remains intentionally deferred to those
-module milestones. The currently unused `PriceService`/`NinjaPriceFetcher`
-worker path remains deferred to Milestone 3, where its unbounded requests,
-rate-limit waits, and cache semantics can be migrated together rather than
-hidden behind a nominally cancellable wrapper.
+module milestones. The `PriceService`/`NinjaPriceFetcher` path was deferred to
+Milestone 3 and completed in release 1.7.0 with bounded requests, cancellable
+waits, keyed cache semantics, and explicit outcomes.
 
 - Cooperative cancellation token/event.
 - Bounded HTTP and OCR operations.
@@ -248,6 +248,48 @@ was already in its per-user data directory.
 
 # Milestone 3 — Price and data correctness
 
+**Status:** Complete in release 1.7.0.
+
+**Verification:** 151 Python tests, 14 Node tests, Python compilation,
+installer/template syntax checks, CRLF-aware diff/whitespace checks, and an isolated
+offscreen UI smoke passed. The smoke used temporary XDG directories and stubbed
+only optional vision dependencies unavailable in the test environment.
+
+**Implementation:** Price snapshots use schema-v2 entries keyed by game,
+league, poe.ninja source, endpoint set, and schema. A cross-thread and
+cross-process lock protects the full read/modify/write transaction; primary
+writes and valid legacy-v1 backups are atomic and durable. The app owns one
+shared `PriceService`, invalidates and cancels stale context refreshes, keeps
+network loading outside the context lock, and returns explicit
+cache/success/partial/failure outcomes. Partial and failed refreshes cannot
+replace an existing complete in-memory or on-disk snapshot.
+
+Unknown prices are `None`, known zero remains `0.0`, standard filters exclude
+unknowns by default, explicit include overrides still win, and tables render
+unknown values as `—`. Kalguur Dust offers an `Include unknown prices` filter
+and never maps unknown or zero prices to infinite efficiency. Dust schema-v2
+metadata records game, league, source, source timestamp, estimated status,
+refresh status, and item count; the bundled 2025-01-26 fallback is explicitly
+labeled stale/estimated. Diagnostics validates and displays only the canonical
+active keyed price entry without exposing cached contents.
+
+Legacy Ultimatum and Dust QThreads now request cooperative interruption and
+wait with a bounded timeout during cleanup. A timeout propagates failure through
+the League Tools container so reload/close preserves the widgets and shared
+price service rather than deleting live-thread owners. Standalone widgets close
+only price services they created themselves.
+
+Configuration schema v3 keeps account name and POESESSID shared while storing
+league and Client.txt path independently for PoE 1 and PoE 2. The Settings
+active-toolkit selector swaps both game-owned fields together and preserves
+unsaved edits while switching; schema-v2 single paths migrate safely to PoE 1.
+Failed Settings persistence is transactional, and rejected mode reloads restore
+the surviving Settings view and shared price-service context.
+
+**Boundary:** Download/progress UI, moving Dust preparation off the GUI thread,
+and full scanner worker migration/cancellation UX remain module-specific
+Milestones 4–6.
+
 ## 3.1 League-aware price cache
 
 - Key cache by game, league, endpoint/source, and schema version.
@@ -301,7 +343,7 @@ was already in its per-user data directory.
 - Stop and wait for tab/scan/OCR workers during cleanup.
 - Add HTTP and Tesseract timeouts.
 - Persist Min Dust/Chaos consistently.
-- Use centralized league-aware prices and correct unknown-price behavior.
+- Preserve centralized league-aware prices and unknown-price behavior during the worker/UI refactor.
 - Move OCR screenshots/cache/logs to per-user cache directories.
 - Display dust-data and price-data provenance/freshness.
 - Preserve selected stash tabs and useful scan presets.
@@ -313,7 +355,7 @@ was already in its per-user data directory.
 
 - Stop and wait for tab/scan workers during cleanup.
 - Add network timeouts and cancellable rate-limit handling.
-- Use centralized league-aware prices.
+- Preserve the centralized league-aware price service during worker migration.
 - Make Settings the only owner of shared league/account fields.
 - Add progress, cancellation, retry, and actionable errors.
 - Clarify include/exclude override semantics in the filter UI.

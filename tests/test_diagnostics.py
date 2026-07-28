@@ -164,6 +164,66 @@ class DiagnosticsServiceTests(unittest.TestCase):
         self.assertEqual(caches["dust-root"]["league"], "unknown")
         self.assertTrue(caches["dust-root"]["stale"])
 
+    def test_cache_metadata_reads_active_entry_from_schema_v2_stores(self):
+        timestamp = (self.now - timedelta(hours=1)).isoformat()
+        entry_key = json.dumps(
+            ["poe2", "Rise of the Abyssal", "poe.ninja", "overview-v1", 2],
+            separators=(",", ":"),
+        )
+        self.price_path.write_text(json.dumps({
+            "schema_version": 2,
+            "entries": {
+                "malformed-same-context-entry": {
+                    "metadata": {
+                        "schema_version": 99,
+                        "game": "poe2",
+                        "league": "Rise of the Abyssal",
+                        "source": "untrusted-source",
+                        "endpoint_set": "wrong-set",
+                        "timestamp": timestamp,
+                        "item_count": 1,
+                    },
+                    "prices": {"Wrong Item": 999},
+                    "categories": {},
+                },
+                entry_key: {
+                    "metadata": {
+                        "schema_version": 2,
+                        "game": "poe2",
+                        "league": "Rise of the Abyssal",
+                        "source": "poe.ninja",
+                        "endpoint_set": "overview-v1",
+                        "timestamp": timestamp,
+                        "item_count": 2,
+                    },
+                    "prices": {"Divine Orb": 180, "Chaos Orb": 1},
+                    "categories": {},
+                }
+            },
+        }), encoding="utf-8")
+        self.dust_path.write_text(json.dumps({
+            "schema_version": 2,
+            "metadata": {
+                "schema_version": 2,
+                "game": "poe2",
+                "league": "Rise of the Abyssal",
+                "source": "bundled-poedust",
+                "timestamp": timestamp,
+                "estimated": True,
+                "item_count": 1,
+            },
+            "dust_values": {"A": {"base_dust": 10}},
+        }), encoding="utf-8")
+
+        caches = {item["key"]: item for item in self.make_service().collect_snapshot()["caches"]}
+
+        self.assertEqual(caches["price-root"]["game"], "poe2")
+        self.assertEqual(caches["price-root"]["league"], "Rise of the Abyssal")
+        self.assertEqual(caches["price-root"]["item_count"], 2)
+        self.assertEqual(caches["price-root"]["schema"], 2)
+        self.assertEqual(caches["dust-root"]["source"], "bundled-poedust")
+        self.assertTrue(caches["dust-root"]["estimated"])
+
     def test_invalid_cache_is_visible_without_exposing_file_contents(self):
         self.price_path.write_text("{ definitely not json secret-value", encoding="utf-8")
 

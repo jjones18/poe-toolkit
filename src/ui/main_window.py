@@ -20,6 +20,7 @@ from utils import APP_VERSION
 from utils.config import ConfigManager, ConfigSaveError
 from utils.coordinate_mapper import StashGridMapper
 from services.trade_service import TradeService
+from services.price_service import PriceService
 
 
 class SidebarButton(QPushButton):
@@ -54,7 +55,8 @@ class SidebarButton(QPushButton):
 class MainWindow(QMainWindow):
     """Main application window with sidebar navigation."""
     
-    def __init__(self, trade_service: TradeService = None):
+    def __init__(self, trade_service: TradeService | None = None,
+                 price_service: PriceService | None = None):
         super().__init__()
         self.setWindowTitle("POE Toolkit")
         self.setMinimumSize(900, 700)
@@ -62,6 +64,10 @@ class MainWindow(QMainWindow):
         # Load config
         self.config = ConfigManager.load()
         self.trade_service = trade_service or TradeService()
+        active_game = ConfigManager.get_active_game(self.config)
+        active_league = ConfigManager.get_game_league(self.config, active_game)
+        self.price_service = price_service or PriceService(active_game, active_league)
+        self.price_service.set_context(active_game, active_league)
         
         # Restore window geometry
         win_config = self.config.get("window", {})
@@ -283,7 +289,10 @@ class MainWindow(QMainWindow):
             from tools.league_tools import LeagueToolsTool
             from tools.league_vision import LeagueVisionTool
             tool_classes.extend([
-                (LeagueToolsTool, {"config": self.config}),
+                (LeagueToolsTool, {
+                    "config": self.config,
+                    "price_service": self.price_service,
+                }),
                 (LeagueVisionTool, {"config": self.config, "overlay": self.overlay}),
             ])
 
@@ -384,6 +393,7 @@ class MainWindow(QMainWindow):
             "workers": workers,
             "zone_monitor": zone_state,
             "last_error": visible_errors[-1] if visible_errors else "",
+            "price_service": self.price_service.runtime_state(),
         }
 
     def on_settings_game_changed(self, game_id: str):
@@ -398,13 +408,24 @@ class MainWindow(QMainWindow):
             ConfigManager.set_active_game(self.config, previous_game)
             self._persist_config()
             self._restore_game_combo(previous_game)
+            self._restore_settings_game(previous_game)
+            self.price_service.set_context(
+                previous_game,
+                ConfigManager.get_game_league(self.config, previous_game),
+            )
             return False
         return True
 
     def on_settings_saved(self):
         """Refresh every view that mirrors application-owned shared settings."""
-        widgets = [getattr(tool, 'widget', None) for tool in self.tools]
-        self._refresh_shared_settings_views(widgets)
+        game_id = ConfigManager.get_active_game(self.config)
+        if game_id == self._loaded_game_id:
+            self.price_service.set_context(
+                game_id,
+                ConfigManager.get_game_league(self.config, game_id),
+            )
+            widgets = [getattr(tool, 'widget', None) for tool in self.tools]
+            self._refresh_shared_settings_views(widgets)
         self.status_label.setText("Settings saved")
 
     @staticmethod
@@ -446,6 +467,14 @@ class MainWindow(QMainWindow):
             self.game_combo.setCurrentIndex(index)
         finally:
             self.game_combo.blockSignals(signals_were_blocked)
+
+    def _restore_settings_game(self, game_id):
+        """Restore any surviving Settings view after a rejected mode reload."""
+        for tool in self.tools:
+            widget = getattr(tool, "widget", None)
+            restore = getattr(widget, "restore_active_game", None)
+            if callable(restore):
+                restore(game_id)
 
     def _cleanup_tools_verified(self):
         """Run tool cleanup and report whether every shutdown was verified."""
@@ -490,6 +519,11 @@ class MainWindow(QMainWindow):
         """Rebuild sidebar/content for the active game after verified cleanup."""
         if not self.clear_tools():
             return False
+        game_id = ConfigManager.get_active_game(self.config)
+        self.price_service.set_context(
+            game_id,
+            ConfigManager.get_game_league(self.config, game_id),
+        )
         self.load_tools()
         self._loaded_game_id = ConfigManager.get_active_game(self.config)
         if self.sidebar_buttons:
@@ -708,7 +742,15 @@ class MainWindow(QMainWindow):
     
     def closeEvent(self, event):
         """Handle application close after all tool workers stop."""
+        if not self.save_config():
+            event.ignore()
+            return
+
         if not self._cleanup_tools_verified():
+            event.ignore()
+            return
+
+        if not self.price_service.close(timeout_ms=20_000):
             event.ignore()
             return
 
@@ -718,8 +760,5 @@ class MainWindow(QMainWindow):
         # The Trade service survives tool/mode reloads but belongs to the app.
         if self.trade_service.is_running:
             self.trade_service.stop()
-        
-        # Save config
-        self.save_config()
         
         super().closeEvent(event)

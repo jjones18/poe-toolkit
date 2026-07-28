@@ -2,6 +2,8 @@
 Global settings page for shared account and per-game configuration.
 """
 
+import copy
+
 import requests
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
@@ -66,6 +68,17 @@ class SettingsWidget(QWidget):
     def __init__(self, config: dict, parent=None):
         super().__init__(parent)
         self.config = config
+        ConfigManager.normalize(self.config)
+        self._game_values = {
+            game_id: {
+                "league": ConfigManager.get_game_league(self.config, game_id),
+                "client_log_path": ConfigManager.get_client_log_path(
+                    self.config, game_id
+                ),
+            }
+            for game_id in ConfigManager.GAME_PROFILES
+        }
+        self._displayed_game = None
         self._worker_registry = WorkerRegistry(max_threads=1)
         self.setup_ui()
         self.status_label.setText("Using saved league lists; refresh manually when needed.")
@@ -79,7 +92,7 @@ class SettingsWidget(QWidget):
         title.setStyleSheet("font-size: 24px; font-weight: bold; color: #ffffff;")
         layout.addWidget(title)
 
-        subtitle = QLabel("Shared account settings plus per-game league selections")
+        subtitle = QLabel("Shared account settings plus per-game league and Client.txt selections")
         subtitle.setStyleSheet("color: #888888; font-size: 12px;")
         layout.addWidget(subtitle)
 
@@ -109,23 +122,20 @@ class SettingsWidget(QWidget):
         self.active_game_combo.setCurrentIndex(self.active_game_combo.findData(active_game))
         games_form.addRow("Active toolkit:", self.active_game_combo)
 
-        self.poe1_league_combo = QComboBox()
-        self.poe1_league_combo.setEditable(False)
-        self.populate_league_combo(
-            self.poe1_league_combo,
-            ConfigManager.get_game_league(self.config, "poe1"),
-            ConfigManager.get_game_league_options(self.config, "poe1"),
-        )
-        games_form.addRow("PoE 1 league:", self.poe1_league_combo)
+        self.league_combo = QComboBox()
+        self.league_combo.setEditable(False)
+        self.league_label = QLabel("League:")
+        games_form.addRow(self.league_label, self.league_combo)
 
-        self.poe2_league_combo = QComboBox()
-        self.poe2_league_combo.setEditable(False)
-        self.populate_league_combo(
-            self.poe2_league_combo,
-            ConfigManager.get_game_league(self.config, "poe2"),
-            ConfigManager.get_game_league_options(self.config, "poe2"),
-        )
-        games_form.addRow("PoE 2 league:", self.poe2_league_combo)
+        client_log_row = QHBoxLayout()
+        self.client_log_input = QLineEdit()
+        client_log_row.addWidget(self.client_log_input, 1)
+
+        self.client_log_browse_btn = QPushButton("Browse...")
+        self.client_log_browse_btn.clicked.connect(self.browse_client_log_path)
+        client_log_row.addWidget(self.client_log_browse_btn)
+        self.client_log_label = QLabel("Client.txt path:")
+        games_form.addRow(self.client_log_label, client_log_row)
 
         self.refresh_leagues_btn = QPushButton("Refresh League Lists")
         self.refresh_leagues_btn.clicked.connect(self.fetch_leagues)
@@ -133,21 +143,8 @@ class SettingsWidget(QWidget):
 
         layout.addWidget(games_group)
 
-        paths_group = QGroupBox("Local Paths")
-        paths_form = QFormLayout(paths_group)
-
-        client_log_row = QHBoxLayout()
-        self.client_log_input = QLineEdit()
-        self.client_log_input.setText(ConfigManager.get_client_log_path(self.config))
-        self.client_log_input.setPlaceholderText("Path to Path of Exile/logs/Client.txt")
-        client_log_row.addWidget(self.client_log_input, 1)
-
-        self.client_log_browse_btn = QPushButton("Browse...")
-        self.client_log_browse_btn.clicked.connect(self.browse_client_log_path)
-        client_log_row.addWidget(self.client_log_browse_btn)
-        paths_form.addRow("Client.txt path:", client_log_row)
-
-        layout.addWidget(paths_group)
+        self.show_game_settings(active_game)
+        self.active_game_combo.currentIndexChanged.connect(self.on_active_game_changed)
 
         note = QLabel(
             "League lists are public and refresh only when requested. Credential "
@@ -189,11 +186,71 @@ class SettingsWidget(QWidget):
             combo.setCurrentIndex(idx)
         combo.blockSignals(False)
 
+    def capture_game_settings(self):
+        """Retain unsaved values for the currently displayed game."""
+        if self._displayed_game not in self._game_values:
+            return
+        self._game_values[self._displayed_game]["league"] = self.current_combo_text(
+            self.league_combo
+        )
+        self._game_values[self._displayed_game]["client_log_path"] = (
+            self.client_log_input.text().strip()
+        )
+
+    def show_game_settings(self, game_id: str):
+        """Display the league and Client.txt values owned by one game."""
+        if game_id not in ConfigManager.GAME_PROFILES:
+            game_id = "poe1"
+        self._displayed_game = game_id
+        values = self._game_values[game_id]
+        self.populate_league_combo(
+            self.league_combo,
+            values["league"],
+            ConfigManager.get_game_league_options(self.config, game_id),
+        )
+        self.client_log_input.setText(values["client_log_path"])
+        profile = ConfigManager.get_game_profile(game_id)
+        self.league_label.setText(f"{profile['label']} league:")
+        self.client_log_label.setText(f"{profile['label']} Client.txt:")
+        self.client_log_input.setPlaceholderText(
+            f"Path to {profile['full_name']}/logs/Client.txt"
+        )
+
+    def on_active_game_changed(self):
+        self.capture_game_settings()
+        self.show_game_settings(self.active_game_combo.currentData())
+
+    def sync_game_values_to_config(self, target_config=None):
+        target_config = target_config if target_config is not None else self.config
+        self.capture_game_settings()
+        for game_id, values in self._game_values.items():
+            ConfigManager.set_game_league(
+                target_config, game_id, values["league"]
+            )
+            ConfigManager.set_client_log_path(
+                target_config,
+                values["client_log_path"],
+                game_id,
+            )
+
+    def restore_active_game(self, game_id: str):
+        """Restore a mode selection rejected by the application reload gate."""
+        index = self.active_game_combo.findData(game_id)
+        if index < 0:
+            return
+        signals_were_blocked = self.active_game_combo.blockSignals(True)
+        try:
+            self.active_game_combo.setCurrentIndex(index)
+        finally:
+            self.active_game_combo.blockSignals(signals_were_blocked)
+        self.show_game_settings(game_id)
+
     def clear_league_combos(self, warning: str):
-        for combo in (self.poe1_league_combo, self.poe2_league_combo):
-            combo.blockSignals(True)
-            combo.clear()
-            combo.blockSignals(False)
+        self.league_combo.blockSignals(True)
+        self.league_combo.clear()
+        self.league_combo.blockSignals(False)
+        if self._displayed_game in self._game_values:
+            self._game_values[self._displayed_game]["league"] = ""
         self.status_label.setStyleSheet("color: #ffaa66;")
         self.status_label.setText(warning)
 
@@ -221,6 +278,7 @@ class SettingsWidget(QWidget):
         )
 
     def on_leagues_fetched(self, league_options: dict):
+        self.capture_game_settings()
         poe1_leagues = league_options.get("poe1", [])
         poe2_leagues = league_options.get("poe2", [])
         ConfigManager.set_game_league_options(self.config, "poe1", poe1_leagues)
@@ -228,15 +286,11 @@ class SettingsWidget(QWidget):
         poe1_leagues = ConfigManager.get_game_league_options(self.config, "poe1")
         poe2_leagues = ConfigManager.get_game_league_options(self.config, "poe2")
 
+        current_game = self._displayed_game or ConfigManager.get_active_game(self.config)
         self.populate_league_combo(
-            self.poe1_league_combo,
-            ConfigManager.get_game_league(self.config, "poe1"),
-            poe1_leagues,
-        )
-        self.populate_league_combo(
-            self.poe2_league_combo,
-            ConfigManager.get_game_league(self.config, "poe2"),
-            poe2_leagues,
+            self.league_combo,
+            self._game_values[current_game]["league"],
+            ConfigManager.get_game_league_options(self.config, current_game),
         )
         self.status_label.setStyleSheet("color: #66ff66;")
         self.status_label.setText(
@@ -251,10 +305,12 @@ class SettingsWidget(QWidget):
         return combo.currentText().strip() if combo.count() else ""
 
     def browse_client_log_path(self):
-        """Browse for the local Path of Exile Client.txt file."""
+        """Browse for the active game's local Client.txt file."""
+        game_id = self._displayed_game or ConfigManager.get_active_game(self.config)
+        game_name = ConfigManager.get_game_profile(game_id)["full_name"]
         path, _ = QFileDialog.getOpenFileName(
             self,
-            "Select Path of Exile Client.txt",
+            f"Select {game_name} Client.txt",
             self.client_log_input.text().strip(),
             "Text Files (*.txt);;All Files (*.*)"
         )
@@ -264,22 +320,24 @@ class SettingsWidget(QWidget):
     def save_settings(self):
         old_game = ConfigManager.get_active_game(self.config)
         new_game = self.active_game_combo.currentData()
+        candidate = copy.deepcopy(self.config)
 
         ConfigManager.set_account_credentials(
-            self.config,
+            candidate,
             self.session_input.text().strip(),
             self.account_input.text().strip(),
         )
-        ConfigManager.set_game_league(self.config, "poe1", self.current_combo_text(self.poe1_league_combo))
-        ConfigManager.set_game_league(self.config, "poe2", self.current_combo_text(self.poe2_league_combo))
-        ConfigManager.set_active_game(self.config, new_game)
-        ConfigManager.set_client_log_path(self.config, self.client_log_input.text())
+        self.sync_game_values_to_config(candidate)
+        ConfigManager.set_active_game(candidate, new_game)
         try:
-            ConfigManager.save(self.config)
+            ConfigManager.save(candidate)
         except ConfigSaveError as error:
             self.status_label.setStyleSheet("color: #ff6666;")
             self.status_label.setText(f"Save failed: {error}")
             return False
+
+        self.config.clear()
+        self.config.update(candidate)
 
         self.status_label.setStyleSheet("color: #66ff66;")
         self.status_label.setText("Saved")
@@ -295,10 +353,8 @@ class SettingsWidget(QWidget):
             self.session_input.text().strip(),
             self.account_input.text().strip(),
         )
-        ConfigManager.set_game_league(self.config, "poe1", self.current_combo_text(self.poe1_league_combo))
-        ConfigManager.set_game_league(self.config, "poe2", self.current_combo_text(self.poe2_league_combo))
+        self.sync_game_values_to_config()
         ConfigManager.set_active_game(self.config, self.active_game_combo.currentData())
-        ConfigManager.set_client_log_path(self.config, self.client_log_input.text())
 
     def cleanup(self):
         """Cancel and verify any in-flight league refresh before destruction."""

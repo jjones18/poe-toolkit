@@ -31,8 +31,8 @@ class UniqueItemInfo:
     is_quad: bool
     # Calculated values
     dust: int = 0
-    chaos_price: float = 0.0
-    efficiency: float = 0.0
+    chaos_price: Optional[float] = None
+    efficiency: Optional[float] = None
 
 
 # Tab types that are not supported by the PoE stash API
@@ -63,6 +63,8 @@ class StashScanWorker(QThread):
     
     def run(self):
         """Main scan loop."""
+        if self.isInterruptionRequested():
+            return
         self.log_signal.emit("Initializing API client...")
         
         auth = SessionAuthProvider(self.session_id)
@@ -80,12 +82,16 @@ class StashScanWorker(QThread):
         self.log_signal.emit(f"Scanning {total_tabs} tabs for unique items...")
         
         for i, tab_idx in enumerate(self.tab_indices):
+            if self.isInterruptionRequested():
+                return
             self.log_signal.emit(f"Scanning tab {tab_idx} ({i+1}/{total_tabs})...")
             self.progress_signal.emit(i + 1, total_tabs)
             
             # Rate limiting
             if i > 0:
                 time.sleep(1.5)
+                if self.isInterruptionRequested():
+                    return
             
             # Fetch tab data
             data = client.get_stash_items(tab_idx)
@@ -130,7 +136,16 @@ class StashScanWorker(QThread):
                         items_with_dust += 1
                     
                     # Check if meets efficiency threshold (must have dust data and valid efficiency)
-                    if unique_info.dust > 0 and unique_info.efficiency >= self.min_efficiency:
+                    if (
+                        unique_info.dust > 0
+                        and (
+                            self.min_efficiency <= 0
+                            or (
+                                unique_info.efficiency is not None
+                                and unique_info.efficiency >= self.min_efficiency
+                            )
+                        )
+                    ):
                         all_items.append(unique_info)
                         stats['valuable_uniques'] += 1
                         stats['total_dust'] += unique_info.dust
@@ -153,7 +168,10 @@ class StashScanWorker(QThread):
         )
         
         # Sort by efficiency (best first)
-        all_items.sort(key=lambda x: x.efficiency, reverse=True)
+        all_items.sort(
+            key=lambda item: item.efficiency if item.efficiency is not None else -1,
+            reverse=True,
+        )
         
         self.result_signal.emit(all_items, stats)
     
@@ -224,8 +242,8 @@ class StashScanWorker(QThread):
             efficiency = eff_data['efficiency']
         else:
             dust = 0
-            chaos_price = 0
-            efficiency = 0
+            chaos_price = None
+            efficiency = None
         
         return UniqueItemInfo(
             name=name,

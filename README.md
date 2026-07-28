@@ -2,7 +2,7 @@
 
 A unified Path of Exile helper application combining multiple tools into a single, modern interface.
 
-![Version](https://img.shields.io/badge/Version-1.6.0-blue.svg)
+![Version](https://img.shields.io/badge/Version-1.7.0-blue.svg)
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
@@ -46,9 +46,20 @@ Inspect application health without displaying account names, session tokens, or
 cached item contents:
 - Active game/league, shared services, workers, Client.txt, and zone monitor
 - Explicit Node/npm, Tesseract, and local DevTools readiness tests
-- Price/dust cache source, league, schema, age, and item count
+- Price/dust cache game, league, source, schema, status, age, and item count
 - Open runtime directories, clear only per-user caches, and export redacted JSON
 - Dependency probes run only when requested and use cancellable bounded workers
+
+### 📊 Shared Price & Dust Data
+- One application-owned, game/league-aware price service is shared by valuation tools
+- Price entries are keyed by game, league, source, endpoint set, and schema
+- Cache read/modify/write is serialized across threads/processes and written atomically
+- Refreshes use bounded requests and report cache, success, partial, or failure outcomes
+- Partial/failed refreshes retain the active and on-disk last-known-good snapshot
+- Unknown prices remain distinct from known zero values, render as `—`, and are excluded by default
+- Explicit include overrides still win; Kalguur Dust can optionally display unknown-price items
+- Bundled 2025 dust estimates are explicitly labeled stale and estimated
+- Reload/close fails closed if a legacy league-tool thread does not stop within its bounded wait
 
 ---
 
@@ -107,10 +118,13 @@ poe-toolkit/
    > **Note:** Safe to run multiple times - only installs what's missing!
 
 3. **Use the toolkit Settings page**, or edit the per-user config path listed under Configuration:
-   - `session_id` - Your POESESSID cookie from pathofexile.com
-   - `account_name` - Your PoE account name  
-   - `league` - Current league name
-   - `client_log_path` - Path to your PoE Client.txt log file
+   - `credentials.session_id` and `credentials.account_name` - shared by PoE 1 and PoE 2
+   - `game_settings.<game>.league` - current league for that game
+   - `game_settings.<game>.client_log_path` - that game's own Client.txt log
+
+   The Settings page's **Active toolkit** selector switches the league and
+   Client.txt fields together. Unsaved edits are retained while switching, and
+   saving persists the independent PoE 1 and PoE 2 values.
 
 ### Manual Setup
 
@@ -194,6 +208,11 @@ opt-in screenshots use the per-user log/cache directories, and screenshot
 retention is bounded. If the per-user cache is malformed but a valid legacy
 cache exists, the malformed file is preserved with a `.invalid` suffix before
 recovery.
+
+Price and dust caches use schema-v2 provenance. Before the first schema-v2
+replacement, a valid unversioned cache is preserved byte-for-byte as
+`.legacy-v1`. Cache and compatibility-backup writes use same-directory atomic
+replacement plus file and directory durability barriers.
 
 ---
 

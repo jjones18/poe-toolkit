@@ -23,8 +23,8 @@ class ValueRule(FilterRule):
         self.min_profit = min_profit
 
     def check(self, item: Dict[str, Any], context: Dict[str, Any]) -> bool:
-        profit = context.get('profit', 0)
-        return profit >= self.min_profit
+        profit = context.get('profit')
+        return profit is not None and profit >= self.min_profit
 
 
 class EncounterRule(FilterRule):
@@ -150,7 +150,8 @@ class FilteringRuleEngine:
     def add_override(self, rule: FilterRule):
         self.overrides.append(rule)
 
-    def evaluate(self, item: Dict[str, Any], price_fetcher) -> bool:
+    def evaluate(self, item: Dict[str, Any], price_fetcher,
+                 include_unknown_prices: bool = False) -> bool:
         """
         Determines if an item should be highlighted.
         Calculates profit first and adds to context.
@@ -161,21 +162,36 @@ class FilteringRuleEngine:
         rew_name = item.get('reward')
         rew_qty = item.get('reward_count', 1)
         
-        sac_price = price_fetcher.get_price(sac_name) * sac_qty
-        rew_price = price_fetcher.get_price(rew_name) * rew_qty
-        
-        profit = rew_price - sac_price
+        sac_unit_price = (
+            price_fetcher.get_price(sac_name)
+            if sac_name
+            else 0.0
+        )
+        rew_unit_price = price_fetcher.get_price(rew_name)
+        price_known = sac_unit_price is not None and rew_unit_price is not None
+
+        sac_price = sac_unit_price * sac_qty if sac_unit_price is not None else None
+        rew_price = rew_unit_price * rew_qty if rew_unit_price is not None else None
+        profit = (
+            rew_price - sac_price
+            if rew_price is not None and sac_price is not None
+            else None
+        )
         
         context = {
             'profit': profit,
             'sac_price': sac_price,
-            'rew_price': rew_price
+            'rew_price': rew_price,
+            'price_known': price_known,
         }
 
         # 2. Check Overrides first - if any override passes, accept immediately
         for rule in self.overrides:
             if rule.check(item, context):
                 return True
+
+        if not price_known and not include_unknown_prices:
+            return False
 
         # 3. Check Standard Rules - all must pass
         for rule in self.rules:

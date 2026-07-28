@@ -16,6 +16,7 @@ from PyQt6.QtGui import QColor
 
 from tools.base_tool import BaseTool
 from core.valuation import NinjaPriceFetcher
+from services.price_service import PriceService
 from ui.components.stash_selector import StashTabSelector
 
 from .dust_data import DustDataFetcher, DustEfficiencyAnalyzer, DustDataCache
@@ -26,6 +27,11 @@ from .scanner import (
 from .tab_tracker import TabTracker, TabTrackerWorker, TabRegionConfig, MultiTabHighlighter
 from ui.components.ocr_settings_dialog import OCRSettingsDialog
 from utils.config import ConfigManager
+from utils.workers import (
+    disconnect_qt_signals,
+    discard_queued_meta_calls,
+    stop_legacy_qthread,
+)
 
 
 class KalguurDustWidget(QWidget):
@@ -36,22 +42,27 @@ class KalguurDustWidget(QWidget):
     overlay_debug_text_update = pyqtSignal(str, int, int)  # text, x, y
     overlay_guidance_update = pyqtSignal(str, int, int)  # text, x, y
     
-    def __init__(self, config: dict, parent=None):
+    def __init__(self, config: dict, price_service=None, parent=None):
         super().__init__(parent)
         self.config = config
         self.game_id = "poe1"
+        league = ConfigManager.get_game_league(config, self.game_id)
+        self._owns_price_service = price_service is None
+        self.price_service = price_service or PriceService(self.game_id, league)
         self.dust_config = config.get("kalguur_dust", {})
         
         # Data components
-        self.dust_fetcher: DustDataFetcher = None
-        self.price_fetcher: NinjaPriceFetcher = None
-        self.dust_analyzer: DustEfficiencyAnalyzer = None
+        self.dust_fetcher: DustDataFetcher | None = None
+        self.price_fetcher: NinjaPriceFetcher | None = None
+        self.dust_analyzer: DustEfficiencyAnalyzer | None = None
         
         # Scan results (all_scan_results is unfiltered, scan_results is filtered)
         self.all_scan_results: list[UniqueItemInfo] = []
         self.scan_results: list[UniqueItemInfo] = []
         self.scan_stats: dict = {}
         self.items_by_tab: dict = {}
+        self.tab_worker = None
+        self.scan_worker = None
         
         # Tab tracking
         self.tab_tracker: TabTracker = None
@@ -155,6 +166,13 @@ class KalguurDustWidget(QWidget):
         self.efficiency_slider.valueChanged.connect(self.apply_efficiency_filter)
         settings_row.addWidget(self.efficiency_slider)
         settings_row.addWidget(self.efficiency_label)
+
+        self.include_unknown_prices = QCheckBox("Include unknown prices")
+        self.include_unknown_prices.setChecked(
+            self.dust_config.get("include_unknown_prices", False)
+        )
+        self.include_unknown_prices.stateChanged.connect(self.apply_efficiency_filter)
+        settings_row.addWidget(self.include_unknown_prices)
         
         layout.addLayout(settings_row)
         
@@ -337,8 +355,8 @@ class KalguurDustWidget(QWidget):
                     self.log(f"  Known items: {', '.join(items_list)}...", debug_only=True)
         
         if not self.price_fetcher:
-            self.price_fetcher = NinjaPriceFetcher(league)
-            self.price_fetcher.fetch_all_prices()
+            self.price_service.set_context(self.game_id, league)
+            self.price_fetcher = self.price_service.get_fetcher()
             self.log(f"Price data: {len(self.price_fetcher.prices)} items loaded", debug_only=True)
         
         self.dust_analyzer = DustEfficiencyAnalyzer(
@@ -390,7 +408,19 @@ class KalguurDustWidget(QWidget):
         # Filter items by efficiency threshold
         filtered_items = [
             item for item in self.all_scan_results
-            if item.dust > 0 and item.efficiency >= min_efficiency
+            if (
+                item.dust > 0
+                and (
+                    (
+                        item.efficiency is not None
+                        and item.efficiency >= min_efficiency
+                    )
+                    or (
+                        self.include_unknown_prices.isChecked()
+                        and item.chaos_price is None
+                    )
+                )
+            )
         ]
         
         self.scan_results = filtered_items
@@ -406,8 +436,10 @@ class KalguurDustWidget(QWidget):
             self.results_table.setItem(row, 1, QTableWidgetItem(item.tab_name))
             self.results_table.setItem(row, 2, QTableWidgetItem(str(item.ilvl)))
             self.results_table.setItem(row, 3, QTableWidgetItem(str(item.dust)))
-            self.results_table.setItem(row, 4, QTableWidgetItem(f"{item.chaos_price:.1f}"))
-            self.results_table.setItem(row, 5, QTableWidgetItem(f"{item.efficiency:.2f}"))
+            price_text = "—" if item.chaos_price is None else f"{item.chaos_price:.1f}"
+            efficiency_text = "—" if item.efficiency is None else f"{item.efficiency:.2f}"
+            self.results_table.setItem(row, 4, QTableWidgetItem(price_text))
+            self.results_table.setItem(row, 5, QTableWidgetItem(efficiency_text))
             
             corrupted_item = QTableWidgetItem("Yes" if item.corrupted else "No")
             if item.corrupted:
@@ -632,9 +664,15 @@ class KalguurDustWidget(QWidget):
     def stop_highlighting(self):
         """Stop the highlighting workflow and clear overlay."""
         if self.tab_tracker_worker:
-            self.tab_tracker_worker.stop()
-            self.tab_tracker_worker.wait()
+            worker = self.tab_tracker_worker
+            if not stop_legacy_qthread(worker, stop=worker.stop):
+                return False
+            disconnect_qt_signals(
+                worker,
+                ("tab_detected", "tab_changed", "status_signal", "ocr_debug_signal", "finished"),
+            )
             self.tab_tracker_worker = None
+            discard_queued_meta_calls(self)
         
         # Also clear the overlay when stopping
         self.overlay_update.emit([])
@@ -648,6 +686,23 @@ class KalguurDustWidget(QWidget):
         self.manual_tab_btn.setEnabled(False)
         self.current_tab_label.setText("")
         self.highlight_status.setText("Highlighting stopped")
+        return True
+
+    def _stop_worker(self, attribute: str) -> bool:
+        worker = getattr(self, attribute, None)
+        if stop_legacy_qthread(worker):
+            signal_names = {
+                "tab_worker": ("finished_signal", "error_signal", "finished"),
+                "scan_worker": (
+                    "log_signal", "debug_signal", "progress_signal",
+                    "result_signal", "finished",
+                ),
+            }.get(attribute, ("finished",))
+            if worker is not None:
+                disconnect_qt_signals(worker, signal_names)
+            setattr(self, attribute, None)
+            return True
+        return False
     
     def _on_manual_tab_confirm(self):
         """Handle manual tab confirmation (OCR fallback)."""
@@ -760,12 +815,21 @@ class KalguurDustWidget(QWidget):
         self.current_tab_label.setText("")
     
     def sync_config(self):
-        """Tool-local settings persist elsewhere; shared league belongs to Settings."""
+        """Persist tool-local filters; shared league belongs to Settings."""
+        self.dust_config["min_efficiency"] = self.efficiency_slider.value()
+        self.dust_config["include_unknown_prices"] = self.include_unknown_prices.isChecked()
+        self.config["kalguur_dust"] = self.dust_config
 
     def refresh_shared_settings(self):
         """Refresh mirrored account and league values from application Settings."""
         self.account_label.setText(f"Account: {ConfigManager.get_account_name(self.config)}")
         league = ConfigManager.get_game_league(self.config, self.game_id)
+        if self.dust_fetcher is not None and self.dust_fetcher.league != league:
+            self.dust_fetcher = None
+            self.dust_analyzer = None
+        if self.price_fetcher is not None and self.price_fetcher.league != league:
+            self.price_fetcher = None
+        self.price_service.set_context(self.game_id, league)
         index = self.league_input.findText(league)
         if league and index < 0:
             self.league_input.insertItem(0, league)
@@ -780,8 +844,15 @@ class KalguurDustWidget(QWidget):
     
     def cleanup(self):
         """Cleanup resources."""
-        self.stop_highlighting()
+        success = self.stop_highlighting()
+        success = self._stop_worker("tab_worker") and success
+        success = self._stop_worker("scan_worker") and success
+        if success:
+            discard_queued_meta_calls(self)
         self.clear_overlay()
+        if success and getattr(self, "_owns_price_service", False):
+            success = self.price_service.close()
+        return success
 
 
 class KalguurDustTool(BaseTool):
@@ -799,12 +870,17 @@ class KalguurDustTool(BaseTool):
     def description(self) -> str:
         return "Find valuable uniques to disenchant for Thaumaturgic Dust"
     
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, price_service=None):
         self.config = config
+        self.price_service = price_service
         self.widget = None
     
     def create_widget(self, parent=None) -> QWidget:
-        self.widget = KalguurDustWidget(self.config, parent)
+        self.widget = KalguurDustWidget(
+            self.config,
+            price_service=self.price_service,
+            parent=parent,
+        )
         return self.widget
     
     def on_activated(self):
@@ -816,5 +892,6 @@ class KalguurDustTool(BaseTool):
     
     def cleanup(self):
         if self.widget:
-            self.widget.cleanup()
+            return self.widget.cleanup()
+        return True
 

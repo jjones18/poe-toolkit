@@ -59,7 +59,7 @@ class ConfigManager:
     LEGACY_USER_CONFIG_FILE = os.path.join(_PROJECT_ROOT, "config", "user_config.json")
     USER_CONFIG_FILE = _resolve_user_config_file()
     USER_CONFIG_BACKUP_FILE = USER_CONFIG_FILE + ".bak"
-    CURRENT_SCHEMA_VERSION = 2
+    CURRENT_SCHEMA_VERSION = 3
     last_warning = ""
     last_error = ""
     save_blocked = False
@@ -156,6 +156,18 @@ class ConfigManager:
                     "league"
                 ] = legacy_league
 
+        if raw_version <= 2:
+            vision = migrated.get("league_vision", {})
+            legacy_client_log = (
+                vision.pop("client_log_path", None)
+                if isinstance(vision, dict)
+                else None
+            )
+            if legacy_client_log:
+                migrated.setdefault("game_settings", {}).setdefault("poe1", {}).setdefault(
+                    "client_log_path", legacy_client_log
+                )
+
         migrated["config_schema_version"] = cls.CURRENT_SCHEMA_VERSION
         return migrated
     
@@ -163,7 +175,7 @@ class ConfigManager:
     USER_SPECIFIC_KEYS = {
         "app",          # active game selection
         "credentials",  # shared account_name and POESESSID
-        "game_settings",# per-game league selections
+        "game_settings",# per-game league and Client.txt selections
         "overlay",      # calibration settings are PC-specific
         "window",       # window position is PC-specific
         "calibration",  # All calibration data
@@ -171,8 +183,7 @@ class ConfigManager:
     
     # Nested keys within league_vision that are user-specific
     USER_SPECIFIC_LEAGUE_VISION_KEYS = {
-        "client_log_path",
-        "tesseract_path", 
+        "tesseract_path",
         "map_device_button",
         "resolution_override",
         "scan_region_hover",
@@ -207,11 +218,13 @@ class ConfigManager:
         "game_settings": {
             "poe1": {
                 "league": "Settlers",
-                "league_options": []
+                "league_options": [],
+                "client_log_path": ""
             },
             "poe2": {
                 "league": "Standard",
-                "league_options": []
+                "league_options": [],
+                "client_log_path": ""
             }
         },
         "overlay": {
@@ -230,7 +243,6 @@ class ConfigManager:
             "included_tiers": []
         },
         "league_vision": {
-            "client_log_path": "",
             "tesseract_path": "C:/Program Files/Tesseract-OCR/tesseract.exe" if sys.platform == "win32" else "tesseract",
             "ocr_threshold": 70,
             "debug_mode": False,
@@ -375,16 +387,24 @@ class ConfigManager:
         credentials.setdefault("session_id", "")
         credentials.setdefault("account_name", "")
 
+        vision_config = config.setdefault("league_vision", {})
+        legacy_client_log = vision_config.pop("client_log_path", None)
+
         game_settings = config.setdefault("game_settings", {})
         for game_id, defaults in cls.DEFAULTS["game_settings"].items():
             game_settings.setdefault(game_id, {})
             game_settings[game_id].setdefault("league", defaults["league"])
             game_settings[game_id].setdefault("league_options", defaults["league_options"])
+            game_settings[game_id].setdefault(
+                "client_log_path", defaults["client_log_path"]
+            )
 
         # Older builds stored a single league under credentials. Treat that as
         # the PoE1 league so existing users keep their current selection.
         if legacy_league:
             game_settings["poe1"]["league"] = legacy_league
+        if legacy_client_log and not game_settings["poe1"]["client_log_path"]:
+            game_settings["poe1"]["client_log_path"] = legacy_client_log
 
         return config
 
@@ -450,12 +470,29 @@ class ConfigManager:
         config.setdefault("game_settings", {}).setdefault(game_id, {})["league_options"] = cleaned
 
     @classmethod
-    def get_client_log_path(cls, config: dict) -> str:
-        return config.get("league_vision", {}).get("client_log_path", "")
+    def get_client_log_path(cls, config: dict, game_id: str | None = None) -> str:
+        game_id = game_id or cls.get_active_game(config)
+        if game_id not in cls.GAME_PROFILES:
+            game_id = "poe1"
+        return str(
+            config.get("game_settings", {})
+            .get(game_id, {})
+            .get("client_log_path", "")
+        )
 
     @classmethod
-    def set_client_log_path(cls, config: dict, path: str):
-        config.setdefault("league_vision", {})["client_log_path"] = path.strip()
+    def set_client_log_path(
+        cls,
+        config: dict,
+        path: str,
+        game_id: str | None = None,
+    ):
+        game_id = game_id or cls.get_active_game(config)
+        if game_id not in cls.GAME_PROFILES:
+            game_id = "poe1"
+        config.setdefault("game_settings", {}).setdefault(game_id, {})[
+            "client_log_path"
+        ] = path.strip()
 
     @classmethod
     def get_trade_url(cls, config: dict, game_id: str | None = None) -> str:

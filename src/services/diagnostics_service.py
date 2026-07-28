@@ -192,8 +192,11 @@ class DiagnosticsService:
             "age_seconds": None,
             "stale": None,
             "schema": "unknown",
+            "game": "unknown",
             "league": "unknown",
             "item_count": 0,
+            "estimated": False,
+            "status": "unknown",
             "error": "",
             "clearable": target.clearable,
         }
@@ -214,20 +217,63 @@ class DiagnosticsService:
             result["error"] = str(error)
             return result
 
-        source = payload.get("source") or target.source
+        metadata = payload
+        collection_payload = payload
+        schema = payload.get(
+            "schema_version",
+            payload.get("config_schema_version", "legacy/unversioned"),
+        )
+        if target.kind == "price" and schema == 2 and isinstance(payload.get("entries"), dict):
+            game_id = ConfigManager.get_active_game(self.config)
+            league = ConfigManager.get_game_league(self.config, game_id)
+            expected = {
+                "schema_version": 2,
+                "game": game_id,
+                "league": league,
+                "source": "poe.ninja",
+                "endpoint_set": "overview-v1",
+            }
+            entry_key = json.dumps(
+                [game_id, league, "poe.ninja", "overview-v1", 2],
+                ensure_ascii=True,
+                separators=(",", ":"),
+            )
+            matching_entry = payload["entries"].get(entry_key)
+            entry_metadata = (
+                matching_entry.get("metadata")
+                if isinstance(matching_entry, dict)
+                else None
+            )
+            if (
+                not isinstance(entry_metadata, dict)
+                or any(entry_metadata.get(key) != value for key, value in expected.items())
+                or not isinstance(matching_entry.get("prices"), dict)
+                or not isinstance(matching_entry.get("categories"), dict)
+            ):
+                result["error"] = "active keyed price cache entry missing or invalid"
+                result["schema"] = schema
+                return result
+            metadata = entry_metadata
+            collection_payload = matching_entry
+        elif schema == 2 and isinstance(payload.get("metadata"), dict):
+            metadata = payload["metadata"]
+
+        source = metadata.get("source") or payload.get("source") or target.source
         result["source"] = (
             str(source)[:200]
             if isinstance(source, (str, int, float))
             else target.source
         )
-        schema = payload.get(
-            "schema_version",
-            payload.get("config_schema_version", "legacy/unversioned"),
-        )
         result["schema"] = (
             schema if isinstance(schema, (int, float)) else str(schema)[:200]
         ) if isinstance(schema, (str, int, float)) else "invalid"
-        league = payload.get("league") or "unknown"
+        game = metadata.get("game") or payload.get("game") or "unknown"
+        result["game"] = (
+            str(game)[:200]
+            if isinstance(game, (str, int, float))
+            else "unknown"
+        )
+        league = metadata.get("league") or payload.get("league") or "unknown"
         result["league"] = (
             str(league)[:200]
             if isinstance(league, (str, int, float))
@@ -235,11 +281,20 @@ class DiagnosticsService:
         )
 
         collection_key = "prices" if target.kind == "price" else "dust_values"
-        collection = payload.get(collection_key, {})
+        collection = collection_payload.get(collection_key, {})
         if isinstance(collection, dict):
             result["item_count"] = len(collection)
 
-        timestamp_text = payload.get("timestamp")
+        estimated = metadata.get("estimated", False)
+        result["estimated"] = estimated if isinstance(estimated, bool) else False
+        status = metadata.get("status", payload.get("status", "unknown"))
+        result["status"] = (
+            str(status)[:200]
+            if isinstance(status, (str, int, float))
+            else "unknown"
+        )
+
+        timestamp_text = metadata.get("timestamp") or payload.get("timestamp")
         if timestamp_text:
             try:
                 timestamp = datetime.fromisoformat(str(timestamp_text))

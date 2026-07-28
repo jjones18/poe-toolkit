@@ -91,6 +91,46 @@ class MainWindowTradeLifecycleTests(unittest.TestCase):
         )
         self.assertEqual(runtime["last_error"], "Synthetic: Dependency failed safely")
 
+    def test_price_service_is_application_owned_injected_and_reused_on_reload(self):
+        config = copy.deepcopy(ConfigManager.DEFAULTS)
+        ConfigManager.set_active_game(config, "poe1")
+        ConfigManager.set_game_league(config, "poe1", "Settlers")
+        trade_service = Mock()
+        trade_service.is_running = False
+        price_service = Mock()
+        price_service.close.return_value = True
+
+        module_patcher = patch.dict(sys.modules, {
+            "cv2": Mock(),
+            "pytesseract": Mock(),
+            "mss": Mock(),
+        })
+        module_patcher.start()
+        self.addCleanup(module_patcher.stop)
+
+        with (
+            patch.object(ConfigManager, "load", return_value=config),
+            patch("tools.trade_sniper.tool.TradeSniperWidget.check_setup"),
+            patch("tools.trade_sniper.tool.TradeSniperWidget.check_brave_status"),
+        ):
+            window = MainWindow(
+                trade_service=trade_service,
+                price_service=price_service,
+            )
+
+        first = next(tool for tool in window.tools if tool.name == "League Tools")
+        self.assertIs(first.widget.price_service, price_service)
+        self.assertIs(first.widget.league_widgets[0].price_service, price_service)
+        self.assertIs(first.widget.league_widgets[1].price_service, price_service)
+
+        self.assertTrue(window.reload_tools())
+        second = next(tool for tool in window.tools if tool.name == "League Tools")
+        self.assertIs(second.widget.price_service, price_service)
+        price_service.close.assert_not_called()
+
+        window.close()
+        price_service.close.assert_called_once_with(timeout_ms=20_000)
+
     def test_mode_reload_reuses_application_trade_service_without_stopping_it(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             service = TradeService(owner_file=os.path.join(temp_dir, "trade.lock"))
@@ -294,8 +334,10 @@ class MainWindowTradeLifecycleTests(unittest.TestCase):
     def test_settings_mode_change_rolls_back_when_worker_cleanup_blocks_reload(self):
         config = copy.deepcopy(ConfigManager.DEFAULTS)
         ConfigManager.set_active_game(config, "poe2")
-        service = Mock()
-        service.is_running = False
+        trade_service = Mock()
+        trade_service.is_running = False
+        price_service = Mock()
+        price_service.close.return_value = True
 
         with (
             patch.object(ConfigManager, "load", return_value=config),
@@ -303,19 +345,72 @@ class MainWindowTradeLifecycleTests(unittest.TestCase):
             patch("tools.trade_sniper.tool.TradeSniperWidget.check_setup"),
             patch("tools.trade_sniper.tool.TradeSniperWidget.check_brave_status"),
         ):
-            window = MainWindow(trade_service=service)
+            window = MainWindow(
+                trade_service=trade_service,
+                price_service=price_service,
+            )
+            price_service.reset_mock()
+            settings_view = Mock()
+            settings_tool = Mock()
+            settings_tool.name = "Settings"
+            settings_tool.widget = settings_view
+            settings_tool.cleanup.return_value = True
             blocking_tool = Mock()
+            blocking_tool.name = "Blocking"
+            blocking_tool.widget = Mock()
             blocking_tool.cleanup.return_value = False
-            window.tools = [blocking_tool]
+            window.tools = [settings_tool, blocking_tool]
             ConfigManager.set_active_game(window.config, "poe1")
 
+            window.on_settings_saved()
             changed = window.on_settings_game_changed("poe1")
 
         self.assertFalse(changed)
         self.assertEqual(ConfigManager.get_active_game(window.config), "poe2")
         self.assertEqual(window.game_combo.currentData(), "poe2")
+        settings_view.restore_active_game.assert_called_once_with("poe2")
+        settings_view.refresh_shared_settings.assert_not_called()
+        price_service.set_context.assert_called_once_with(
+            "poe2", ConfigManager.get_game_league(window.config, "poe2")
+        )
         save.assert_called()
         self.assertIn("cleanup", window.status_label.text().lower())
+        window.tools = []
+        window.close()
+
+    def test_close_is_rejected_before_cleanup_when_final_save_fails(self):
+        config = copy.deepcopy(ConfigManager.DEFAULTS)
+        ConfigManager.set_active_game(config, "poe2")
+        trade_service = Mock()
+        trade_service.is_running = False
+        price_service = Mock()
+        price_service.close.return_value = True
+
+        with (
+            patch.dict(sys.modules, {
+                "cv2": Mock(),
+                "pytesseract": Mock(),
+                "mss": Mock(),
+            }),
+            patch.object(ConfigManager, "load", return_value=config),
+            patch("tools.trade_sniper.tool.TradeSniperWidget.check_setup"),
+            patch("tools.trade_sniper.tool.TradeSniperWidget.check_brave_status"),
+        ):
+            window = MainWindow(
+                trade_service=trade_service,
+                price_service=price_service,
+            )
+
+        event = QCloseEvent()
+        with (
+            patch.object(window, "save_config", return_value=False),
+            patch.object(window, "_cleanup_tools_verified") as cleanup,
+        ):
+            window.closeEvent(event)
+
+        self.assertFalse(event.isAccepted())
+        cleanup.assert_not_called()
+        price_service.close.assert_not_called()
         window.tools = []
         window.close()
 

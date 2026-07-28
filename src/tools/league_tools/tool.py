@@ -22,9 +22,10 @@ class LeagueToolsWidget(QWidget):
     overlay_debug_text_update = pyqtSignal(str, int, int)
     overlay_guidance_update = pyqtSignal(str, int, int)
     
-    def __init__(self, config: dict, parent=None):
+    def __init__(self, config: dict, price_service=None, parent=None):
         super().__init__(parent)
         self.config = config
+        self.price_service = price_service
         self.league_widgets = []
         
         self.setup_ui()
@@ -73,14 +74,20 @@ class LeagueToolsWidget(QWidget):
     
     def add_ultimatum_tab(self):
         """Add the Ultimatum helper as a tab."""
-        ultimatum_widget = UltimatumWidget(self.config)
+        ultimatum_widget = UltimatumWidget(
+            self.config,
+            price_service=self.price_service,
+        )
         ultimatum_widget.overlay_update.connect(self.overlay_update.emit)
         self.league_widgets.append(ultimatum_widget)
         self.tab_widget.addTab(ultimatum_widget, "Ultimatum")
     
     def add_kalguur_dust_tab(self):
         """Add the Kalguur Dust helper as a tab."""
-        dust_widget = KalguurDustWidget(self.config)
+        dust_widget = KalguurDustWidget(
+            self.config,
+            price_service=self.price_service,
+        )
         dust_widget.overlay_update.connect(self.overlay_update.emit)
         
         # Connect debug signals
@@ -139,11 +146,14 @@ class LeagueToolsWidget(QWidget):
     
     def cleanup(self):
         """Clean up all league widgets."""
+        success = True
         for widget in self.league_widgets:
             if hasattr(widget, 'cleanup'):
-                widget.cleanup()
+                if widget.cleanup() is False:
+                    success = False
             elif hasattr(widget, 'clear_overlay'):
                 widget.clear_overlay()
+        return success
 
 
 class LeagueToolsTool(BaseTool):
@@ -161,12 +171,17 @@ class LeagueToolsTool(BaseTool):
     def description(self) -> str:
         return "Tools for various league mechanics (Ultimatum, Kalguur Dust, etc.)"
     
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, price_service=None):
         self.config = config
+        self.price_service = price_service
         self.widget = None
     
     def create_widget(self, parent=None) -> QWidget:
-        self.widget = LeagueToolsWidget(self.config, parent)
+        self.widget = LeagueToolsWidget(
+            self.config,
+            price_service=self.price_service,
+            parent=parent,
+        )
         return self.widget
     
     def on_activated(self):
@@ -177,5 +192,6 @@ class LeagueToolsTool(BaseTool):
     
     def cleanup(self):
         if self.widget:
-            self.widget.cleanup()
+            return self.widget.cleanup()
+        return True
 

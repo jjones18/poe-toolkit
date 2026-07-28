@@ -14,7 +14,7 @@ import threading
 import time
 from typing import Any, Callable, Optional
 
-from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal
+from PyQt6.QtCore import QCoreApplication, QEvent, QObject, QRunnable, QThreadPool, pyqtSignal
 
 
 DEFAULT_HTTP_TIMEOUT = (5.0, 15.0)
@@ -222,6 +222,48 @@ class WorkerRegistry:
         else:
             self._closed = False
         return stopped
+
+
+def stop_legacy_qthread(thread, timeout_ms: int = 5000, stop=None) -> bool:
+    """Request bounded cooperative shutdown for a legacy ``QThread``.
+
+    The caller must preserve the owning widget when this returns ``False``;
+    force-terminating a thread that may own network or Qt resources is unsafe.
+    """
+    if thread is None:
+        return True
+    try:
+        if not thread.isRunning():
+            return True
+        if stop is not None:
+            stop()
+        request_interruption = getattr(thread, "requestInterruption", None)
+        if callable(request_interruption):
+            request_interruption()
+        return bool(thread.wait(timeout_ms))
+    except (RuntimeError, TypeError):
+        return False
+
+
+def disconnect_qt_signals(sender, signal_names) -> None:
+    """Disconnect known signals, including callbacks already queued by Qt."""
+    for signal_name in signal_names:
+        signal = getattr(sender, signal_name, None)
+        if signal is None or not hasattr(signal, "disconnect"):
+            continue
+        try:
+            signal.disconnect()
+        except (RuntimeError, TypeError):
+            # Deleted senders and signals with no connections are already safe.
+            pass
+
+
+def discard_queued_meta_calls(receiver) -> None:
+    """Discard queued signal/slot callbacks for a verified-cleanup receiver."""
+    try:
+        QCoreApplication.removePostedEvents(receiver, QEvent.Type.MetaCall)
+    except (RuntimeError, TypeError):
+        pass
 
 
 def _require_positive_timeout(timeout, *, allow_pair: bool) -> None:

@@ -166,9 +166,11 @@ class DiagnosticsWidget(QWidget):
                 state = f"error: {cache['error']}"
             lines.extend([
                 f"  {cache.get('label', cache.get('key'))}: {state}",
-                f"    source={cache.get('source')} league={cache.get('league')} "
-                f"schema={cache.get('schema')} items={cache.get('item_count')} "
-                f"age={self._format_age(cache.get('age_seconds'))}",
+                f"    source={cache.get('source')} game={cache.get('game')} "
+                f"league={cache.get('league')} schema={cache.get('schema')} "
+                f"items={cache.get('item_count')} age={self._format_age(cache.get('age_seconds'))}",
+                f"    status={cache.get('status')} "
+                f"estimated={'yes' if cache.get('estimated') else 'no'}",
                 f"    deletion={'allowed' if cache.get('clearable') else 'display-only'}",
                 f"    {cache.get('path')}",
             ])

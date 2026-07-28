@@ -12,7 +12,7 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal, QRect
 from tools.base_tool import BaseTool
 from api.auth import SessionAuthProvider
 from api.client import PoEClient
-from core.valuation import NinjaPriceFetcher
+from services.price_service import PriceService
 from core.parser import UltimatumParser
 from core.filters import (
     FilteringRuleEngine, ValueRule, 
@@ -24,6 +24,11 @@ from ui.components.stash_selector import StashTabSelector
 from ui.components.filter_dialog import FilterConfigDialog
 from utils.logger import DebugLogger
 from utils.config import ConfigManager
+from utils.workers import (
+    disconnect_qt_signals,
+    discard_queued_meta_calls,
+    stop_legacy_qthread,
+)
 
 
 class ScanWorker(QThread):
@@ -33,17 +38,21 @@ class ScanWorker(QThread):
     result_signal = pyqtSignal(list, dict, list, object)
     progress_signal = pyqtSignal(int, int)
 
-    def __init__(self, session_id, account, league, config, tab_indices, debug_mode=False):
+    def __init__(self, session_id, account, league, config, tab_indices,
+                 price_service, debug_mode=False):
         super().__init__()
         self.session_id = session_id
         self.account = account
         self.league = league
         self.config = config
         self.tab_indices = tab_indices
+        self.price_service = price_service
         self.debug_mode = debug_mode
         DebugLogger.set_enabled(debug_mode)
 
     def run(self):
+        if self.isInterruptionRequested():
+            return
         self.log_signal.emit("Initializing API Client...")
         DebugLogger.log("Scan started.", "Worker")
         
@@ -51,8 +60,10 @@ class ScanWorker(QThread):
         client = PoEClient(auth, self.account, self.league)
 
         self.log_signal.emit("Fetching Prices...")
-        price_fetcher = NinjaPriceFetcher(self.league)
-        price_fetcher.fetch_all_prices()
+        self.price_service.set_context("poe1", self.league)
+        price_fetcher = self.price_service.get_fetcher()
+        if self.isInterruptionRequested():
+            return
         DebugLogger.log(f"Prices fetched: {len(price_fetcher.prices)} items.", "Prices")
 
         parser = UltimatumParser()
@@ -96,10 +107,14 @@ class ScanWorker(QThread):
         DebugLogger.log(f"Scanning tabs: {self.tab_indices}", "Worker")
 
         for i, tab_idx in enumerate(self.tab_indices):
+            if self.isInterruptionRequested():
+                return
             self.log_signal.emit(f"Fetching Tab Index {tab_idx} ({i+1}/{total_tabs})...")
             
             if i > 0:
                 time.sleep(1.5) 
+                if self.isInterruptionRequested():
+                    return
             
             data = client.get_stash_items(tab_idx)
             if not data or 'items' not in data:
@@ -151,13 +166,6 @@ class ScanWorker(QThread):
         self.log_signal.emit(f"Scan Complete. Found {total_found} items.")
         DebugLogger.log(f"Scan complete. Total found: {total_found}", "Worker")
         
-        if hasattr(price_fetcher, 'session'):
-            try:
-                price_fetcher.session.close()
-            except:
-                pass
-            del price_fetcher.session
-
         self.result_signal.emit(all_highlights, found_stats, all_parsed_items, price_fetcher)
 
 
@@ -175,10 +183,13 @@ class TabListWorker(QThread):
 
     def run(self):
         try:
+            if self.isInterruptionRequested():
+                return
             auth = SessionAuthProvider(self.session_id)
             client = PoEClient(auth, self.account, self.league)
             tabs = client.get_stash_tab_list()
-            self.finished_signal.emit(tabs)
+            if not self.isInterruptionRequested():
+                self.finished_signal.emit(tabs)
         except Exception as e:
             self.error_signal.emit(str(e))
 
@@ -188,13 +199,18 @@ class UltimatumWidget(QWidget):
     
     overlay_update = pyqtSignal(list)  # Emits highlight rects
     
-    def __init__(self, config: dict, parent=None):
+    def __init__(self, config: dict, price_service=None, parent=None):
         super().__init__(parent)
         self.config = config
         self.game_id = "poe1"
+        league = ConfigManager.get_game_league(config, self.game_id)
+        self._owns_price_service = price_service is None
+        self.price_service = price_service or PriceService(self.game_id, league)
         self.ultimatum_config = config.get("ultimatum", {})
         self.cached_scan_data = None
         self.price_fetcher = None
+        self.worker = None
+        self.tab_worker = None
         self.found_stats = {'types': set(), 'rewards': set(), 'tiers': set()}
         
         self.setup_ui()
@@ -338,7 +354,15 @@ class UltimatumWidget(QWidget):
         
         # Use global debug mode
         debug_mode = self.config.get("debug_mode", False)
-        self.worker = ScanWorker(session_id, account, league, scan_config, selected_indices, debug_mode)
+        self.worker = ScanWorker(
+            session_id,
+            account,
+            league,
+            scan_config,
+            selected_indices,
+            self.price_service,
+            debug_mode,
+        )
         self.worker.log_signal.connect(self.log)
         self.worker.result_signal.connect(self.on_scan_result)
         self.worker.finished.connect(lambda: self.scan_btn.setEnabled(True))
@@ -379,8 +403,9 @@ class UltimatumWidget(QWidget):
             engine.add_override(MonsterLifeIncludeOverride(included_pcts=self.ultimatum_config.get("included_tiers")))
 
         if not self.price_fetcher:
-            self.price_fetcher = NinjaPriceFetcher(self.league_input.currentText().strip())
-            self.price_fetcher.fetch_all_prices()
+            league = self.league_input.currentText().strip()
+            self.price_service.set_context(self.game_id, league)
+            self.price_fetcher = self.price_service.get_fetcher()
 
         valid_highlights = []
         
@@ -422,13 +447,40 @@ class UltimatumWidget(QWidget):
         self.cached_scan_data = None
         self.log("Overlay cleared.")
 
+    def cleanup(self):
+        """Stop legacy scan workers or fail closed while they remain active."""
+        success = True
+        worker_signals = {
+            "worker": ("log_signal", "result_signal", "progress_signal", "finished"),
+            "tab_worker": ("finished_signal", "error_signal", "finished"),
+        }
+        for attribute, signal_names in worker_signals.items():
+            worker = getattr(self, attribute, None)
+            stopped = stop_legacy_qthread(worker)
+            if stopped:
+                if worker is not None:
+                    disconnect_qt_signals(worker, signal_names)
+                setattr(self, attribute, None)
+            else:
+                success = False
+        if success:
+            discard_queued_meta_calls(self)
+        self.clear_overlay()
+        if success and getattr(self, "_owns_price_service", False):
+            success = self.price_service.close()
+        return success
+
     def sync_config(self):
         """Tool-local settings persist elsewhere; shared league belongs to Settings."""
 
     def refresh_shared_settings(self):
         """Refresh mirrored account and league values from application Settings."""
-        self.account_label.setText(f"Account: {ConfigManager.get_account_name(self.config)}")
+        self.account_label.setText(ConfigManager.get_account_name(self.config) or "Not set")
         league = ConfigManager.get_game_league(self.config, self.game_id)
+        if self.price_fetcher is not None and self.price_fetcher.league != league:
+            self.price_fetcher = None
+            self.cached_scan_data = None
+        self.price_service.set_context(self.game_id, league)
         index = self.league_input.findText(league)
         if league and index < 0:
             self.league_input.insertItem(0, league)
@@ -457,12 +509,17 @@ class UltimatumTool(BaseTool):
     def description(self) -> str:
         return "Scan stash tabs for profitable Inscribed Ultimatums"
     
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, price_service=None):
         self.config = config
+        self.price_service = price_service
         self.widget = None
     
     def create_widget(self, parent=None) -> QWidget:
-        self.widget = UltimatumWidget(self.config, parent)
+        self.widget = UltimatumWidget(
+            self.config,
+            price_service=self.price_service,
+            parent=parent,
+        )
         return self.widget
     
     def on_activated(self):
@@ -473,5 +530,6 @@ class UltimatumTool(BaseTool):
     
     def cleanup(self):
         if self.widget:
-            self.widget.clear_overlay()
+            return self.widget.cleanup()
+        return True
 

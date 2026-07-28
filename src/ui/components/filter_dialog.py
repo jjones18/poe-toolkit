@@ -230,14 +230,29 @@ class FilterConfigDialog(QDialog):
             # Profit Label - show PROFIT (reward_value - sacrifice_value)
             if price_source:
                 reward_unit_price = price_source.get_price(reward_name)
-                reward_total = reward_unit_price * reward_count
+                reward_total = (
+                    reward_unit_price * reward_count
+                    if reward_unit_price is not None
+                    else None
+                )
                 
                 sacrifice_unit_price = price_source.get_price(sacrifice_name) if sacrifice_name else 0
-                sacrifice_total = sacrifice_unit_price * sacrifice_count
+                sacrifice_total = (
+                    sacrifice_unit_price * sacrifice_count
+                    if sacrifice_unit_price is not None
+                    else None
+                )
                 
-                profit = reward_total - sacrifice_total
-                
-                if color_code_profit:
+                profit = (
+                    reward_total - sacrifice_total
+                    if reward_total is not None and sacrifice_total is not None
+                    else None
+                )
+
+                if profit is None:
+                    profit_text = "—"
+                    style = "font-weight: bold; color: #888888;"
+                elif color_code_profit:
                     # Color code: green for profit, red for loss
                     if profit >= 0:
                         color = "#4CAF50"  # Green
