@@ -13,6 +13,8 @@ import tempfile
 import threading
 from PyQt6.QtCore import QObject, pyqtSignal
 
+from utils.workers import CancelledError, CancellationToken, run_cancellable_process
+
 
 class TradeService(QObject):
     """
@@ -54,7 +56,26 @@ class TradeService(QObject):
     def _signal_handler(self, signum, frame):
         """Best-effort cleanup on unexpected termination signals."""
         self._force_cleanup()
-    
+
+    @staticmethod
+    def _taskkill_tree(process, *, force: bool, wait_timeout: float) -> None:
+        """Run bounded Windows process-tree termination without a shell."""
+        command = ["taskkill"]
+        if force:
+            command.append("/F")
+        command.extend(["/T", "/PID", str(process.pid)])
+        try:
+            subprocess.run(
+                command,
+                shell=False,
+                capture_output=True,
+                timeout=3,
+                check=False,
+            )
+            process.wait(timeout=wait_timeout)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+
     def _force_cleanup(self):
         """Best-effort graceful cleanup for atexit and termination signals."""
         process = self.process
@@ -74,17 +95,9 @@ class TradeService(QObject):
 
             if process.poll() is None:
                 if platform.system() == 'Windows':
-                    subprocess.run(
-                        f'taskkill /T /PID {process.pid}',
-                        shell=True, capture_output=True
-                    )
-                    try:
-                        process.wait(timeout=7)
-                    except subprocess.TimeoutExpired:
-                        subprocess.run(
-                            f'taskkill /F /T /PID {process.pid}',
-                            shell=True, capture_output=True
-                        )
+                    self._taskkill_tree(process, force=False, wait_timeout=3)
+                    if process.poll() is None:
+                        self._taskkill_tree(process, force=True, wait_timeout=2)
                 else:
                     pgid = None
                     try:
@@ -194,64 +207,74 @@ class TradeService(QObject):
             output_thread.join(timeout=2)
         self.output_thread = None
     
-    def check_dependencies(self) -> tuple:
+    def check_dependencies(self, token: CancellationToken | None = None) -> tuple:
         """Check if Node.js and npm are available."""
+        token = token or CancellationToken()
         try:
-            result = subprocess.run(
+            result = run_cancellable_process(
                 ["node", "--version"],
+                token=token,
                 capture_output=True,
                 text=True,
                 timeout=5,
                 shell=False,
             )
             node_version = result.stdout.strip() if result.returncode == 0 else None
+        except CancelledError:
+            raise
         except Exception:
             node_version = None
-        
+
         try:
-            npm_executable = "npm.cmd" if platform.system() == "Windows" else "npm"
-            result = subprocess.run(
-                [npm_executable, "--version"],
+            npm_command = "npm.cmd" if platform.system() == "Windows" else "npm"
+            result = run_cancellable_process(
+                [npm_command, "--version"],
+                token=token,
                 capture_output=True,
                 text=True,
                 timeout=5,
                 shell=False,
             )
             npm_version = result.stdout.strip() if result.returncode == 0 else None
+        except CancelledError:
+            raise
         except Exception:
             npm_version = None
-        
+
         return (node_version, npm_version)
-    
-    def install_dependencies(self):
+
+    def install_dependencies(self, token: CancellationToken | None = None):
         """Install npm dependencies."""
+        token = token or CancellationToken()
         if not os.path.exists(os.path.join(self.service_dir, "package.json")):
             self.log_output.emit("Error: package.json not found in trade_service/")
             return False
-        
+
         self.log_output.emit("Installing npm dependencies...")
-        
+
         try:
-            npm_executable = "npm.cmd" if platform.system() == "Windows" else "npm"
-            result = subprocess.run(
-                [npm_executable, "install"],
+            npm_command = "npm.cmd" if platform.system() == "Windows" else "npm"
+            result = run_cancellable_process(
+                [npm_command, "install"],
+                token=token,
                 cwd=self.service_dir,
                 capture_output=True,
                 text=True,
                 timeout=120,
                 shell=False,
             )
-            
+
             if result.returncode == 0:
                 self.log_output.emit("Dependencies installed successfully.")
                 return True
-            else:
-                self.log_output.emit(f"npm install failed: {result.stderr}")
-                return False
-        except Exception as e:
-            self.log_output.emit(f"Error installing dependencies: {e}")
+            self.log_output.emit(f"npm install failed: {result.stderr}")
             return False
-    
+        except CancelledError:
+            raise
+        except Exception as error:
+            self.log_output.emit(f"Error installing dependencies: {error}")
+            return False
+
     def start(
         self,
         auto_resume: bool = False,
@@ -327,8 +350,9 @@ class TradeService(QObject):
             self.log_output.emit(f"Error starting service: {e}")
             self.status_changed.emit("error")
     
-    def stop(self):
-        """Gracefully disarm browser workers, then stop the controller process."""
+    def stop(self, token: CancellationToken | None = None):
+        """Disarm browser workers, accelerating escalation when cancellation is requested."""
+        token = token or CancellationToken()
         if not self.is_running:
             self.log_output.emit("Service is not running.")
             return False
@@ -342,12 +366,14 @@ class TradeService(QObject):
         self._stopping = True
 
         try:
-            # Normal Stop asks Node to disarm every browser worker before exit.
+            # Always ask Node to disarm browser workers. Cancellation skips only
+            # the grace wait; it never abandons process shutdown half-complete.
             if process.stdin:
                 try:
                     process.stdin.write("__shutdown__\n")
                     process.stdin.flush()
-                    process.wait(timeout=7)
+                    if not token.is_cancelled:
+                        process.wait(timeout=7)
                 except subprocess.TimeoutExpired:
                     pass
                 except (BrokenPipeError, OSError):
@@ -356,23 +382,20 @@ class TradeService(QObject):
             # Escalate only if the graceful protocol did not stop the process.
             if process.poll() is None:
                 if platform.system() == 'Windows':
-                    subprocess.run(
-                        f'taskkill /T /PID {process.pid}',
-                        shell=True, capture_output=True
-                    )
-                    try:
-                        process.wait(timeout=7)
-                    except subprocess.TimeoutExpired:
-                        subprocess.run(
-                            f'taskkill /F /T /PID {process.pid}',
-                            shell=True, capture_output=True
-                        )
+                    if not token.is_cancelled:
+                        self._taskkill_tree(process, force=False, wait_timeout=3)
+                    if process.poll() is None:
+                        self._taskkill_tree(process, force=True, wait_timeout=2)
                 else:
                     pgid = None
                     try:
                         pgid = os.getpgid(process.pid)
-                        os.killpg(pgid, signal.SIGTERM)
-                        process.wait(timeout=7)
+                        if token.is_cancelled:
+                            os.killpg(pgid, signal.SIGKILL)
+                            process.wait(timeout=2)
+                        else:
+                            os.killpg(pgid, signal.SIGTERM)
+                            process.wait(timeout=7)
                     except subprocess.TimeoutExpired:
                         if pgid is not None:
                             os.killpg(pgid, signal.SIGKILL)
@@ -400,7 +423,7 @@ class TradeService(QObject):
         self.status_changed.emit("stopped")
         self.log_output.emit("Trade service stopped.")
         return True
-    
+
     def send_input(self, text: str):
         """Send input to the running process (e.g., Enter to resume)."""
         if self.is_running and self.process.stdin:

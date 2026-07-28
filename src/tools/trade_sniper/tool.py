@@ -14,11 +14,12 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTextEdit, QGroupBox, QCheckBox, QSpinBox, QMessageBox
 )
-from PyQt6.QtCore import QObject, QRunnable, Qt, QThreadPool, QTimer, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 
 from tools.base_tool import BaseTool
 from services.trade_service import TradeService
 from utils.config import ConfigManager, ConfigSaveError
+from utils.workers import WorkerRegistry
 
 
 def get_trade_profile_dir(platform_name=None, environ=None, home=None):
@@ -83,29 +84,6 @@ def evaluate_devtools_readiness(version: dict, targets: list, trade_url: str):
     return False, "DevTools connected; open a compatible trade tab for this game"
 
 
-class BackgroundTaskSignals(QObject):
-    result = pyqtSignal(object)
-    error = pyqtSignal(str)
-    finished = pyqtSignal()
-
-
-class BackgroundTask(QRunnable):
-    """Run a bounded blocking operation outside the Qt GUI thread."""
-
-    def __init__(self, operation):
-        super().__init__()
-        self.operation = operation
-        self.signals = BackgroundTaskSignals()
-
-    def run(self):
-        try:
-            self.signals.result.emit(self.operation())
-        except Exception as exc:
-            self.signals.error.emit(str(exc))
-        finally:
-            self.signals.finished.emit()
-
-
 class TradeSniperWidget(QWidget):
     """Main widget for Trade Sniper tool."""
     
@@ -117,7 +95,7 @@ class TradeSniperWidget(QWidget):
         self.game_profile = ConfigManager.get_game_profile(self.game_id)
         self.trade_url = ConfigManager.get_trade_url(config, self.game_id)
         self.brave_ready = False
-        self._background_tasks = {}
+        self._worker_registry = WorkerRegistry(max_threads=3)
 
         self.service = service or TradeService()
         self.service.status_changed.connect(self.on_status_changed)
@@ -280,24 +258,15 @@ class TradeSniperWidget(QWidget):
         self.check_npm_dependencies()
 
     def _start_background_task(self, name, operation, on_result):
-        """Submit one named operation; duplicate clicks cannot start another copy."""
-        if name in self._background_tasks:
-            return False
-        task = BackgroundTask(operation)
-        task.signals.result.connect(on_result)
-        task.signals.error.connect(
-            lambda message, task_name=name: self._on_background_error(task_name, message)
+        """Submit one named cancellable operation; reject duplicate task names."""
+        return self._worker_registry.start(
+            name,
+            lambda context: operation(context.token),
+            on_result=on_result,
+            on_error=lambda failure, task_name=name: self._on_background_error(
+                task_name, failure.message
+            ),
         )
-        task.signals.finished.connect(
-            lambda task_name=name: self._background_tasks.pop(task_name, None)
-        )
-        self._background_tasks[name] = task
-        thread_pool = QThreadPool.globalInstance()
-        if thread_pool is None:
-            self._background_tasks.pop(name, None)
-            raise RuntimeError("Qt global thread pool is unavailable")
-        thread_pool.start(task)
-        return True
 
     def _on_background_error(self, name: str, message: str):
         self.log(f"{name} failed: {message}")
@@ -565,16 +534,17 @@ class TradeSniperWidget(QWidget):
             self.status_label.setStyleSheet("font-size: 14px; color: #ffaa66;")
     
     def cleanup(self):
-        """Disconnect this disposable view without stopping the app-owned service."""
+        """Cancel and verify view-owned work without stopping the app-owned service."""
+        timer_was_active = False
         if hasattr(self, 'brave_check_timer'):
+            timer_was_active = self.brave_check_timer.isActive()
             self.brave_check_timer.stop()
-        for task in self._background_tasks.values():
-            for signal_name in ("result", "error", "finished"):
-                try:
-                    getattr(task.signals, signal_name).disconnect()
-                except TypeError:
-                    pass
-        self._background_tasks.clear()
+        workers_stopped = self._worker_registry.close(timeout_ms=20_000)
+        if not workers_stopped:
+            if timer_was_active:
+                self.brave_check_timer.start()
+            self.log("Background work did not stop before cleanup timeout.")
+            return False
         try:
             self.service.status_changed.disconnect(self.on_status_changed)
         except TypeError:
@@ -583,6 +553,7 @@ class TradeSniperWidget(QWidget):
             self.service.log_output.disconnect(self.log)
         except TypeError:
             pass
+        return True
 
 
 class TradeSniperTool(BaseTool):
@@ -617,5 +588,6 @@ class TradeSniperTool(BaseTool):
     
     def cleanup(self):
         if self.widget:
-            self.widget.cleanup()
+            return self.widget.cleanup()
+        return True
 

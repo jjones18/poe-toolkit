@@ -178,6 +178,13 @@ Saves use a same-directory temporary file, `fsync`, and atomic replacement. Befo
 
 Each tool follows the `BaseTool` interface in `src/tools/base_tool.py`.
 
+Background operations use `src/utils/workers.py`. Operations receive a
+`WorkerContext`, report progress through it, use its interruptible `sleep`, and
+must not call GUI APIs directly. External HTTP, OCR, and subprocess work must
+use the bounded adapters. Tool cleanup returns `False` only when worker
+shutdown could not be verified; reload/close then aborts before deleting the
+widget.
+
 To add a new tool:
 1. Create a folder under `src/tools/`
 2. Implement the `BaseTool` interface

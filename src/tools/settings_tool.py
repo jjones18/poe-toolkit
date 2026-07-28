@@ -3,7 +3,7 @@ Global settings page for shared account and per-game configuration.
 """
 
 import requests
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel, QLineEdit,
     QPushButton, QComboBox, QGroupBox, QFileDialog
@@ -11,49 +11,48 @@ from PyQt6.QtWidgets import (
 
 from tools.base_tool import BaseTool
 from utils.config import ConfigManager, ConfigSaveError
+from utils.workers import WorkerRegistry, bounded_http_request
 
 
-class LeagueFetchWorker(QThread):
-    """Fetch current trade league choices for both games."""
+LEAGUE_ENDPOINTS = {
+    "poe1": "https://www.pathofexile.com/api/trade/data/leagues",
+    "poe2": "https://www.pathofexile.com/api/trade2/data/leagues",
+}
 
-    finished_signal = pyqtSignal(dict)
-    error_signal = pyqtSignal(str)
+LEAGUE_USER_AGENT = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/120 Safari/537.36"
+)
 
-    LEAGUE_ENDPOINTS = {
-        "poe1": "https://www.pathofexile.com/api/trade/data/leagues",
-        "poe2": "https://www.pathofexile.com/api/trade2/data/leagues",
-    }
 
-    USER_AGENT = (
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/120 Safari/537.36"
-    )
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-    def run(self):
-        http = requests.Session()
-        http.headers.update({"User-Agent": self.USER_AGENT})
-
-        try:
-            league_options = {}
-            for game_id, url in self.LEAGUE_ENDPOINTS.items():
-                response = http.get(url, timeout=15)
-                response.raise_for_status()
-                data = response.json()
-                leagues = []
-                for entry in data.get("result", []):
-                    league = (entry.get("id") or entry.get("text") or "").strip()
-                    if league:
-                        leagues.append(league)
-                league_options[game_id] = leagues
-
-            self.finished_signal.emit(league_options)
-        except requests.RequestException as exc:
-            self.error_signal.emit(f"Could not fetch league list: {exc}")
-        except ValueError as exc:
-            self.error_signal.emit(f"Could not parse league list: {exc}")
+def fetch_league_options(context, session=None):
+    """Fetch both games' league lists using bounded, cancellable requests."""
+    owns_session = session is None
+    http = session or requests.Session()
+    try:
+        http.headers.update({"User-Agent": LEAGUE_USER_AGENT})
+        league_options = {}
+        for completed, (game_id, url) in enumerate(LEAGUE_ENDPOINTS.items(), start=1):
+            response = bounded_http_request(
+                http,
+                "GET",
+                url,
+                token=context.token,
+                timeout=(5.0, 10.0),
+            )
+            response.raise_for_status()
+            data = response.json()
+            leagues = []
+            for entry in data.get("result", []):
+                league = (entry.get("id") or entry.get("text") or "").strip()
+                if league:
+                    leagues.append(league)
+            league_options[game_id] = leagues
+            context.report_progress({"completed": completed, "total": len(LEAGUE_ENDPOINTS)})
+        return league_options
+    finally:
+        if owns_session:
+            http.close()
 
 
 class SettingsWidget(QWidget):
@@ -67,7 +66,7 @@ class SettingsWidget(QWidget):
     def __init__(self, config: dict, parent=None):
         super().__init__(parent)
         self.config = config
-        self.league_worker = None
+        self._worker_registry = WorkerRegistry(max_threads=1)
         self.setup_ui()
         self.status_label.setText("Using saved league lists; refresh manually when needed.")
 
@@ -199,14 +198,27 @@ class SettingsWidget(QWidget):
         self.status_label.setText(warning)
 
     def fetch_leagues(self):
+        started = self._worker_registry.start(
+            "league-refresh",
+            fetch_league_options,
+            on_progress=self.on_league_fetch_progress,
+            on_result=self.on_leagues_fetched,
+            on_error=lambda failure: self.on_league_fetch_error(
+                f"Could not fetch league list: {failure.message}"
+            ),
+            on_finished=lambda: self.refresh_leagues_btn.setEnabled(True),
+        )
+        if not started:
+            return False
         self.refresh_leagues_btn.setEnabled(False)
         self.status_label.setStyleSheet("color: #aaaaaa;")
         self.status_label.setText("Fetching current leagues...")
-        self.league_worker = LeagueFetchWorker(self)
-        self.league_worker.finished_signal.connect(self.on_leagues_fetched)
-        self.league_worker.error_signal.connect(self.on_league_fetch_error)
-        self.league_worker.finished.connect(lambda: self.refresh_leagues_btn.setEnabled(True))
-        self.league_worker.start()
+        return True
+
+    def on_league_fetch_progress(self, progress: dict):
+        self.status_label.setText(
+            f"Fetching current leagues... {progress['completed']}/{progress['total']}"
+        )
 
     def on_leagues_fetched(self, league_options: dict):
         poe1_leagues = league_options.get("poe1", [])
@@ -289,9 +301,8 @@ class SettingsWidget(QWidget):
         ConfigManager.set_client_log_path(self.config, self.client_log_input.text())
 
     def cleanup(self):
-        """Wait for any in-flight league refresh before the widget is destroyed."""
-        if self.league_worker and self.league_worker.isRunning():
-            self.league_worker.wait(5000)
+        """Cancel and verify any in-flight league refresh before destruction."""
+        return self._worker_registry.close(timeout_ms=20_000)
 
 
 class SettingsTool(BaseTool):
@@ -325,4 +336,5 @@ class SettingsTool(BaseTool):
 
     def cleanup(self):
         if self.widget:
-            self.widget.cleanup()
+            return self.widget.cleanup()
+        return True

@@ -157,9 +157,9 @@ This order intentionally defers tools that are not actively used. It first prote
 
 # Milestone 2 — Shared configuration, workers, and diagnostics
 
-**Status:** Sections 2.1 and 2.2 are complete and verified in release 1.3.0. Sections 2.3–2.5 remain the next application-wide work.
+**Status:** Sections 2.1 and 2.2 are complete in release 1.3.0. Section 2.3 is complete in release 1.4.0. Sections 2.4 and 2.5 remain the next application-wide work.
 
-**Verification:** 55 Python tests, 14 Node tests, Python compilation, installer/template syntax checks, and the isolated offscreen UI smoke passed before release.
+**Verification:** 88 Python tests, 14 Node tests, Python compilation, installer/template syntax checks, and the isolated offscreen UI smoke passed before release.
 
 ## 2.1 Secure and relocate configuration
 
@@ -181,6 +181,18 @@ This order intentionally defers tools that are not actively used. It first prote
 - Add explicit config schema version and migrations.
 
 ## 2.3 Standard cancellable-worker framework
+
+**Implementation:** Complete in release 1.4.0 for shared/application-owned
+paths. `utils.workers` provides cooperative cancellation, interruptible waits,
+structured progress/result/error/cancelled/finished signals, named duplicate
+suppression, bounded HTTP/OCR/subprocess adapters, and verified pool shutdown.
+Settings league refresh and Trade Sniper generic tasks use the framework;
+reload and application close fail closed when cleanup cannot be verified.
+Module-specific scanner migration remains intentionally deferred to those
+module milestones. The currently unused `PriceService`/`NinjaPriceFetcher`
+worker path remains deferred to Milestone 3, where its unbounded requests,
+rate-limit waits, and cache semantics can be migrated together rather than
+hidden behind a nominally cancellable wrapper.
 
 - Cooperative cancellation token/event.
 - Bounded HTTP and OCR operations.

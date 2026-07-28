@@ -113,6 +113,23 @@ class TradeSniperSettingsTests(unittest.TestCase):
             game_id="poe1",
         )
 
+    def test_failed_cleanup_restores_timer_and_keeps_service_connections(self):
+        registry = Mock()
+        registry.close.return_value = False
+        timer = Mock()
+        timer.isActive.return_value = True
+        self.widget._worker_registry = registry
+        self.widget.brave_check_timer = timer
+        self.widget.service = Mock()
+
+        cleaned = self.widget.cleanup()
+
+        self.assertFalse(cleaned)
+        timer.stop.assert_called_once_with()
+        timer.start.assert_called_once_with()
+        self.widget.service.status_changed.disconnect.assert_not_called()
+        self.widget.service.log_output.disconnect.assert_not_called()
+
     def test_start_requires_verified_devtools_trade_tab(self):
         self.widget.node_ok = True
         self.widget.deps_ok = True
@@ -154,16 +171,32 @@ class TradeSniperSettingsTests(unittest.TestCase):
         self.assertEqual(operation, self.widget.service.stop)
         self.widget.service.stop.assert_not_called()
 
-    def test_cleanup_disconnects_outstanding_background_task_callbacks(self):
-        task = Mock()
-        self.widget._background_tasks["dependency-check"] = task
+    def test_background_task_uses_shared_registry(self):
+        registry = Mock()
+        registry.start.return_value = True
+        self.widget._worker_registry = registry
+        operation = Mock(return_value="done")
+        on_result = Mock()
+
+        started = self.widget._start_background_task("dependency-check", operation, on_result)
+
+        self.assertTrue(started)
+        registry.start.assert_called_once()
+        args = registry.start.call_args.args
+        self.assertEqual(args[0], "dependency-check")
+        context = Mock()
+        self.assertEqual(args[1](context), "done")
+        operation.assert_called_once_with(context.token)
+        self.assertIs(registry.start.call_args.kwargs["on_result"], on_result)
+
+    def test_cleanup_cancels_and_waits_for_shared_workers(self):
+        registry = Mock()
+        registry.close.return_value = True
+        self.widget._worker_registry = registry
 
         self.widget.cleanup()
 
-        task.signals.result.disconnect.assert_called_once_with()
-        task.signals.error.disconnect.assert_called_once_with()
-        task.signals.finished.disconnect.assert_called_once_with()
-        self.assertEqual(self.widget._background_tasks, {})
+        registry.close.assert_called_once_with(timeout_ms=20_000)
 
 
 class DevToolsReadinessTests(unittest.TestCase):

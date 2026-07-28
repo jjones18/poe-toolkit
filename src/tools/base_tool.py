@@ -56,6 +56,6 @@ class BaseTool(ABC):
         pass
     
     def cleanup(self):
-        """Called when the application is closing. Clean up resources."""
-        pass
+        """Clean up resources; return False only when shutdown is unverified."""
+        return bool(True)
 

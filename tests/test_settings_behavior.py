@@ -13,9 +13,10 @@ if SRC_DIR not in sys.path:
 
 from PyQt6.QtWidgets import QApplication
 
-from tools.settings_tool import SettingsWidget
+from tools.settings_tool import SettingsWidget, fetch_league_options
 from ui.main_window import MainWindow
 from utils import config as config_module
+from utils.workers import CancellationToken
 
 ConfigManager = config_module.ConfigManager
 
@@ -55,6 +56,67 @@ class SettingsOwnershipTests(unittest.TestCase):
         self.assertEqual(widget.poe1_league_combo.currentText(), "Current One")
         self.assertEqual(widget.poe2_league_combo.currentText(), "Current Two")
         self.assertIn("temporary failure", widget.status_label.text())
+
+    def test_league_refresh_uses_bounded_shared_worker(self):
+        config = self.make_config()
+        widget = SettingsWidget(config)
+        registry = Mock()
+        registry.start.return_value = True
+        widget._worker_registry = registry
+        self.addCleanup(widget.close)
+
+        widget.fetch_leagues()
+
+        self.assertFalse(widget.refresh_leagues_btn.isEnabled())
+        registry.start.assert_called_once()
+        self.assertEqual(registry.start.call_args.args[0], "league-refresh")
+        self.assertEqual(
+            registry.start.call_args.kwargs["on_result"],
+            widget.on_leagues_fetched,
+        )
+
+    def test_settings_cleanup_cancels_and_waits_for_refresh(self):
+        widget = SettingsWidget(self.make_config())
+        registry = Mock()
+        registry.close.return_value = True
+        widget._worker_registry = registry
+
+        widget.cleanup()
+
+        registry.close.assert_called_once_with(timeout_ms=20_000)
+
+    def test_league_fetch_operation_uses_request_timeout_and_progress(self):
+        responses = []
+        for league in ("League One", "League Two"):
+            response = Mock()
+            response.json.return_value = {"result": [{"id": league}]}
+            response.raise_for_status = Mock()
+            responses.append(response)
+        session = Mock()
+        session.request.side_effect = responses
+        context = Mock()
+        context.token = CancellationToken()
+
+        result = fetch_league_options(context, session=session)
+
+        self.assertEqual(result, {"poe1": ["League One"], "poe2": ["League Two"]})
+        self.assertEqual(session.request.call_count, 2)
+        for invocation in session.request.call_args_list:
+            self.assertEqual(invocation.kwargs["timeout"], (5.0, 10.0))
+        self.assertEqual(context.report_progress.call_count, 2)
+        session.close.assert_not_called()
+
+    def test_league_fetch_closes_internally_owned_session_on_failure(self):
+        context = Mock()
+        context.token = CancellationToken()
+        owned_session = Mock()
+        owned_session.request.side_effect = RuntimeError("temporary failure")
+
+        with patch("tools.settings_tool.requests.Session", return_value=owned_session):
+            with self.assertRaisesRegex(RuntimeError, "temporary failure"):
+                fetch_league_options(context)
+
+        owned_session.close.assert_called_once_with()
 
     def test_shared_settings_owner_is_synchronized_after_dependent_widgets(self):
         calls = []

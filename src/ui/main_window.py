@@ -121,7 +121,8 @@ class MainWindow(QMainWindow):
         # Load tools
         self.tools = []
         self.load_tools()
-        
+        self._loaded_game_id = ConfigManager.get_active_game(self.config)
+
         # Select first tool by default
         if self.sidebar_buttons:
             self.sidebar_buttons[0].setChecked(True)
@@ -331,13 +332,19 @@ class MainWindow(QMainWindow):
                 print(f"Error loading tool {tool_class.__name__}: {e}")
 
     def on_settings_game_changed(self, game_id: str):
-        """Synchronize sidebar combo when Settings changes the active game."""
+        """Synchronize game mode, rolling back if old workers cannot stop."""
+        previous_game = self._loaded_game_id
         idx = self.game_combo.findData(game_id)
         if idx >= 0 and self.game_combo.currentIndex() != idx:
             self.game_combo.blockSignals(True)
             self.game_combo.setCurrentIndex(idx)
             self.game_combo.blockSignals(False)
-        self.reload_tools()
+        if not self.reload_tools():
+            ConfigManager.set_active_game(self.config, previous_game)
+            self._persist_config()
+            self._restore_game_combo(previous_game)
+            return False
+        return True
 
     def on_settings_saved(self):
         """Refresh every view that mirrors application-owned shared settings."""
@@ -366,7 +373,11 @@ class MainWindow(QMainWindow):
             ConfigManager.set_active_game(self.config, previous_game)
             self._restore_game_combo(previous_game)
             return
-        self.reload_tools()
+        if not self.reload_tools():
+            ConfigManager.set_active_game(self.config, previous_game)
+            self._persist_config()
+            self._restore_game_combo(previous_game)
+            return
         profile = ConfigManager.get_game_profile(game_id)
         self.status_label.setText(f"Toolkit mode: {profile['label']}")
 
@@ -381,13 +392,29 @@ class MainWindow(QMainWindow):
         finally:
             self.game_combo.blockSignals(signals_were_blocked)
 
-    def clear_tools(self):
-        """Remove loaded tool widgets/buttons before rebuilding for another game."""
+    def _cleanup_tools_verified(self):
+        """Run tool cleanup and report whether every shutdown was verified."""
+        cleanup_errors = []
         for tool in self.tools:
             try:
-                tool.cleanup()
-            except Exception as e:
-                print(f"Error cleaning up tool: {e}")
+                if tool.cleanup() is False:
+                    cleanup_errors.append(getattr(tool, "name", type(tool).__name__))
+            except Exception as error:
+                cleanup_errors.append(getattr(tool, "name", type(tool).__name__))
+                print(f"Error cleaning up tool: {error}")
+
+        if cleanup_errors:
+            self.status_label.setStyleSheet("color: #ff6666;")
+            self.status_label.setText(
+                "Tool cleanup did not finish; operation aborted to protect active workers."
+            )
+            return False
+        return True
+
+    def clear_tools(self):
+        """Remove loaded tool widgets only after every cleanup is verified."""
+        if not self._cleanup_tools_verified():
+            return False
 
         self.tools = []
 
@@ -402,15 +429,19 @@ class MainWindow(QMainWindow):
             if widget:
                 widget.deleteLater()
         self.sidebar_buttons = []
+        return True
 
     def reload_tools(self):
-        """Rebuild sidebar/content for the active game."""
-        self.clear_tools()
+        """Rebuild sidebar/content for the active game after verified cleanup."""
+        if not self.clear_tools():
+            return False
         self.load_tools()
+        self._loaded_game_id = ConfigManager.get_active_game(self.config)
         if self.sidebar_buttons:
             self.sidebar_buttons[0].setChecked(True)
             self.on_tool_selected(0)
-    
+        return True
+
     def on_tool_selected(self, index: int):
         """Handle tool selection from sidebar."""
         # Update button states
@@ -621,14 +652,11 @@ class MainWindow(QMainWindow):
         )
     
     def closeEvent(self, event):
-        """Handle application close."""
-        # Cleanup tools
-        for tool in self.tools:
-            try:
-                tool.cleanup()
-            except Exception as e:
-                print(f"Error cleaning up tool: {e}")
-        
+        """Handle application close after all tool workers stop."""
+        if not self._cleanup_tools_verified():
+            event.ignore()
+            return
+
         # Close overlay
         self.overlay.close()
 

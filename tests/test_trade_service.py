@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC_DIR = os.path.join(PROJECT_ROOT, "src")
@@ -14,6 +14,7 @@ if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
 from services.trade_service import TradeService
+from utils.workers import CancelledError, CancellationToken
 
 
 class FakeStdin:
@@ -68,6 +69,60 @@ class FakeProcess:
 
 
 class TradeServiceStopTests(unittest.TestCase):
+    @patch("services.trade_service.platform.system", return_value="Linux")
+    @patch("services.trade_service.os.getpgid", return_value=424242)
+    @patch("services.trade_service.os.killpg")
+    def test_cancelled_stop_skips_grace_wait_and_forces_process_group_shutdown(
+        self, killpg, _getpgid, _platform_system
+    ):
+        service = TradeService()
+        process = FakeProcess()
+        process.stdin.write = lambda text: process.stdin.writes.append(text)
+        service.process = process
+        service._running = True
+        token = CancellationToken()
+        token.cancel()
+
+        def record_signal(_pgid, sent_signal):
+            if sent_signal == signal.SIGKILL:
+                process.returncode = -signal.SIGKILL
+
+        killpg.side_effect = record_signal
+
+        self.assertTrue(service.stop(token))
+
+        self.assertEqual(process.stdin.writes, ["__shutdown__\n"])
+        killpg.assert_called_once_with(424242, signal.SIGKILL)
+
+    @patch("services.trade_service.subprocess.run")
+    @patch("services.trade_service.platform.system", return_value="Windows")
+    def test_cancelled_windows_stop_uses_bounded_direct_tree_kill(
+        self, _platform_system, run
+    ):
+        service = TradeService()
+        process = FakeProcess(pid=4321)
+        process.stdin.write = lambda text: process.stdin.writes.append(text)
+        service.process = process
+        service._running = True
+        token = CancellationToken()
+        token.cancel()
+
+        def finish_process(*_args, **_kwargs):
+            process.returncode = 0
+            return subprocess.CompletedProcess([], 0)
+
+        run.side_effect = finish_process
+
+        self.assertTrue(service.stop(token))
+
+        run.assert_called_once_with(
+            ["taskkill", "/F", "/T", "/PID", "4321"],
+            shell=False,
+            capture_output=True,
+            timeout=3,
+            check=False,
+        )
+
     @patch("services.trade_service.platform.system", return_value="Linux")
     @patch("services.trade_service.os.getpgid", return_value=424242)
     @patch("services.trade_service.os.killpg")
@@ -151,6 +206,48 @@ class TradeServiceStopTests(unittest.TestCase):
 
         self.assertEqual(process.stdin.writes, ["__shutdown__\n"])
         killpg.assert_not_called()
+        self.assertIsNone(service.process)
+        self.assertFalse(service._running)
+
+    @patch("services.trade_service.subprocess.run")
+    @patch("services.trade_service.platform.system", return_value="Windows")
+    def test_force_cleanup_uses_bounded_direct_windows_tree_kill(
+        self, _platform_system, run
+    ):
+        service = TradeService()
+        process = FakeProcess(pid=4321)
+        process.stdin.write = lambda text: process.stdin.writes.append(text)
+        service.process = process
+        service._running = True
+
+        def taskkill(command, **_kwargs):
+            if "/F" in command:
+                process.returncode = 0
+            return subprocess.CompletedProcess(command, 0)
+
+        run.side_effect = taskkill
+
+        service._force_cleanup()
+
+        self.assertEqual(
+            run.call_args_list,
+            [
+                call(
+                    ["taskkill", "/T", "/PID", "4321"],
+                    shell=False,
+                    capture_output=True,
+                    timeout=3,
+                    check=False,
+                ),
+                call(
+                    ["taskkill", "/F", "/T", "/PID", "4321"],
+                    shell=False,
+                    capture_output=True,
+                    timeout=3,
+                    check=False,
+                ),
+            ],
+        )
         self.assertIsNone(service.process)
         self.assertFalse(service._running)
 
@@ -268,35 +365,44 @@ class TradeServiceStartTests(unittest.TestCase):
 
 
 class TradeServiceDependencyTests(unittest.TestCase):
-    @patch("services.trade_service.subprocess.run")
-    def test_dependency_probes_are_direct_and_bounded(self, run):
-        run.side_effect = [
+    @patch("services.trade_service.run_cancellable_process")
+    def test_dependency_probes_are_direct_bounded_and_cancellable(self, run_process):
+        run_process.side_effect = [
             subprocess.CompletedProcess([], 0, stdout="v24.18.0\n", stderr=""),
             subprocess.CompletedProcess([], 0, stdout="11.0.0\n", stderr=""),
         ]
         service = TradeService()
 
-        self.assertEqual(service.check_dependencies(), ("v24.18.0", "11.0.0"))
+        token = CancellationToken()
+        self.assertEqual(service.check_dependencies(token), ("v24.18.0", "11.0.0"))
 
-        self.assertEqual(run.call_args_list[0].args[0], ["node", "--version"])
-        self.assertEqual(run.call_args_list[1].args[0][-1], "--version")
-        for invocation in run.call_args_list:
+        self.assertEqual(run_process.call_args_list[0].args[0], ["node", "--version"])
+        self.assertEqual(run_process.call_args_list[1].args[0][-1], "--version")
+        for invocation in run_process.call_args_list:
             self.assertEqual(invocation.kwargs["timeout"], 5)
             self.assertFalse(invocation.kwargs["shell"])
+            self.assertIs(invocation.kwargs["token"], token)
 
-    @patch("services.trade_service.subprocess.run")
-    def test_npm_install_is_direct_and_bounded(self, run):
-        run.return_value = subprocess.CompletedProcess([], 0, stdout="installed", stderr="")
+    @patch("services.trade_service.run_cancellable_process")
+    def test_npm_install_is_direct_bounded_and_cancellable(self, run_process):
+        run_process.return_value = subprocess.CompletedProcess([], 0, stdout="installed", stderr="")
         with tempfile.TemporaryDirectory() as temp_dir:
             Path(temp_dir, "package.json").write_text("{}", encoding="utf-8")
             service = TradeService(service_dir=temp_dir)
 
-            self.assertTrue(service.install_dependencies())
+            token = CancellationToken()
+            self.assertTrue(service.install_dependencies(token))
 
-        command = run.call_args.args[0]
+        command = run_process.call_args.args[0]
         self.assertEqual(command[-1], "install")
-        self.assertEqual(run.call_args.kwargs["timeout"], 120)
-        self.assertFalse(run.call_args.kwargs["shell"])
+        self.assertEqual(run_process.call_args.kwargs["timeout"], 120)
+        self.assertFalse(run_process.call_args.kwargs["shell"])
+        self.assertIs(run_process.call_args.kwargs["token"], token)
+
+    @patch("services.trade_service.run_cancellable_process", side_effect=CancelledError())
+    def test_dependency_cancellation_is_not_converted_to_missing_node(self, _run_process):
+        with self.assertRaises(CancelledError):
+            TradeService().check_dependencies(CancellationToken())
 
 
 class TradeServiceOutputTests(unittest.TestCase):
