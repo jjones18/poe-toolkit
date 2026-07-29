@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import faulthandler
 import os
 from pathlib import Path
 import subprocess
@@ -37,6 +38,7 @@ def _emit_error(title: str, details: str) -> None:
 
 
 def _run_suite() -> int:
+    faulthandler.enable(all_threads=True)
     os.chdir(ROOT)
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
@@ -76,8 +78,12 @@ def _run_supervised() -> int:
     if completed.returncode:
         combined = f"{completed.stdout}\n{completed.stderr}".strip()
         _emit_error(
-            f"unittest subprocess exited {completed.returncode}",
-            combined[-12_000:] or "The unittest subprocess produced no output.",
+            "unittest subprocess failure",
+            f"The unittest subprocess exited with code {completed.returncode}.",
+        )
+        _emit_error(
+            "unittest subprocess output tail",
+            combined[-2_000:] or "The unittest subprocess produced no output.",
         )
     return completed.returncode
 
