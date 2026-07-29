@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "poe-toolkit"
+dynamic = ["version"]
+description = "Unified Path of Exile helper desktop toolkit"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{name = "POE Toolkit contributors"}]
+dependencies = [
+  "PyQt6>=6.6,<7",
+  "requests>=2.31,<3",
+]
+
+[project.optional-dependencies]
+capture = [
+  "mss>=10,<11",
+  "numpy>=2,<2.3",
+  "opencv-python>=4.10,<5",
+  "pytesseract>=0.3.13,<0.4",
+]
+overlay-input = ["pynput>=1.7.6,<2"]
+platform = [
+  "pywin32>=311; sys_platform == 'win32'",
+  "python-xlib>=0.33,<1; sys_platform == 'linux'",
+]
+test = ["tomli>=2,<3; python_version < '3.11'"]
+packaging = ["pyinstaller>=6.11,<7"]
+dev = ["build>=1.2,<2"]
+full = [
+  "mss>=10,<11",
+  "numpy>=2,<2.3",
+  "opencv-python>=4.10,<5",
+  "pynput>=1.7.6,<2",
+  "pytesseract>=0.3.13,<0.4",
+  "pywin32>=311; sys_platform == 'win32'",
+  "python-xlib>=0.33,<1; sys_platform == 'linux'",
+]
+
+[project.scripts]
+poe-toolkit = "main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = ["main", "package_smoke"]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+utils = ["default_config.json"]
+
+[tool.setuptools.data-files]
+"share/poe-toolkit/data" = ["data/poedust_cache.json"]
+"share/poe-toolkit/config" = ["config/user_config.template.json"]
+"share/poe-toolkit/trade_service" = [
+    "trade_service/trade_monitor.js",
+    "trade_service/page_worker.js",
+    "trade_service/package.json",
+    "trade_service/package-lock.json",
+    "trade_service/start_brave_debugging.bat",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "utils.APP_VERSION"}

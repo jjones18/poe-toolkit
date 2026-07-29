@@ -1,154 +1,55 @@
 #!/usr/bin/env bash
-# POE Toolkit - Linux Setup Script
-# Run once after cloning: bash setup.sh
+# Reproducible Linux source-checkout setup for POE Toolkit.
+set -euo pipefail
 
-set -e
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT"
+PYTHON="${PYTHON:-python3}"
 
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+info() { printf '[*] %s\n' "$*"; }
+ok() { printf '[+] %s\n' "$*"; }
+warn() { printf '[!] %s\n' "$*" >&2; }
+fail() { printf '[-] %s\n' "$*" >&2; exit 1; }
 
-ok()   { echo -e "${GREEN}[+]${NC} $1"; }
-warn() { echo -e "${YELLOW}[!]${NC} $1"; }
-err()  { echo -e "${RED}[-]${NC} $1"; }
-info() { echo -e "${CYAN}[*]${NC} $1"; }
+command -v "$PYTHON" >/dev/null 2>&1 || fail "Python 3.10+ is required."
+"$PYTHON" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' \
+  || fail "Python 3.10+ is required."
+command -v node >/dev/null 2>&1 || fail "Node.js 18+ is required for Trade Sniper."
+node -e 'const major=Number(process.versions.node.split(".")[0]); process.exit(major >= 18 ? 0 : 1)' \
+  || fail "Node.js 18+ is required for Trade Sniper."
+command -v npm >/dev/null 2>&1 || fail "npm is required for Trade Sniper."
 
-echo ""
-echo "========================================"
-echo "      POE Toolkit - Linux Setup        "
-echo "========================================"
-echo ""
+VENV="$ROOT/.venv"
+if [[ ! -x "$VENV/bin/python" ]]; then
+  info "Creating $VENV"
+  "$PYTHON" -m venv "$VENV"
+fi
+info "Installing locked-compatible Python runtime dependencies"
+"$VENV/bin/python" -m pip install --upgrade pip
+"$VENV/bin/python" -m pip install -e '.[full]'
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
-
-# ── Detect package manager ────────────────────────────────────────────────────
-if command -v paru &>/dev/null; then
-    PKG="paru -S"
-elif command -v pacman &>/dev/null; then
-    PKG="sudo pacman -S"
-elif command -v apt &>/dev/null; then
-    PKG="sudo apt install"
-elif command -v dnf &>/dev/null; then
-    PKG="sudo dnf install"
+CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/poe-toolkit"
+USER_CONFIG="$CONFIG_HOME/user_config.json"
+mkdir -p "$CONFIG_HOME"
+chmod 700 "$CONFIG_HOME"
+if [[ ! -f "$USER_CONFIG" ]]; then
+  install -m 600 "$ROOT/config/user_config.template.json" "$USER_CONFIG"
+  ok "Created private config: $USER_CONFIG"
 else
-    PKG="<your package manager>"
+  ok "Preserved existing config: $USER_CONFIG"
 fi
 
-install_hint() { echo -e "    ${CYAN}$PKG $1${NC}"; }
+info "Installing Node dependencies from package-lock.json"
+(
+  cd "$ROOT/trade_service"
+  npm ci
+)
 
-# ── Python ────────────────────────────────────────────────────────────────────
-info "Checking Python..."
-if ! command -v python3 &>/dev/null; then
-    err "Python 3 not found. Install it:"
-    install_hint "python"
-    exit 1
-fi
-PYTHON_VER=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-ok "Python $PYTHON_VER found"
-
-# ── Tesseract ─────────────────────────────────────────────────────────────────
-info "Checking Tesseract OCR..."
-if command -v tesseract &>/dev/null; then
-    ok "Tesseract found: $(tesseract --version 2>&1 | head -1)"
-else
-    warn "Tesseract not found. Install it:"
-    install_hint "tesseract"
-    warn "League Vision and Kalguur Dust OCR features will not work without it."
+command -v tesseract >/dev/null 2>&1 \
+  || warn "Tesseract is not installed; OCR features will show an actionable unavailable state."
+if ! command -v brave-browser >/dev/null 2>&1 && ! command -v brave >/dev/null 2>&1; then
+  warn "Brave was not found; install it before using Trade Sniper."
 fi
 
-# ── Node.js ───────────────────────────────────────────────────────────────────
-info "Checking Node.js (required for Trade Sniper)..."
-if command -v node &>/dev/null; then
-    ok "Node.js found: $(node --version)"
-else
-    warn "Node.js not found. Trade Sniper will not work without it."
-    install_hint "nodejs npm"
-fi
-
-# ── Brave browser ─────────────────────────────────────────────────────────────
-info "Checking Brave browser (required for Trade Sniper)..."
-BRAVE_FOUND=0
-for path in /usr/bin/brave-browser /usr/bin/brave /opt/brave.com/brave/brave-browser /snap/bin/brave ~/.local/bin/brave-browser; do
-    if [ -f "$path" ]; then
-        ok "Brave found at $path"
-        BRAVE_FOUND=1
-        break
-    fi
-done
-if [ "$BRAVE_FOUND" -eq 0 ]; then
-    warn "Brave not found. Trade Sniper will not work without it."
-    install_hint "brave-bin"   # AUR name; apt: brave-browser
-    warn "Or install from https://brave.com/linux/"
-fi
-
-# ── xdotool (optional, window detection fallback) ─────────────────────────────
-info "Checking xdotool (optional, improves window detection)..."
-if command -v xdotool &>/dev/null; then
-    ok "xdotool found"
-else
-    warn "xdotool not found. Window auto-detection will rely on python-xlib only."
-    install_hint "xdotool"
-fi
-
-# ── Virtual environment ───────────────────────────────────────────────────────
-info "Setting up Python virtual environment..."
-if [ ! -f "venv/bin/activate" ]; then
-    [ -d "venv" ] && rm -rf venv  # Remove broken/incomplete venv if present
-    python3 -m venv venv
-    ok "Virtual environment created"
-else
-    ok "Virtual environment already exists"
-fi
-
-source venv/bin/activate
-
-# ── pip dependencies ──────────────────────────────────────────────────────────
-info "Installing Python dependencies..."
-pip install --upgrade pip -q
-pip install -r requirements.txt
-ok "Python dependencies installed"
-
-# ── npm dependencies ──────────────────────────────────────────────────────────
-if [ -d "trade_service" ] && command -v npm &>/dev/null; then
-    info "Installing npm dependencies for Trade Sniper..."
-    cd trade_service
-    npm install --silent
-    cd ..
-    ok "npm dependencies installed"
-fi
-
-# ── User config ───────────────────────────────────────────────────────────────
-USER_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/poe-toolkit"
-USER_CONFIG_PATH="$USER_CONFIG_DIR/user_config.json"
-LEGACY_USER_CONFIG="$SCRIPT_DIR/config/user_config.json"
-
-install -d -m 700 "$USER_CONFIG_DIR"
-if [ -f "$LEGACY_USER_CONFIG" ] && [ ! -f "$USER_CONFIG_PATH" ]; then
-    warn "Legacy config found at $LEGACY_USER_CONFIG."
-    warn "The toolkit will migrate it safely to $USER_CONFIG_PATH on first launch."
-elif [ ! -f "$USER_CONFIG_PATH" ]; then
-    install -m 600 config/user_config.template.json "$USER_CONFIG_PATH"
-    ok "Created $USER_CONFIG_PATH from template"
-    warn "Edit $USER_CONFIG_PATH and fill in your POESESSID and account name."
-    warn "Set 'client_log_path' to your PoE Client.txt path (check your Wine/Proton prefix)."
-else
-    ok "$USER_CONFIG_PATH already exists (not overwritten)"
-fi
-
-echo ""
-echo "========================================"
-ok "Setup complete!"
-echo ""
-info "To run the toolkit:"
-echo "    source venv/bin/activate"
-echo "    python src/main.py"
-echo ""
-info "Notes:"
-echo "  - Shift+Esc hotkey uses pynput automatically (no root needed)."
-echo "  - Screen capture requires X11. Use XWayland if on Wayland."
-echo "  - Set PoE to 'Windowed Fullscreen' for best screen capture compatibility."
-echo "========================================"
-echo ""
+ok "Setup complete"
+printf 'Run: %q %q\n' "$VENV/bin/python" "$ROOT/src/main.py"

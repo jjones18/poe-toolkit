@@ -4,11 +4,13 @@ OCR Scanner for League Vision tool.
 
 import re
 import time
-import cv2
-import numpy as np
-import pytesseract
 from PyQt6.QtCore import QObject, pyqtSignal, QThread
 
+from utils.optional_features import import_optional
+
+cv2 = import_optional("ocr_capture", "cv2")
+np = import_optional("ocr_capture", "numpy")
+pytesseract = import_optional("ocr_capture", "pytesseract")
 
 from .vision_core import VisionCore
 from utils.logger import DebugLogger

@@ -383,8 +383,25 @@ class TradeServiceDependencyTests(unittest.TestCase):
             self.assertFalse(invocation.kwargs["shell"])
             self.assertIs(invocation.kwargs["token"], token)
 
+    def test_bundled_trade_files_are_materialized_in_writable_runtime_dir(self):
+        with tempfile.TemporaryDirectory() as bundle_dir, tempfile.TemporaryDirectory() as runtime_dir:
+            for name in TradeService.BUNDLE_FILES:
+                Path(bundle_dir, name).write_text(f"bundled:{name}", encoding="utf-8")
+            stale = Path(runtime_dir, "trade_monitor.js")
+            stale.write_text("stale", encoding="utf-8")
+            service = TradeService(service_dir=runtime_dir)
+            service.bundle_dir = bundle_dir
+
+            self.assertTrue(service.prepare_service_files())
+
+            for name in TradeService.BUNDLE_FILES:
+                self.assertEqual(
+                    Path(runtime_dir, name).read_text(encoding="utf-8"),
+                    f"bundled:{name}",
+                )
+
     @patch("services.trade_service.run_cancellable_process")
-    def test_npm_install_is_direct_bounded_and_cancellable(self, run_process):
+    def test_npm_ci_is_direct_bounded_and_cancellable(self, run_process):
         run_process.return_value = subprocess.CompletedProcess([], 0, stdout="installed", stderr="")
         with tempfile.TemporaryDirectory() as temp_dir:
             Path(temp_dir, "package.json").write_text("{}", encoding="utf-8")
@@ -394,7 +411,7 @@ class TradeServiceDependencyTests(unittest.TestCase):
             self.assertTrue(service.install_dependencies(token))
 
         command = run_process.call_args.args[0]
-        self.assertEqual(command[-1], "install")
+        self.assertEqual(command[-1], "ci")
         self.assertEqual(run_process.call_args.kwargs["timeout"], 120)
         self.assertFalse(run_process.call_args.kwargs["shell"])
         self.assertIs(run_process.call_args.kwargs["token"], token)

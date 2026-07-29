@@ -11,7 +11,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QAction, QGuiApplication
 
 from ui.overlay_manager import OverlayManager
-from ui.theme import apply_dark_theme
+from ui.theme import apply_dark_theme, SIDEBAR_BUTTON_STYLE, SIDEBAR_FRAME_STYLE
 from ui.calibration import (
     CalibrationManager, CalibrationType, CALIBRATION_CONFIGS, StashGridProfile,
     get_calibration_status_text
@@ -30,27 +30,36 @@ class SidebarButton(QPushButton):
     def __init__(self, text: str, parent=None):
         super().__init__(parent)
         self.setText(text)
+        self.setAccessibleName(f"Open {text}")
         self.setCheckable(True)
         self.setMinimumHeight(50)
-        self.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                border: none;
-                border-radius: 8px;
-                padding: 12px;
-                text-align: left;
-                font-size: 13px;
-                color: #cccccc;
-            }
-            QPushButton:hover {
-                background-color: #3d3d3d;
-            }
-            QPushButton:checked {
-                background-color: #4a4a4a;
-                color: #ffffff;
-                font-weight: bold;
-            }
-        """)
+        self.setStyleSheet(SIDEBAR_BUTTON_STYLE)
+
+
+class _UnavailableTool:
+    """Navigation placeholder that keeps tool/button/stack indices aligned."""
+
+    def __init__(self, name: str, message: str):
+        self.name = name
+        self.description = message
+        self.widget = None
+
+    def create_widget(self):
+        label = QLabel(self.description)
+        label.setWordWrap(True)
+        label.setAccessibleName(f"{self.name} unavailable details")
+        label.setStyleSheet("color: #ffcc99; padding: 24px; font-size: 13px;")
+        self.widget = label
+        return label
+
+    def cleanup(self):
+        return True
+
+    def on_activated(self):
+        pass
+
+    def on_deactivated(self):
+        pass
 
 
 class MainWindow(QMainWindow):
@@ -160,13 +169,9 @@ class MainWindow(QMainWindow):
     def create_sidebar(self) -> QWidget:
         """Create the sidebar navigation panel."""
         sidebar = QFrame()
-        sidebar.setFixedWidth(180)
-        sidebar.setStyleSheet("""
-            QFrame {
-                background-color: #252526;
-                border-right: 1px solid #3d3d3d;
-            }
-        """)
+        sidebar.setMinimumWidth(180)
+        sidebar.setMaximumWidth(260)
+        sidebar.setStyleSheet(SIDEBAR_FRAME_STYLE)
         
         layout = QVBoxLayout(sidebar)
         layout.setContentsMargins(8, 16, 8, 16)
@@ -190,6 +195,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(game_label)
 
         self.game_combo = QComboBox()
+        self.game_combo.setAccessibleName("Active toolkit mode")
+        self.game_combo.setToolTip("Switch between Path of Exile 1 and Path of Exile 2 toolsets")
         for game_id, profile in ConfigManager.GAME_PROFILES.items():
             self.game_combo.addItem(profile["label"], game_id)
         self.game_combo.setCurrentIndex(
@@ -297,76 +304,110 @@ class MainWindow(QMainWindow):
         return self.config.get("debug_mode", False)
     
     def load_tools(self):
-        """Load and initialize tool modules for the selected game."""
+        """Load tools in navigation order, preserving one entry per slot."""
         from tools.diagnostics_tool import DiagnosticsTool
         from tools.settings_tool import SettingsTool
         from tools.trade_sniper import TradeSniperTool
-        
+
         active_game = ConfigManager.get_active_game(self.config)
-        tool_classes: list[tuple[type, dict]] = [
+        tool_specs: list[tuple[type | None, dict]] = [
             (SettingsTool, {"config": self.config})
         ]
 
         if active_game == "poe1":
-            from tools.league_tools import LeagueToolsTool
-            from tools.league_vision import LeagueVisionTool
-            tool_classes.extend([
-                (LeagueToolsTool, {
+            try:
+                from tools.league_tools import LeagueToolsTool
+                tool_specs.append((LeagueToolsTool, {
                     "config": self.config,
                     "price_service": self.price_service,
-                }),
-                (LeagueVisionTool, {"config": self.config, "overlay": self.overlay}),
-            ])
+                }))
+            except Exception as exc:
+                tool_specs.append((None, {"name": "League Tools", "error": exc}))
+            try:
+                from tools.league_vision import LeagueVisionTool
+                tool_specs.append((LeagueVisionTool, {
+                    "config": self.config,
+                    "overlay": self.overlay,
+                }))
+            except Exception as exc:
+                tool_specs.append((None, {"name": "League Vision", "error": exc}))
 
         # Trade is shared between PoE 1 and PoE 2. The active game controls
         # which trade URL is opened and which live-search tabs are monitored.
-        tool_classes.append((TradeSniperTool, {
+        tool_specs.append((TradeSniperTool, {
             "config": self.config,
             "service": self.trade_service,
         }))
-        tool_classes.append((DiagnosticsTool, {
+        tool_specs.append((DiagnosticsTool, {
             "config": self.config,
             "trade_service": self.trade_service,
             "runtime_provider": self._diagnostic_runtime_state,
         }))
-        
-        for tool_class, kwargs in tool_classes:
+
+        for tool_class, kwargs in tool_specs:
+            if tool_class is None:
+                self._add_unavailable_tool(kwargs["name"], kwargs["error"])
+                continue
+
+            tool = None
             try:
                 tool = tool_class(**kwargs)
-                self.tools.append(tool)
-                
-                # Create sidebar button
-                btn = SidebarButton(tool.name)
-                btn.setToolTip(tool.description)
-                idx = len(self.sidebar_buttons)
-                btn.clicked.connect(lambda checked, i=idx: self.on_tool_selected(i))
-                self.tool_button_container.addWidget(btn)
-                self.sidebar_buttons.append(btn)
-                
-                # Create widget and add to stack
                 widget = tool.create_widget()
-                self.content_stack.addWidget(widget)
+                self._register_tool(tool, widget)
+            except Exception as error:
+                if tool is not None:
+                    cleanup = getattr(tool, "cleanup", None)
+                    if callable(cleanup) and cleanup() is False:
+                        raise RuntimeError(
+                            f"{getattr(tool, 'name', tool_class.__name__)} failed to initialize "
+                            "and its worker shutdown could not be verified"
+                        ) from error
+                self._add_unavailable_tool(
+                    getattr(tool, "name", getattr(tool_class, "__name__", "Tool")),
+                    error,
+                )
 
-                # Settings can switch the global game mode too.
-                if hasattr(widget, 'game_changed'):
-                    widget.game_changed.connect(self.on_settings_game_changed)
-                if hasattr(widget, 'settings_saved'):
-                    widget.settings_saved.connect(self.on_settings_saved)
-                
-                # Connect Ultimatum overlay updates
-                if hasattr(widget, 'overlay_update'):
-                    widget.overlay_update.connect(self.on_overlay_update)
-                
-                # Connect debug overlay updates
-                if hasattr(widget, 'overlay_debug_text_update'):
-                    widget.overlay_debug_text_update.connect(self.overlay.set_debug_text)
-                if hasattr(widget, 'overlay_debug_rect_update'):
-                    widget.overlay_debug_rect_update.connect(self.overlay.set_debug_rect)
-                if hasattr(widget, 'overlay_guidance_update'):
-                    widget.overlay_guidance_update.connect(self.overlay.set_guidance_text)
-                
-            except Exception as e:
-                print(f"Error loading tool {tool_class.__name__}: {e}")
+    def _register_tool(self, tool, widget):
+        """Atomically append one aligned tool/button/content entry."""
+        index = len(self.tools)
+        if len(self.sidebar_buttons) != index or self.content_stack.count() != index:
+            raise RuntimeError("Tool navigation state is out of alignment")
+
+        tool.widget = widget
+        self.tools.append(tool)
+        button = SidebarButton(tool.name)
+        button.setToolTip(tool.description)
+        if index < 9:
+            button.setShortcut(f"Alt+{index + 1}")
+            button.setToolTip(f"{tool.description} (Alt+{index + 1})")
+        button.clicked.connect(lambda checked, i=index: self.on_tool_selected(i))
+        self.tool_button_container.addWidget(button)
+        self.sidebar_buttons.append(button)
+        self.content_stack.addWidget(widget)
+
+        if hasattr(widget, "game_changed"):
+            widget.game_changed.connect(self.on_settings_game_changed)
+        if hasattr(widget, "settings_saved"):
+            widget.settings_saved.connect(self.on_settings_saved)
+        if hasattr(widget, "overlay_update"):
+            widget.overlay_update.connect(self.on_overlay_update)
+        if hasattr(widget, "overlay_debug_text_update"):
+            widget.overlay_debug_text_update.connect(self.overlay.set_debug_text)
+        if hasattr(widget, "overlay_debug_rect_update"):
+            widget.overlay_debug_rect_update.connect(self.overlay.set_debug_rect)
+        if hasattr(widget, "overlay_guidance_update"):
+            widget.overlay_guidance_update.connect(self.overlay.set_guidance_text)
+
+    def _add_unavailable_tool(self, name: str, error: Exception):
+        """Add an actionable placeholder without breaking navigation indices."""
+        message = f"{name} unavailable: {error}"
+        print(message)
+        placeholder = _UnavailableTool(name, message)
+        self._register_tool(placeholder, placeholder.create_widget())
+        button = self.sidebar_buttons[-1]
+        button.setText(f"⚠ {name}")
+        button.setAccessibleName(f"Open unavailable {name} details")
+        button.setToolTip(message)
 
     def _diagnostic_runtime_state(self) -> dict:
         """Return redacted runtime state without owning module-specific workers."""

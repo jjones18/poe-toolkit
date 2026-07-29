@@ -15,6 +15,7 @@ if str(SRC_DIR) not in sys.path:
 from core.valuation import PriceCache
 from utils.app_paths import (
     migrate_legacy_json_cache,
+    resolve_immutable_resource,
     resolve_runtime_paths,
 )
 from utils.logger import DebugLogger
@@ -114,6 +115,30 @@ class RuntimePathTests(unittest.TestCase):
             self.assertEqual(json.loads(target.read_text())["value"], "legacy-valid")
             self.assertEqual(target.with_suffix(".json.invalid").read_bytes(), invalid_bytes)
             self.assertFalse(legacy.exists())
+
+
+class ImmutableResourceTests(unittest.TestCase):
+    def test_frozen_bundle_root_is_preferred(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            asset = Path(temp_dir) / "trade_service" / "trade_monitor.js"
+            asset.parent.mkdir()
+            asset.write_text("bundle", encoding="utf-8")
+            with patch.object(sys, "_MEIPASS", temp_dir, create=True):
+                resolved = resolve_immutable_resource("trade_service/trade_monitor.js")
+        self.assertEqual(resolved, asset)
+
+    def test_installed_share_fallback_is_supported(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            asset = Path(temp_dir) / "share" / "poe-toolkit" / "wheel-only.txt"
+            asset.parent.mkdir(parents=True)
+            asset.write_text("wheel", encoding="utf-8")
+            with patch("utils.app_paths.sysconfig.get_path", return_value=temp_dir):
+                resolved = resolve_immutable_resource("wheel-only.txt")
+        self.assertEqual(resolved, asset)
+
+    def test_resource_path_cannot_escape_bundle(self):
+        with self.assertRaises(ValueError):
+            resolve_immutable_resource("../secret")
 
 
 class CacheDefaultPathTests(unittest.TestCase):

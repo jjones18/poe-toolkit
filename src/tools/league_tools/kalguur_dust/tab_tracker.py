@@ -6,25 +6,33 @@ enabling multi-tab highlighting workflows.
 """
 
 import time
-import cv2
-import numpy as np
 from typing import Optional, List, Dict, Callable
 from dataclasses import dataclass
 from PyQt6.QtCore import QThread, pyqtSignal, QObject
 
-try:
-    import pytesseract
-    HAS_TESSERACT = True
-except ImportError:
-    HAS_TESSERACT = False
-    print("Warning: pytesseract not found. Tab tracking disabled.")
+from utils.optional_features import OptionalFeatureUnavailable, import_optional
 
 try:
-    import mss
-    HAS_MSS = True
+    cv2 = import_optional("ocr_capture", "cv2")
+    np = import_optional("ocr_capture", "numpy")
+    pytesseract = import_optional("ocr_capture", "pytesseract")
+    HAS_TESSERACT = True
 except ImportError:
+    raise
+except Exception as exc:
+    HAS_TESSERACT = False
+    print(f"Warning: OCR dependencies unavailable. Tab tracking disabled: {exc}")
+    raise
+
+_MSS_ERROR = None
+try:
+    mss = import_optional("ocr_capture", "mss")
+    HAS_MSS = True
+except OptionalFeatureUnavailable as exc:
+    mss = None
+    _MSS_ERROR = exc
     HAS_MSS = False
-    print("Warning: mss not found. Screen capture disabled.")
+    print(f"Warning: screen capture unavailable. Tab tracking disabled: {exc}")
 
 from utils import platform_utils
 from utils.logger import DebugLogger

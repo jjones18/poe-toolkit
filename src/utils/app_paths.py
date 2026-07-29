@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import shutil
 import sys
+import sysconfig
 import tempfile
 
 
@@ -66,6 +67,28 @@ class RuntimePaths:
             self.legacy_dust_cache_files,
         )
         return self.dust_cache_file
+
+
+def resolve_immutable_resource(relative_path) -> Path:
+    """Resolve a bundled asset in source, frozen, or wheel installations."""
+    relative = Path(relative_path)
+    if relative.is_absolute() or ".." in relative.parts:
+        raise ValueError("Immutable resource paths must stay inside the application bundle")
+
+    candidates = []
+    frozen_root = getattr(sys, "_MEIPASS", None)
+    if frozen_root:
+        candidates.append(Path(frozen_root) / relative)
+    candidates.extend(
+        (
+            Path(__file__).resolve().parents[2] / relative,
+            Path(sysconfig.get_path("data")) / "share" / "poe-toolkit" / relative,
+        )
+    )
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
 
 
 def resolve_app_directories(platform_name=None, environ=None, home=None) -> AppDirectories:

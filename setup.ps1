@@ -1,342 +1,124 @@
-# POE Toolkit - Setup Script
-# Run this script after cloning the repository
-# Usage: Right-click -> Run with PowerShell (as Administrator)
-
+# POE Toolkit fresh Windows setup. Run from a cloned checkout.
 param(
     [switch]$SkipInstalls,
-    [switch]$Force
+    [switch]$Force,
+    [switch]$NonInteractive
 )
 
 $ErrorActionPreference = "Stop"
-
-# Colors for output
-function Write-Status { param($msg) Write-Host "[*] $msg" -ForegroundColor Cyan }
-function Write-Success { param($msg) Write-Host "[+] $msg" -ForegroundColor Green }
-function Write-Warning { param($msg) Write-Host "[!] $msg" -ForegroundColor Yellow }
-function Write-Error { param($msg) Write-Host "[-] $msg" -ForegroundColor Red }
-
-Write-Host ""
-Write-Host "========================================" -ForegroundColor Magenta
-Write-Host "       POE Toolkit Setup Script        " -ForegroundColor Magenta
-Write-Host "========================================" -ForegroundColor Magenta
-Write-Host ""
-
-# Check if running as admin (needed for some installs)
-$isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {
-    Write-Warning "Not running as Administrator. Some installs may fail."
-    Write-Warning "Consider re-running: Right-click -> Run as Administrator"
-    Write-Host ""
-}
-
-# Get script directory (where poe-toolkit is cloned)
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $scriptDir
 
-Write-Status "Working directory: $scriptDir"
-Write-Host ""
+function Write-Status { param([string]$Message) Write-Host "[*] $Message" -ForegroundColor Cyan }
+function Write-Success { param([string]$Message) Write-Host "[+] $Message" -ForegroundColor Green }
+function Write-Warn { param([string]$Message) Write-Host "[!] $Message" -ForegroundColor Yellow }
+function Invoke-Native {
+    param([scriptblock]$Command, [string]$FailureMessage)
+    & $Command
+    if ($LASTEXITCODE -ne 0) {
+        throw "$FailureMessage (exit code $LASTEXITCODE)"
+    }
+}
 
-# ============================================
-# CHECK PREREQUISITES
-# ============================================
+function Find-Python {
+    $candidates = @(
+        "python", "python3",
+        "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python310\python.exe",
+        "C:\Python312\python.exe", "C:\Python311\python.exe", "C:\Python310\python.exe"
+    )
+    foreach ($candidate in $candidates) {
+        try {
+            $raw = & $candidate --version 2>&1
+            if ($raw -match "Python (\d+)\.(\d+)") {
+                $version = [version]::new([int]$Matches[1], [int]$Matches[2])
+                if ($version -ge [version]"3.10") { return $candidate }
+            }
+        } catch { }
+    }
+    return $null
+}
 
-Write-Host "--- Checking Prerequisites ---" -ForegroundColor Yellow
-Write-Host ""
+function Has-Command {
+    param([string]$Name)
+    return [bool](Get-Command $Name -ErrorAction SilentlyContinue)
+}
 
-$needsInstall = @()
-
-# Check Python
-Write-Status "Checking Python..."
-$pythonPath = $null
-$pythonVersion = $null
-
-# Check common Python locations
-$pythonPaths = @(
-    "python",
-    "python3",
-    "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
-    "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
-    "$env:LOCALAPPDATA\Programs\Python\Python310\python.exe",
-    "C:\Python312\python.exe",
-    "C:\Python311\python.exe",
-    "C:\Python310\python.exe"
-)
-
-foreach ($p in $pythonPaths) {
+Write-Host "POE Toolkit setup" -ForegroundColor Magenta
+$pythonPath = Find-Python
+$nodeOk = $false
+if (Has-Command "node") {
     try {
-        $ver = & $p --version 2>&1
-        if ($ver -match "Python (\d+)\.(\d+)") {
-            $major = [int]$Matches[1]
-            $minor = [int]$Matches[2]
-            if ($major -ge 3 -and $minor -ge 10) {
-                $pythonPath = $p
-                $pythonVersion = $ver
-                break
-            }
-        }
-    } catch { }
+        $nodeMajor = [int]((& node --version).TrimStart("v").Split(".")[0])
+        $nodeOk = $nodeMajor -ge 18
+    } catch { $nodeOk = $false }
 }
+$tesseractOk = Test-Path "C:\Program Files\Tesseract-OCR\tesseract.exe"
+$braveOk = (Test-Path "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe") -or
+           (Test-Path "$env:LOCALAPPDATA\BraveSoftware\Brave-Browser\Application\brave.exe")
 
-if ($pythonPath) {
-    Write-Success "Python found: $pythonVersion"
-} else {
-    Write-Warning "Python 3.10+ not found"
-    $needsInstall += "python"
-}
-
-# Check Node.js
-Write-Status "Checking Node.js..."
-$nodeVersion = $null
-try {
-    $nodeVersion = & node --version 2>&1
-    if ($nodeVersion -match "v(\d+)") {
-        $major = [int]$Matches[1]
-        if ($major -ge 18) {
-            Write-Success "Node.js found: $nodeVersion"
-        } else {
-            Write-Warning "Node.js $nodeVersion found but 18+ required"
-            $needsInstall += "nodejs"
-        }
+if (-not $SkipInstalls) {
+    if (-not (Has-Command "winget") -and (-not $pythonPath -or -not $nodeOk -or -not $tesseractOk -or -not $braveOk)) {
+        throw "winget is required to install missing prerequisites. Install them manually or rerun with -SkipInstalls."
     }
-} catch {
-    Write-Warning "Node.js not found"
-    $needsInstall += "nodejs"
-}
+    if (-not $pythonPath) {
+        Invoke-Native { winget install Python.Python.3.12 --silent --accept-package-agreements --accept-source-agreements } "Python installation failed"
+    }
+    if (-not $nodeOk) {
+        Invoke-Native { winget install OpenJS.NodeJS.LTS --silent --accept-package-agreements --accept-source-agreements } "Node.js installation failed"
+    }
+    if (-not $tesseractOk) {
+        Invoke-Native { winget install UB-Mannheim.TesseractOCR --silent --accept-package-agreements --accept-source-agreements } "Tesseract installation failed"
+    }
+    if (-not $braveOk) {
+        Invoke-Native { winget install Brave.Brave --silent --accept-package-agreements --accept-source-agreements } "Brave installation failed"
+    }
 
-# Check Tesseract
-Write-Status "Checking Tesseract OCR..."
-$tesseractPaths = @(
-    "C:\Program Files\Tesseract-OCR\tesseract.exe",
-    "C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
-    "$env:LOCALAPPDATA\Tesseract-OCR\tesseract.exe"
-)
-$tesseractFound = $false
-foreach ($t in $tesseractPaths) {
-    if (Test-Path $t) {
-        $tesseractFound = $true
-        Write-Success "Tesseract found: $t"
-        break
+    $pythonPath = Find-Python
+    if (-not $pythonPath -or -not (Has-Command "node") -or -not (Has-Command "npm")) {
+        throw "A newly installed prerequisite is not visible on PATH. Restart PowerShell and rerun setup.ps1."
     }
 }
-if (-not $tesseractFound) {
-    Write-Warning "Tesseract OCR not found"
-    $needsInstall += "tesseract"
-}
 
-# Check Brave
-Write-Status "Checking Brave Browser..."
-$bravePaths = @(
-    "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe",
-    "C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe",
-    "$env:LOCALAPPDATA\BraveSoftware\Brave-Browser\Application\brave.exe"
-)
-$braveFound = $false
-foreach ($b in $bravePaths) {
-    if (Test-Path $b) {
-        $braveFound = $true
-        Write-Success "Brave found: $b"
-        break
-    }
-}
-if (-not $braveFound) {
-    Write-Warning "Brave Browser not found"
-    $needsInstall += "brave"
-}
-
-Write-Host ""
-
-# ============================================
-# INSTALL MISSING PREREQUISITES
-# ============================================
-
-if ($needsInstall.Count -gt 0 -and -not $SkipInstalls) {
-    Write-Host "--- Installing Missing Prerequisites ---" -ForegroundColor Yellow
-    Write-Host ""
-    
-    # Check if winget is available
-    $hasWinget = $false
-    try {
-        $wingetVer = & winget --version 2>&1
-        $hasWinget = $true
-        Write-Status "Using winget for installations"
-    } catch {
-        Write-Warning "winget not available, will use direct downloads"
-    }
-    
-    foreach ($app in $needsInstall) {
-        switch ($app) {
-            "python" {
-                Write-Status "Installing Python 3.12..."
-                if ($hasWinget) {
-                    & winget install Python.Python.3.12 --silent --accept-package-agreements --accept-source-agreements
-                } else {
-                    Write-Warning "Please install Python 3.10+ manually from https://python.org"
-                }
-            }
-            "nodejs" {
-                Write-Status "Installing Node.js LTS..."
-                if ($hasWinget) {
-                    & winget install OpenJS.NodeJS.LTS --silent --accept-package-agreements --accept-source-agreements
-                } else {
-                    Write-Warning "Please install Node.js 18+ manually from https://nodejs.org"
-                }
-            }
-            "tesseract" {
-                Write-Status "Installing Tesseract OCR..."
-                if ($hasWinget) {
-                    & winget install UB-Mannheim.TesseractOCR --silent --accept-package-agreements --accept-source-agreements
-                } else {
-                    # Direct download fallback
-                    $tesseractUrl = "https://github.com/UB-Mannheim/tesseract/releases/download/v5.3.3/tesseract-ocr-w64-setup-5.3.3.20231005.exe"
-                    $tesseractInstaller = "$env:TEMP\tesseract-setup.exe"
-                    Write-Status "Downloading Tesseract installer..."
-                    Invoke-WebRequest -Uri $tesseractUrl -OutFile $tesseractInstaller
-                    Write-Status "Running Tesseract installer (silent)..."
-                    Start-Process -FilePath $tesseractInstaller -ArgumentList "/S" -Wait
-                    Remove-Item $tesseractInstaller -ErrorAction SilentlyContinue
-                }
-            }
-            "brave" {
-                Write-Status "Installing Brave Browser..."
-                if ($hasWinget) {
-                    & winget install Brave.Brave --silent --accept-package-agreements --accept-source-agreements
-                } else {
-                    Write-Warning "Please install Brave manually from https://brave.com"
-                }
-            }
-        }
-    }
-    
-    Write-Host ""
-    Write-Success "Prerequisite installation complete!"
-    Write-Warning "You may need to restart your terminal for PATH changes to take effect."
-    Write-Host ""
-}
-
-# ============================================
-# SETUP USER CONFIG
-# ============================================
-
-Write-Host "--- Setting Up Configuration ---" -ForegroundColor Yellow
-Write-Host ""
-
-$configBase = $env:APPDATA
-if ([string]::IsNullOrWhiteSpace($configBase)) {
-    $configBase = $env:LOCALAPPDATA
-}
-if ([string]::IsNullOrWhiteSpace($configBase)) {
-    $configBase = Join-Path $HOME "AppData\Roaming"
-}
+$configBase = if ($env:APPDATA) { $env:APPDATA } elseif ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { Join-Path $HOME "AppData\Roaming" }
 $userConfigDir = Join-Path $configBase "poe-toolkit"
 $userConfigPath = Join-Path $userConfigDir "user_config.json"
-$legacyUserConfigPath = Join-Path $scriptDir "config\user_config.json"
 $templatePath = Join-Path $scriptDir "config\user_config.template.json"
-
 New-Item -ItemType Directory -Path $userConfigDir -Force | Out-Null
 $currentIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 & icacls $userConfigDir /inheritance:r /grant:r "${currentIdentity}:(OI)(CI)F" | Out-Null
-if ($LASTEXITCODE -ne 0) {
-    Write-Warning "Could not restrict the configuration directory ACL automatically."
-}
-
-if ((Test-Path $legacyUserConfigPath) -and -not (Test-Path $userConfigPath)) {
-    Write-Warning "Legacy config found at $legacyUserConfigPath"
-    Write-Warning "The toolkit will migrate it safely to $userConfigPath on first launch."
-} elseif (-not (Test-Path $userConfigPath) -or $Force) {
-    if (Test-Path $templatePath) {
-        Write-Status "Creating user_config.json from template..."
-        Copy-Item $templatePath $userConfigPath
-        Write-Success "Created $userConfigPath"
-        Write-Warning "IMPORTANT: Edit $userConfigPath with your settings:"
-        Write-Host "  - session_id: Your POESESSID cookie" -ForegroundColor Gray
-        Write-Host "  - account_name: Your PoE account name" -ForegroundColor Gray
-        Write-Host "  - league: Current league name" -ForegroundColor Gray
-        Write-Host "  - client_log_path: Path to PoE Client.txt" -ForegroundColor Gray
-    } else {
-        Write-Error "Template file not found: $templatePath"
-    }
+if ($LASTEXITCODE -ne 0) { Write-Warn "Could not restrict the config directory ACL automatically." }
+if (-not (Test-Path $userConfigPath) -or $Force) {
+    Copy-Item $templatePath $userConfigPath -Force
+    Write-Success "Created private config: $userConfigPath"
 } else {
-    Write-Success "$userConfigPath already exists (use -Force to overwrite)"
+    Write-Success "Preserved existing config: $userConfigPath"
 }
 
-Write-Host ""
-
-# ============================================
-# INSTALL PYTHON DEPENDENCIES
-# ============================================
-
-Write-Host "--- Installing Python Dependencies ---" -ForegroundColor Yellow
-Write-Host ""
-
-# Refresh Python path after potential install
-$pythonCmd = "python"
-try {
-    & python --version 2>&1 | Out-Null
-} catch {
+if (-not $SkipInstalls) {
+    $venvDir = Join-Path $scriptDir ".venv"
+    $venvPython = Join-Path $venvDir "Scripts\python.exe"
+    if (-not (Test-Path $venvPython)) {
+        Invoke-Native { & $pythonPath -m venv $venvDir } "Virtual environment creation failed"
+    }
+    Invoke-Native { & $venvPython -m pip install --upgrade pip } "pip upgrade failed"
+    Invoke-Native { & $venvPython -m pip install -e ".[full]" } "Python dependency installation failed"
+    Push-Location (Join-Path $scriptDir "trade_service")
     try {
-        & python3 --version 2>&1 | Out-Null
-        $pythonCmd = "python3"
-    } catch {
-        Write-Error "Python not found. Please restart terminal and run setup again."
+        Invoke-Native { npm ci } "Node dependency installation failed"
+    } finally {
+        Pop-Location
     }
-}
-
-$requirementsPath = Join-Path $scriptDir "requirements.txt"
-if (Test-Path $requirementsPath) {
-    Write-Status "Installing Python packages..."
-    & $pythonCmd -m pip install -r $requirementsPath --quiet
-    Write-Success "Python dependencies installed"
+    Write-Success "Dependencies installed"
 } else {
-    Write-Warning "requirements.txt not found"
+    Write-Warn "Dependency installation skipped by request."
 }
 
-Write-Host ""
-
-# ============================================
-# INSTALL NODE.JS DEPENDENCIES
-# ============================================
-
-Write-Host "--- Installing Node.js Dependencies ---" -ForegroundColor Yellow
-Write-Host ""
-
-$tradeServiceDir = Join-Path $scriptDir "trade_service"
-$packageJsonPath = Join-Path $tradeServiceDir "package.json"
-
-if (Test-Path $packageJsonPath) {
-    Write-Status "Installing npm packages for Trade Sniper..."
-    Push-Location $tradeServiceDir
-    try {
-        & npm install --silent 2>&1 | Out-Null
-        Write-Success "Node.js dependencies installed"
-    } catch {
-        Write-Warning "npm install failed - Node.js may need PATH refresh"
-    }
-    Pop-Location
-} else {
-    Write-Warning "trade_service/package.json not found"
-}
-
-Write-Host ""
-
-# ============================================
-# COMPLETE
-# ============================================
-
-Write-Host "========================================" -ForegroundColor Green
-Write-Host "          Setup Complete!              " -ForegroundColor Green
-Write-Host "========================================" -ForegroundColor Green
-Write-Host ""
-Write-Host "Next steps:" -ForegroundColor Cyan
-Write-Host "  1. Edit $userConfigPath with your settings" -ForegroundColor White
-Write-Host "  2. Run: python src/main.py" -ForegroundColor White
-Write-Host "  3. Calibrate your stash overlay (Settings menu)" -ForegroundColor White
-Write-Host ""
-Write-Host "For Trade Sniper, Brave will be auto-launched from the app." -ForegroundColor Gray
-Write-Host ""
-
-# Pause if running interactively
-if ($Host.Name -eq "ConsoleHost") {
+Write-Success "Setup complete"
+Write-Host "Config: $userConfigPath"
+Write-Host "Run: .\.venv\Scripts\python.exe src\main.py"
+if (-not $NonInteractive -and $Host.Name -eq "ConsoleHost") {
     Write-Host "Press any key to exit..." -ForegroundColor DarkGray
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 }
-

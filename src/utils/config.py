@@ -2,8 +2,8 @@
 Configuration management for POE Toolkit.
 
 Settings are split into two files:
-- config.json: Generic/shareable settings (filter presets, keywords, etc.)
-- user_config.json: PC-specific settings (credentials, paths, calibration) - gitignored
+- default_config.json: Generic/shareable defaults bundled read-only with the app
+- user_config.json: PC-specific settings and persisted overrides in the OS user directory
 """
 
 import copy
@@ -52,8 +52,8 @@ class ConfigManager:
     # Get the project root (parent of src/)
     _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
-    # Base config with shareable defaults (checked into git)
-    CONFIG_FILE = os.path.join(_PROJECT_ROOT, "config", "config.json")
+    # Immutable package data shared by source, wheel, and frozen builds.
+    CONFIG_FILE = os.path.join(os.path.dirname(__file__), "default_config.json")
     
     # Legacy checkout-local user config (gitignored) and its new per-user home.
     LEGACY_USER_CONFIG_FILE = os.path.join(_PROJECT_ROOT, "config", "user_config.json")

@@ -1,0 +1,157 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  QT_QPA_PLATFORM: offscreen
+
+jobs:
+  python:
+    name: Python ${{ matrix.python-version }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.6"
+          enable-cache: true
+      - run: uv sync --locked --extra full --extra test
+      - run: uv run --locked python -m unittest discover -s tests
+      - run: uv run --locked python -m compileall -q src tests scripts
+      - run: uv run --locked python scripts/check_version_consistency.py
+      - run: uv run --locked python scripts/check_packaging_assets.py
+      - run: uv run --locked python scripts/check_no_mutable_checkout_data.py
+      - name: Validate Linux setup syntax
+        if: runner.os == 'Linux'
+        run: bash -n setup.sh
+      - name: Validate PowerShell setup syntax
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path setup.ps1), [ref]$tokens, [ref]$errors
+          ) | Out-Null
+          if ($errors.Count) { $errors | ForEach-Object { Write-Error $_ }; exit 1 }
+
+  core-degraded-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.6"
+      - run: uv sync --locked
+      - run: uv run --locked python src/main.py --package-smoke
+
+  node:
+    name: Node ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 22]
+    defaults:
+      run:
+        working-directory: trade_service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: trade_service/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run check
+      - run: npm audit --audit-level=high
+
+  distribution:
+    name: Python wheel/sdist smoke / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            venv-python: .wheel-smoke/bin/python
+            venv-entry: .wheel-smoke/bin/poe-toolkit
+          - os: windows-latest
+            venv-python: .wheel-smoke/Scripts/python.exe
+            venv-entry: .wheel-smoke/Scripts/poe-toolkit.exe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.6"
+          enable-cache: true
+      - run: uv lock --check
+      - run: uv build
+      - run: uv venv .wheel-smoke --python 3.12
+      - name: Install built wheel
+        run: >-
+          python -c "import glob, subprocess; subprocess.check_call([
+          'uv', 'pip', 'install', '--python', r'${{ matrix.venv-python }}',
+          glob.glob('dist/*.whl')[0]])"
+      - name: Smoke installed entry point
+        run: >-
+          python -c "import subprocess; subprocess.check_call([
+          r'${{ matrix.venv-entry }}', '--package-smoke'])"
+
+  package:
+    name: Frozen package / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.6"
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: trade_service/package-lock.json
+      - run: uv sync --locked --extra full --extra packaging --extra test
+      - run: npm ci
+        working-directory: trade_service
+      - run: npm test
+        working-directory: trade_service
+      - run: npm run check
+        working-directory: trade_service
+      - run: npm audit --audit-level=high
+        working-directory: trade_service
+      - run: uv run --locked python scripts/check_packaging_assets.py
+      - run: uv run --locked pyinstaller --noconfirm --clean packaging/poe_toolkit.spec
+      - run: uv run --locked python scripts/run_frozen_smoke.py dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: poe-toolkit-${{ runner.os }}
+          path: dist/POE Toolkit
+          if-no-files-found: error

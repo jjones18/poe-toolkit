@@ -8,11 +8,13 @@ import hashlib
 import os
 import platform
 import signal
+import shutil
 import subprocess
 import tempfile
 import threading
 from PyQt6.QtCore import QObject, pyqtSignal
 
+from utils.app_paths import resolve_immutable_resource, resolve_runtime_paths
 from utils.workers import CancelledError, CancellationToken, run_cancellable_process
 
 
@@ -25,13 +27,35 @@ class TradeService(QObject):
     status_changed = pyqtSignal(str)  # running, stopped, error
     log_output = pyqtSignal(str)
     
+    BUNDLE_FILES = (
+        "trade_monitor.js",
+        "page_worker.js",
+        "package.json",
+        "package-lock.json",
+        "start_brave_debugging.bat",
+    )
+
     def __init__(self, service_dir: str = None, owner_file: str = None):
         super().__init__()
         if service_dir is None:
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            self.service_dir = os.path.join(project_root, "trade_service")
+            self.bundle_dir = os.path.abspath(
+                resolve_immutable_resource("trade_service")
+            )
+            source_dir = os.path.abspath(
+                os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                    "trade_service",
+                )
+            )
+            if self.bundle_dir == source_dir:
+                self.service_dir = source_dir
+            else:
+                self.service_dir = str(
+                    resolve_runtime_paths().directories.data_dir / "trade-service"
+                )
         else:
             self.service_dir = os.path.abspath(service_dir)
+            self.bundle_dir = self.service_dir
 
         if owner_file is None:
             install_id = hashlib.sha256(self.service_dir.encode("utf-8")).hexdigest()[:16]
@@ -126,6 +150,39 @@ class TradeService(QObject):
     def is_running(self) -> bool:
         return self._running and self.process is not None and self.process.poll() is None
     
+    def prepare_service_files(self) -> bool:
+        """Materialize immutable bundled scripts into writable per-user storage."""
+        if self.bundle_dir == self.service_dir:
+            return os.path.exists(os.path.join(self.service_dir, "package.json"))
+        try:
+            os.makedirs(self.service_dir, exist_ok=True)
+            for name in self.BUNDLE_FILES:
+                source = os.path.join(self.bundle_dir, name)
+                destination = os.path.join(self.service_dir, name)
+                if not os.path.isfile(source):
+                    self.log_output.emit(f"Error: bundled Trade Sniper asset is missing: {name}")
+                    return False
+                if os.path.isfile(destination):
+                    with open(source, "rb") as source_file, open(destination, "rb") as target_file:
+                        if source_file.read() == target_file.read():
+                            continue
+                descriptor, temporary = tempfile.mkstemp(
+                    prefix=f".{name}.", suffix=".tmp", dir=self.service_dir
+                )
+                os.close(descriptor)
+                try:
+                    shutil.copy2(source, temporary)
+                    os.replace(temporary, destination)
+                finally:
+                    try:
+                        os.unlink(temporary)
+                    except FileNotFoundError:
+                        pass
+            return True
+        except OSError as error:
+            self.log_output.emit(f"Error preparing per-user Trade Sniper files: {error}")
+            return False
+
     def get_script_path(self) -> str:
         """Get the path to the trade monitor script."""
         return os.path.join(self.service_dir, "trade_monitor.js")
@@ -246,6 +303,8 @@ class TradeService(QObject):
     def install_dependencies(self, token: CancellationToken | None = None):
         """Install npm dependencies."""
         token = token or CancellationToken()
+        if not self.prepare_service_files():
+            return False
         if not os.path.exists(os.path.join(self.service_dir, "package.json")):
             self.log_output.emit("Error: package.json not found in trade_service/")
             return False
@@ -255,7 +314,7 @@ class TradeService(QObject):
         try:
             npm_command = "npm.cmd" if platform.system() == "Windows" else "npm"
             result = run_cancellable_process(
-                [npm_command, "install"],
+                [npm_command, "ci"],
                 token=token,
                 cwd=self.service_dir,
                 capture_output=True,
@@ -267,7 +326,7 @@ class TradeService(QObject):
             if result.returncode == 0:
                 self.log_output.emit("Dependencies installed successfully.")
                 return True
-            self.log_output.emit(f"npm install failed: {result.stderr}")
+            self.log_output.emit(f"npm ci failed: {result.stderr}")
             return False
         except CancelledError:
             raise
@@ -285,6 +344,9 @@ class TradeService(QObject):
         """Start the trade monitoring service."""
         if self.is_running:
             self.log_output.emit("Service is already running.")
+            return
+        if not self.prepare_service_files():
+            self.status_changed.emit("error")
             return
         
         script_path = self.get_script_path()

@@ -7,6 +7,34 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication
 
 
+# Shared component styles keep focus/selection behavior consistent.
+SIDEBAR_BUTTON_STYLE = """
+    QPushButton {
+        background-color: transparent;
+        border: 2px solid transparent;
+        border-radius: 8px;
+        padding: 10px;
+        text-align: left;
+        font-size: 13px;
+        color: #cccccc;
+    }
+    QPushButton:hover { background-color: #3d3d3d; }
+    QPushButton:focus { border-color: #66aaff; color: #ffffff; }
+    QPushButton:checked {
+        background-color: #4a4a4a;
+        color: #ffffff;
+        font-weight: bold;
+    }
+"""
+
+SIDEBAR_FRAME_STYLE = """
+    QFrame {
+        background-color: #252526;
+        border-right: 1px solid #3d3d3d;
+    }
+"""
+
+
 def apply_dark_theme(app):
     """Apply dark theme to the application."""
     palette = QPalette()
@@ -68,6 +96,10 @@ def apply_dark_theme(app):
         QPushButton:hover {
             background-color: #484848;
             border: 1px solid #666;
+        }
+        QPushButton:focus {
+            border: 2px solid #66aaff;
+            color: #ffffff;
         }
         QPushButton:pressed {
             background-color: #252525;

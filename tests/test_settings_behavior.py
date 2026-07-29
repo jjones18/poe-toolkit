@@ -89,6 +89,34 @@ class SettingsOwnershipTests(unittest.TestCase):
         self.assertEqual(widget.league_combo.currentText(), "Current One")
         self.assertEqual(widget.client_log_input.text(), "/edited/poe1/Client.txt")
 
+    def test_reset_to_defaults_is_unsaved_and_preserves_credentials(self):
+        config = self.make_config()
+        ConfigManager.set_active_game(config, "poe2")
+        widget = SettingsWidget(config)
+        self.addCleanup(widget.close)
+        widget.session_input.setText("edited-session")
+        widget.account_input.setText("EditedAccount")
+        widget.client_log_input.setText("/edited/poe2/Client.txt")
+
+        self.assertTrue(widget.reset_to_defaults())
+
+        defaults = copy.deepcopy(ConfigManager.DEFAULTS)
+        ConfigManager.normalize(defaults)
+        default_game = ConfigManager.get_active_game(defaults)
+        self.assertEqual(widget.active_game_combo.currentData(), default_game)
+        self.assertEqual(
+            widget.client_log_input.text(),
+            ConfigManager.get_client_log_path(defaults, default_game),
+        )
+        self.assertEqual(widget.session_input.text(), "edited-session")
+        self.assertEqual(widget.account_input.text(), "EditedAccount")
+        self.assertEqual(ConfigManager.get_active_game(config), "poe2")
+        self.assertEqual(
+            ConfigManager.get_client_log_path(config, "poe2"),
+            "/games/poe2/logs/Client.txt",
+        )
+        self.assertIn("Save Settings", widget.status_label.text())
+
     def test_save_persists_independent_client_logs_for_both_games(self):
         config = self.make_config()
         widget = SettingsWidget(config)

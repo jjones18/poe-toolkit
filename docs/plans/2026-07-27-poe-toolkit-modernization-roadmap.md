@@ -394,6 +394,10 @@ Choose one:
 
 # Milestone 8 — Packaging, testing, accessibility, and release readiness
 
+**Status:** Complete for release 1.8.0 packaging/CI readiness.
+
+**Verification target:** locked `uv` install, bounded optional extras, wheel/sdist build, exact PyInstaller asset/exclusion checks, Linux/Windows CI, source and frozen-binary package smoke, version consistency, mutable-checkout/secret guard, Node `npm ci/test/check/audit`, and fresh Linux/Windows setup documentation.
+
 ## 8.1 Test/CI foundation
 
 - Commit current Python and Node regression tests.

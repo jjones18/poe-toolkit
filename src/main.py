@@ -15,6 +15,10 @@ from ui.theme import apply_dark_theme
 
 
 def main():
+    if "--package-smoke" in sys.argv:
+        from package_smoke import main as smoke_main
+        return smoke_main()
+
     print("Starting POE Toolkit...")
     
     # Set high DPI scaling for Qt
@@ -31,8 +35,8 @@ def main():
     window = MainWindow()
     window.show()
     
-    sys.exit(app.exec())
+    return app.exec()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

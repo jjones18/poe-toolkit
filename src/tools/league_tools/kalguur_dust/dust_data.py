@@ -15,7 +15,7 @@ import requests
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
-from utils.app_paths import resolve_runtime_paths
+from utils.app_paths import resolve_immutable_resource, resolve_runtime_paths
 from utils.workers import bounded_http_request
 
 
@@ -483,8 +483,7 @@ class DustDataFetcher:
         
         # Fallback: try local cache file
         cache_paths = [
-            os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'poedust_cache.json'),
-            os.path.join(os.path.dirname(__file__), '..', '..', '..', 'data', 'poedust_cache.json'),
+            str(resolve_immutable_resource("data/poedust_cache.json")),
             'data/poedust_cache.json',
         ]
         

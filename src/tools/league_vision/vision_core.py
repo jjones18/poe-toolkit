@@ -2,11 +2,17 @@
 Vision core for screen capture and window detection.
 """
 
-import mss
-import numpy as np
-import cv2
-
 from utils import platform_utils
+from utils.optional_features import OptionalFeatureUnavailable, import_optional
+
+_MSS_ERROR = None
+try:
+    mss = import_optional("ocr_capture", "mss")
+except OptionalFeatureUnavailable as exc:
+    mss = None
+    _MSS_ERROR = exc
+np = import_optional("ocr_capture", "numpy")
+cv2 = import_optional("ocr_capture", "cv2")
 
 
 class VisionCore:
@@ -46,6 +52,8 @@ class VisionCore:
             if region is None:
                 return None
 
+        if mss is None:
+            raise RuntimeError(str(_MSS_ERROR))
         with mss.mss() as sct:
             screenshot = sct.grab(region)
 

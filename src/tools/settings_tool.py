@@ -8,7 +8,7 @@ import requests
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel, QLineEdit,
-    QPushButton, QComboBox, QGroupBox, QFileDialog
+    QPushButton, QComboBox, QGroupBox, QFileDialog, QMessageBox
 )
 
 from tools.base_tool import BaseTool
@@ -100,12 +100,14 @@ class SettingsWidget(QWidget):
         account_form = QFormLayout(account_group)
 
         self.session_input = QLineEdit()
+        self.session_input.setAccessibleName("POESESSID session credential")
         self.session_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.session_input.setText(ConfigManager.get_session_id(self.config))
         self.session_input.setPlaceholderText("POESESSID")
         account_form.addRow("POESESSID:", self.session_input)
 
         self.account_input = QLineEdit()
+        self.account_input.setAccessibleName("Path of Exile account name")
         self.account_input.setText(ConfigManager.get_account_name(self.config))
         self.account_input.setPlaceholderText("AccountName#1234")
         account_form.addRow("Account:", self.account_input)
@@ -116,6 +118,7 @@ class SettingsWidget(QWidget):
         games_form = QFormLayout(games_group)
 
         self.active_game_combo = QComboBox()
+        self.active_game_combo.setAccessibleName("Active toolkit mode")
         for game_id, profile in ConfigManager.GAME_PROFILES.items():
             self.active_game_combo.addItem(profile["label"], game_id)
         active_game = ConfigManager.get_active_game(self.config)
@@ -156,9 +159,17 @@ class SettingsWidget(QWidget):
 
         button_row = QHBoxLayout()
         self.save_btn = QPushButton("Save Settings")
+        self.save_btn.setAccessibleName("Save settings")
+        self.save_btn.setShortcut("Ctrl+S")
         self.save_btn.setStyleSheet("background-color: #2a7a2a; font-weight: bold; padding: 10px;")
         self.save_btn.clicked.connect(self.save_settings)
         button_row.addWidget(self.save_btn)
+
+        self.reset_btn = QPushButton("Reset to Defaults...")
+        self.reset_btn.setAccessibleName("Reset settings fields to defaults")
+        self.reset_btn.setToolTip("Load defaults into the form; nothing changes on disk until Save Settings")
+        self.reset_btn.clicked.connect(self.confirm_reset_to_defaults)
+        button_row.addWidget(self.reset_btn)
         button_row.addStretch()
 
         self.status_label = QLabel("")
@@ -316,6 +327,44 @@ class SettingsWidget(QWidget):
         )
         if path:
             self.client_log_input.setText(path)
+
+    def confirm_reset_to_defaults(self):
+        """Confirm a non-destructive reset of the editable settings fields."""
+        answer = QMessageBox.question(
+            self,
+            "Reset Settings Fields",
+            "Reset toolkit mode, leagues, and Client.txt paths to their defaults?\n\n"
+            "Account credentials are preserved. Nothing is written until you choose Save Settings.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return False
+        return self.reset_to_defaults()
+
+    def reset_to_defaults(self):
+        """Load safe non-secret defaults into the form without persisting them."""
+        defaults = copy.deepcopy(ConfigManager.DEFAULTS)
+        ConfigManager.normalize(defaults)
+        self._game_values = {
+            game_id: {
+                "league": ConfigManager.get_game_league(defaults, game_id),
+                "client_log_path": ConfigManager.get_client_log_path(defaults, game_id),
+            }
+            for game_id in ConfigManager.GAME_PROFILES
+        }
+        default_game = ConfigManager.get_active_game(defaults)
+        previous = self.active_game_combo.blockSignals(True)
+        try:
+            self.active_game_combo.setCurrentIndex(
+                self.active_game_combo.findData(default_game)
+            )
+        finally:
+            self.active_game_combo.blockSignals(previous)
+        self.show_game_settings(default_game)
+        self.status_label.setStyleSheet("color: #ffaa66;")
+        self.status_label.setText("Defaults loaded; credentials preserved. Choose Save Settings to apply.")
+        return True
 
     def save_settings(self):
         old_game = ConfigManager.get_active_game(self.config)

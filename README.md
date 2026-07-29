@@ -79,13 +79,15 @@ poe-toolkit/
 │   │   ├── ultimatum/          # Ultimatum helper
 │   │   ├── league_vision/      # OCR vision tool
 │   │   └── trade_sniper/       # Trade automation
-│   └── utils/                  # Config, logging, helpers
+│   └── utils/                  # Config, logging, helpers + immutable defaults
 ├── trade_service/              # Node.js trade service
 ├── config/
-│   ├── config.json             # Shareable settings (presets, keywords)
 │   └── user_config.template.json  # Template for new users
 ├── setup.bat                   # Easy setup launcher (double-click)
+├── packaging/                  # PyInstaller spec
+├── docs/WINDOWS_SETUP.md        # Fresh Windows install/release setup
 ├── setup.ps1                   # PowerShell setup script
+├── pyproject.toml              # Install metadata and optional extras
 └── requirements.txt
 ```
 
@@ -101,20 +103,21 @@ poe-toolkit/
    cd poe-toolkit
    ```
 
-2. **Run the setup script** (as Administrator)
+2. **Run the setup script**
    ```powershell
-   # Double-click setup.bat, or run:
+   # Double-click setup.bat, or run from a normal PowerShell session:
    .\setup.bat
    ```
    
    The setup script will automatically:
-   - ✅ Check for Python 3.10+, Node.js 18+, Tesseract OCR, Brave Browser
-   - ✅ Install any missing prerequisites via winget
-   - ✅ Create your private per-user `user_config.json` from template (won't overwrite existing)
-   - ✅ Install Python dependencies (`pip install`)
-   - ✅ Install Node.js dependencies (`npm install`)
+   - ✅ Check for Python 3.10+, Node.js 18+, Tesseract OCR, and Brave Browser
+   - ✅ Install missing prerequisites through winget
+   - ✅ Create a private `.venv`
+   - ✅ Create your private per-user `user_config.json` from the template without overwriting it
+   - ✅ Install Python dependencies into `.venv`
+   - ✅ Install exact Node dependencies with `npm ci`
    
-   > **Note:** Safe to run multiple times - only installs what's missing!
+   > **Note:** The script is safe to rerun and does not require an Administrator PowerShell window.
 
 3. **Use the toolkit Settings page**, or edit the per-user config path listed under Configuration:
    - `credentials.session_id` and `credentials.account_name` - shared by PoE 1 and PoE 2
@@ -141,15 +144,38 @@ If you prefer manual installation:
 **Steps:**
 ```powershell
 # Install Python dependencies
-pip install -r requirements.txt
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -e .[full]
 
 # Install Node.js dependencies (for Trade Sniper)
 cd trade_service
-npm install
+npm ci
 cd ..
 ```
 
 </details>
+
+### Packaging / CI smoke
+
+POE Toolkit 1.8.0 includes install metadata and a checked-in `uv.lock`. Use `uv sync --locked` for the core UI/API environment, or `uv sync --locked --extra full` for all runtime OCR/capture, overlay/input, and platform integrations. Packaging and test dependencies remain explicit extras; the Node service is independently locked by `trade_service/package-lock.json`. `requirements.txt` remains a bounded full-runtime compatibility list for existing pip workflows.
+
+Optional features degrade loudly and actionably: missing OCR/capture/input/platform modules are reported with the relevant extra (for example `pip install .[capture]`) instead of blocking basic app startup.
+
+Release smoke checks:
+
+```powershell
+$env:QT_QPA_PLATFORM = 'offscreen'
+python -m unittest discover -s tests
+python -m compileall -q src tests scripts
+python scripts/check_version_consistency.py
+python scripts/check_packaging_assets.py
+python scripts/check_no_mutable_checkout_data.py
+python src/main.py --package-smoke
+cd trade_service; npm ci; npm test; npm run check
+```
+
+PyInstaller builds use `packaging/poe_toolkit.spec`, bundle immutable defaults/templates/assets/data and trade-service JS/package files, and exclude mutable user data/secrets (`config/config.json`, `user_config.json`, caches, Brave profile, and `node_modules`). CI executes the resulting frozen binary’s `--package-smoke` path before uploading it. See `docs/WINDOWS_SETUP.md` and `docs/RELEASE.md`.
 
 ---
 
@@ -181,7 +207,8 @@ Configuration has a read-only checked-in base and a private per-user override:
 
 | File | Purpose | Git Status |
 |------|---------|------------|
-| `config/config.json` | Shipped defaults and shareable presets | ✅ Tracked and never rewritten at runtime |
+| `src/utils/default_config.json` | Immutable package defaults and shareable presets | ✅ Tracked and read-only at runtime |
+| `config/config.json` | Legacy checkout-local file; never packaged or read by 1.8.0 | ✅ Preserved for compatibility only |
 | Per-user `user_config.json` | All mutable settings, credentials, paths, and calibration | Outside the checkout |
 
 Stash grid calibration uses explicit named profiles: Standard (12x12) and Quad (24x24). The app previews the full grid and only persists calibration after confirmation.

@@ -364,7 +364,11 @@ class InstallerConfigPathTests(unittest.TestCase):
         setup = (Path(PROJECT_ROOT) / "setup.ps1").read_text(encoding="utf-8")
 
         self.assertIn("$env:APPDATA", setup)
-        self.assertIn("$configBase = $env:LOCALAPPDATA", setup)
+        self.assertIn("$env:LOCALAPPDATA", setup)
+        self.assertIn(
+            '$configBase = if ($env:APPDATA) { $env:APPDATA } elseif ($env:LOCALAPPDATA)',
+            setup,
+        )
         self.assertIn('Join-Path $HOME "AppData\\Roaming"', setup)
         self.assertIn("poe-toolkit", setup)
         self.assertIn("icacls", setup.lower())
