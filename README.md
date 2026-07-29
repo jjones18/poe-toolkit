@@ -262,7 +262,7 @@ To add a new tool:
 
 ### Versioning
 
-The app version is defined in `src/utils/__init__.py` as `APP_VERSION` and displayed in the UI sidebar. Every commit that changes application behavior must include a version bump following semver (MAJOR.MINOR.PATCH).
+The app version is defined in `src/utils/__init__.py` as `APP_VERSION` and displayed in the UI sidebar. Update it, the README badge, and the checked release markers together when preparing a release, following semantic versioning (MAJOR.MINOR.PATCH). Routine commits within the same planned release do not each require a separate version bump.
 
 ---
 
