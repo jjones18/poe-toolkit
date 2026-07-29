@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import subprocess
 import sys
 import traceback
 import unittest
@@ -35,7 +36,7 @@ def _emit_error(title: str, details: str) -> None:
     print(f"::error title={safe_title}::{safe_details}", flush=True)
 
 
-def main() -> int:
+def _run_suite() -> int:
     os.chdir(ROOT)
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
@@ -56,6 +57,35 @@ def main() -> int:
             _emit_error(f"unittest {kind}: {test}", details)
 
     return 0 if result.wasSuccessful() else 1
+
+
+def _run_supervised() -> int:
+    completed = subprocess.run(
+        [sys.executable, str(Path(__file__).resolve()), "--child"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    sys.stdout.write(completed.stdout)
+    sys.stdout.flush()
+    sys.stderr.write(completed.stderr)
+    sys.stderr.flush()
+    if completed.returncode:
+        combined = f"{completed.stdout}\n{completed.stderr}".strip()
+        _emit_error(
+            f"unittest subprocess exited {completed.returncode}",
+            combined[-12_000:] or "The unittest subprocess produced no output.",
+        )
+    return completed.returncode
+
+
+def main() -> int:
+    if os.environ.get("GITHUB_ACTIONS") == "true" and "--child" not in sys.argv[1:]:
+        return _run_supervised()
+    return _run_suite()
 
 
 if __name__ == "__main__":
