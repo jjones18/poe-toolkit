@@ -4,7 +4,7 @@ import stat
 import sys
 import tempfile
 import unittest
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from unittest.mock import patch
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,8 +33,8 @@ class ConfigPathTests(unittest.TestCase):
         )
 
         self.assertEqual(
-            Path(path),
-            Path(r"C:\Users\tester\AppData\Roaming") / "poe-toolkit" / "user_config.json",
+            PureWindowsPath(path),
+            PureWindowsPath(r"C:\Users\tester\AppData\Roaming") / "poe-toolkit" / "user_config.json",
         )
 
     def test_macos_path_uses_application_support(self):

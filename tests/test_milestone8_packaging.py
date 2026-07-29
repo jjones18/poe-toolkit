@@ -69,7 +69,10 @@ class Milestone8PackagingTests(unittest.TestCase):
         self.assertIn("src/utils/default_config.json", EXPECTED_ASSETS)
         self.assertNotIn("config/config.json", EXPECTED_ASSETS)
         self.assertTrue((ROOT / "src" / "utils" / "default_config.json").is_file())
-        self.assertTrue(ConfigManager.CONFIG_FILE.endswith("src/utils/default_config.json"))
+        self.assertEqual(
+            Path(ConfigManager.CONFIG_FILE).parts[-3:],
+            ("src", "utils", "default_config.json"),
+        )
         self.assertNotIn("unittest", (ROOT / "src" / "package_smoke.py").read_text(encoding="utf-8"))
 
     def test_optional_feature_error_is_actionable(self):

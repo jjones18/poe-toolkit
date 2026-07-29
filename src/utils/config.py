@@ -11,27 +11,35 @@ import json
 import os
 import sys
 import tempfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 
 def _resolve_user_config_file(platform_name=None, environ=None, home=None):
     """Resolve the per-user config file without depending on the checkout."""
     platform_name = platform_name or sys.platform
     environ = os.environ if environ is None else environ
-    home = Path.home() if home is None else Path(home)
+    home_text = str(Path.home() if home is None else home)
 
     if platform_name == "win32":
+        path_type = PureWindowsPath
+        home_path = path_type(home_text)
         base_dir = (
             environ.get("APPDATA")
             or environ.get("LOCALAPPDATA")
-            or str(home / "AppData" / "Roaming")
+            or str(home_path / "AppData" / "Roaming")
         )
     elif platform_name == "darwin":
-        base_dir = str(home / "Library" / "Application Support")
+        path_type = PurePosixPath
+        home_path = path_type(home_text.replace("\\", "/"))
+        base_dir = str(home_path / "Library" / "Application Support")
     else:
-        base_dir = environ.get("XDG_CONFIG_HOME") or str(home / ".config")
+        path_type = PurePosixPath
+        home_path = path_type(home_text.replace("\\", "/"))
+        base_dir = environ.get("XDG_CONFIG_HOME") or str(home_path / ".config")
 
-    return str(Path(base_dir) / "poe-toolkit" / "user_config.json")
+    if path_type is PurePosixPath:
+        base_dir = str(base_dir).replace("\\", "/")
+    return str(path_type(base_dir) / "poe-toolkit" / "user_config.json")
 
 
 class ConfigError(Exception):

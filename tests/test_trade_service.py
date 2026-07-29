@@ -69,9 +69,10 @@ class FakeProcess:
 
 
 class TradeServiceStopTests(unittest.TestCase):
+    @unittest.skipIf(os.name == "nt", "POSIX process-group behavior")
     @patch("services.trade_service.platform.system", return_value="Linux")
-    @patch("services.trade_service.os.getpgid", return_value=424242)
-    @patch("services.trade_service.os.killpg")
+    @patch("services.trade_service.os.getpgid", return_value=424242, create=True)
+    @patch("services.trade_service.os.killpg", create=True)
     def test_cancelled_stop_skips_grace_wait_and_forces_process_group_shutdown(
         self, killpg, _getpgid, _platform_system
     ):
@@ -123,9 +124,10 @@ class TradeServiceStopTests(unittest.TestCase):
             check=False,
         )
 
+    @unittest.skipIf(os.name == "nt", "POSIX process-group behavior")
     @patch("services.trade_service.platform.system", return_value="Linux")
-    @patch("services.trade_service.os.getpgid", return_value=424242)
-    @patch("services.trade_service.os.killpg")
+    @patch("services.trade_service.os.getpgid", return_value=424242, create=True)
+    @patch("services.trade_service.os.killpg", create=True)
     def test_stop_requests_graceful_browser_cleanup_before_signals(
         self, killpg, _getpgid, _platform_system
     ):
@@ -146,9 +148,10 @@ class TradeServiceStopTests(unittest.TestCase):
         self.assertIsNone(service.process)
         self.assertFalse(service._running)
 
+    @unittest.skipIf(os.name == "nt", "POSIX process-group behavior")
     @patch("services.trade_service.platform.system", return_value="Linux")
-    @patch("services.trade_service.os.getpgid", return_value=424242)
-    @patch("services.trade_service.os.killpg")
+    @patch("services.trade_service.os.getpgid", return_value=424242, create=True)
+    @patch("services.trade_service.os.killpg", create=True)
     def test_stop_escalates_to_sigterm_when_graceful_request_is_ignored(
         self, killpg, _getpgid, _platform_system
     ):
@@ -170,9 +173,10 @@ class TradeServiceStopTests(unittest.TestCase):
         killpg.assert_called_once_with(424242, signal.SIGTERM)
         self.assertIsNone(service.process)
 
+    @unittest.skipIf(os.name == "nt", "POSIX process-group behavior")
     @patch("services.trade_service.platform.system", return_value="Linux")
-    @patch("services.trade_service.os.getpgid", return_value=424242)
-    @patch("services.trade_service.os.killpg")
+    @patch("services.trade_service.os.getpgid", return_value=424242, create=True)
+    @patch("services.trade_service.os.killpg", create=True)
     def test_stop_does_not_report_stopped_while_process_is_still_alive(
         self, _killpg, _getpgid, _platform_system
     ):
@@ -191,9 +195,10 @@ class TradeServiceStopTests(unittest.TestCase):
         self.assertTrue(service._running)
         self.assertEqual(statuses[-1], "error")
 
+    @unittest.skipIf(os.name == "nt", "POSIX process-group behavior")
     @patch("services.trade_service.platform.system", return_value="Linux")
-    @patch("services.trade_service.os.getpgid", return_value=424242)
-    @patch("services.trade_service.os.killpg")
+    @patch("services.trade_service.os.getpgid", return_value=424242, create=True)
+    @patch("services.trade_service.os.killpg", create=True)
     def test_force_cleanup_requests_graceful_browser_cleanup_before_killing(
         self, killpg, _getpgid, _platform_system
     ):
@@ -311,7 +316,12 @@ class TradeServiceStartTests(unittest.TestCase):
             ],
         )
         self.assertFalse(kwargs["shell"])
-        self.assertTrue(kwargs["start_new_session"])
+        if os.name == "nt":
+            self.assertNotIn("start_new_session", kwargs)
+            self.assertNotIn("creationflags", kwargs)
+        else:
+            self.assertTrue(kwargs["start_new_session"])
+            self.assertNotIn("creationflags", kwargs)
         thread.return_value.start.assert_called_once_with()
 
     @patch("services.trade_service.threading.Thread")

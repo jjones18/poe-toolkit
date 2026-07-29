@@ -193,14 +193,14 @@ class OverlayManagerVisibilityTests(unittest.TestCase):
         self.assertFalse(manager.alert_layer.isVisible())
 
         manager.set_highlights([(1, 2, 3, 4)])
-        manager.show_alert("Unsafe", duration_ms=1)
+        manager.show_alert("Unsafe", duration_ms=100)
         QApplication.processEvents()
         self.assertTrue(manager.highlight_layer.isVisible())
         self.assertFalse(manager.debug_layer.isVisible())
         self.assertFalse(manager.calibration_layer.isVisible())
         self.assertTrue(manager.alert_layer.isVisible())
 
-        QTest.qWait(20)
+        QTest.qWait(150)
         QApplication.processEvents()
         self.assertTrue(manager.highlight_layer.isVisible())
         self.assertFalse(manager.alert_layer.isVisible())
@@ -257,7 +257,10 @@ class LeagueVisionDebugOverlayGatingTests(unittest.TestCase):
         self.addCleanup(manager.close)
         widget = self.make_widget(manager)
 
-        with patch("tools.league_vision.tool.ScannerWorker", FakeScannerWorker):
+        with (
+            patch("tools.league_vision.tool.ScannerWorker", FakeScannerWorker),
+            patch.object(LeagueVisionWidget, "validate_tesseract_path", return_value=True),
+        ):
             widget.toggle_scanner()
             FakeScannerWorker.last_instance.debug_rect_signal.emit(1, 2, 3, 4, "yellow")
             FakeScannerWorker.last_instance.debug_box_signal.emit(5, 6, 7, 8, "red")
@@ -274,7 +277,10 @@ class LeagueVisionDebugOverlayGatingTests(unittest.TestCase):
         widget = self.make_widget(manager)
         manager.show()
 
-        with patch("tools.league_vision.tool.ScannerWorker", FakeScannerWorker):
+        with (
+            patch("tools.league_vision.tool.ScannerWorker", FakeScannerWorker),
+            patch.object(LeagueVisionWidget, "validate_tesseract_path", return_value=True),
+        ):
             widget.toggle_scanner()
             FakeScannerWorker.last_instance.debug_rect_signal.emit(1, 2, 3, 4, "yellow")
             QApplication.processEvents()

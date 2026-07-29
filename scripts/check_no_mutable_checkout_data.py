@@ -31,12 +31,23 @@ SECRET_PATTERNS = (
 
 
 def repository_files() -> list[Path]:
-    result = subprocess.run(
-        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
-        cwd=ROOT,
-        check=True,
-        capture_output=True,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        excluded_parts = {
+            ".git", ".mypy_cache", ".pytest_cache", ".ruff_cache", ".venv",
+            "__pycache__", "build", "dist",
+        }
+        return [
+            path
+            for path in ROOT.rglob("*")
+            if path.is_file() and not excluded_parts.intersection(path.relative_to(ROOT).parts)
+        ]
     return [ROOT / entry.decode("utf-8") for entry in result.stdout.split(b"\0") if entry]
 
 

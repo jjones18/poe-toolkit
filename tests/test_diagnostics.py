@@ -280,12 +280,17 @@ class DiagnosticsServiceTests(unittest.TestCase):
         self.assertNotIn("never-export-this-session-token", exported)
         self.assertNotIn("NeverExportThisAccount", exported)
         self.assertNotIn(str(Path.home()), exported)
-        self.assertIn("~/.config/poe-toolkit", exported)
+        exported_payload = json.loads(exported)
+        self.assertEqual(
+            exported_payload["home_path"],
+            str(Path("~") / ".config" / "poe-toolkit"),
+        )
         self.assertIn("[REDACTED]", exported)
 
     @patch("services.diagnostics_service.shutil.which")
     def test_dependency_check_is_bounded_and_uses_shared_cancellation(self, which):
         which.return_value = "/usr/bin/tesseract"
+        self.config["league_vision"]["tesseract_path"] = "tesseract"
         trade_service = Mock()
         trade_service.check_dependencies.return_value = ("v24.0.0", "11.0.0")
         trade_service.service_dir = str(self.root / "trade_service")

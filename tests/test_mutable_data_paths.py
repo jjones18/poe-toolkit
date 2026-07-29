@@ -148,7 +148,7 @@ class CacheDefaultPathTests(unittest.TestCase):
         with patch("core.valuation.resolve_runtime_paths", return_value=runtime):
             cache = PriceCache()
 
-        self.assertEqual(cache.cache_file, "/user/cache/price_cache.json")
+        self.assertEqual(cache.cache_file, str(Path("/user/cache/price_cache.json")))
         runtime.prepare_price_cache.assert_called_once_with()
 
     def test_explicit_price_cache_path_is_not_migrated(self):
@@ -164,7 +164,7 @@ class CacheDefaultPathTests(unittest.TestCase):
         with patch.object(dust_data_module, "resolve_runtime_paths", return_value=runtime):
             cache = DustDataCache()
 
-        self.assertEqual(cache.cache_file, "/user/cache/dust_cache.json")
+        self.assertEqual(cache.cache_file, str(Path("/user/cache/dust_cache.json")))
         runtime.prepare_dust_cache.assert_called_once_with()
 
 
