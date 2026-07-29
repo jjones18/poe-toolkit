@@ -12,7 +12,6 @@ if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
 from PyQt6.QtCore import QObject, QRect, pyqtSignal
-from PyQt6.QtTest import QTest
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from tools.league_vision.tool import LeagueVisionWidget
@@ -193,14 +192,15 @@ class OverlayManagerVisibilityTests(unittest.TestCase):
         self.assertFalse(manager.alert_layer.isVisible())
 
         manager.set_highlights([(1, 2, 3, 4)])
-        manager.show_alert("Unsafe", duration_ms=100)
+        manager.show_alert("Unsafe", duration_ms=60_000)
         QApplication.processEvents()
         self.assertTrue(manager.highlight_layer.isVisible())
         self.assertFalse(manager.debug_layer.isVisible())
         self.assertFalse(manager.calibration_layer.isVisible())
         self.assertTrue(manager.alert_layer.isVisible())
+        self.assertTrue(manager._alert_timer.isActive())
 
-        QTest.qWait(150)
+        manager._alert_timer.timeout.emit()
         QApplication.processEvents()
         self.assertTrue(manager.highlight_layer.isVisible())
         self.assertFalse(manager.alert_layer.isVisible())
