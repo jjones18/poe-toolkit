@@ -153,6 +153,7 @@ class Milestone8PackagingTests(unittest.TestCase):
 
     def test_linux_ci_jobs_install_qt_runtime_libraries(self):
         workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        self.assertIn("python scripts/run_ci_tests.py", workflow)
         self.assertEqual(
             workflow.count("name: Install Linux Qt runtime libraries"),
             4,
