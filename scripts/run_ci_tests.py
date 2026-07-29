@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import traceback
 import unittest
 
@@ -62,21 +63,21 @@ def _run_suite() -> int:
 
 
 def _run_supervised() -> int:
-    completed = subprocess.run(
-        [sys.executable, str(Path(__file__).resolve()), "--child"],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
-    sys.stdout.write(completed.stdout)
+    output_path = Path(
+        os.environ.get("RUNNER_TEMP", tempfile.gettempdir())
+    ) / "poe-toolkit-test-output.log"
+    with output_path.open("w", encoding="utf-8") as output:
+        completed = subprocess.run(
+            [sys.executable, str(Path(__file__).resolve()), "--child"],
+            cwd=ROOT,
+            stdout=output,
+            stderr=subprocess.STDOUT,
+            check=False,
+        )
+    combined = output_path.read_text(encoding="utf-8", errors="replace")
+    sys.stdout.write(combined)
     sys.stdout.flush()
-    sys.stderr.write(completed.stderr)
-    sys.stderr.flush()
     if completed.returncode:
-        combined = f"{completed.stdout}\n{completed.stderr}".strip()
         _emit_error(
             "unittest subprocess failure",
             f"The unittest subprocess exited with code {completed.returncode}.",
