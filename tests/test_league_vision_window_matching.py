@@ -165,10 +165,6 @@ class LeagueVisionWindowMatchingTests(unittest.TestCase):
                 return Mock(returncode=0, stdout="Path of Exile\n")
             if command[:2] == ["xdotool", "getwindowpid"]:
                 return Mock(returncode=0, stdout=("2001\n" if command[2] == "101" else "2002\n"))
-            if command[:3] == ["ps", "-p", "2001"]:
-                return Mock(returncode=0, stdout="PathOfExile2.exe\n")
-            if command[:3] == ["ps", "-p", "2002"]:
-                return Mock(returncode=0, stdout="PathOfExile.exe\n")
             if command[:2] == ["xdotool", "getwindowgeometry"]:
                 self.assertEqual(command[-1], "102")
                 return Mock(returncode=0, stdout="X=10\nY=20\nWIDTH=800\nHEIGHT=600\n")
@@ -179,6 +175,14 @@ class LeagueVisionWindowMatchingTests(unittest.TestCase):
             patch.object(platform_utils, "IS_LINUX", True),
             patch.object(platform_utils, "HAS_XLIB", False),
             patch.object(platform_utils.subprocess, "run", side_effect=fake_run),
+            patch.object(
+                platform_utils,
+                "_process_name_from_pid",
+                side_effect=lambda pid: {
+                    "2001": "PathOfExile2.exe",
+                    "2002": "PathOfExile.exe",
+                }.get(str(pid).strip(), ""),
+            ),
         ):
             rect = platform_utils.find_window_rect(
                 "Path of Exile",
