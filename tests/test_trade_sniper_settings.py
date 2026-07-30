@@ -37,6 +37,8 @@ class TradeSniperSettingsTests(unittest.TestCase):
             auto_resume=True,
             auto_resume_delay_ms=75_000,
             cooldown_ms=6_000,
+            check_interval_ms=10,
+            confirmation_retry_ms=20,
         )
         setup_patch = patch.object(TradeSniperWidget, "check_setup")
         brave_patch = patch.object(TradeSniperWidget, "check_brave_status")
@@ -110,6 +112,8 @@ class TradeSniperSettingsTests(unittest.TestCase):
             auto_resume=True,
             auto_resume_delay_s=75,
             cooldown_s=6,
+            poll_interval_ms=10,
+            confirmation_retry_ms=20,
             game_id="poe1",
         )
 

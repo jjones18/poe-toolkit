@@ -307,6 +307,8 @@ class TradeServiceStartTests(TradeServiceTestCase):
             auto_resume=True,
             auto_resume_delay_s=90,
             cooldown_s=5,
+            poll_interval_ms=10,
+            confirmation_retry_ms=20,
             game_id="poe1",
         )
 
@@ -319,6 +321,8 @@ class TradeServiceStartTests(TradeServiceTestCase):
                 "trade_monitor.js",
                 "--cooldown=5",
                 "--auto-resume-delay=90",
+                "--poll-interval-ms=10",
+                "--confirmation-retry-ms=20",
                 "--game=poe1",
                 "--auto-resume",
             ],

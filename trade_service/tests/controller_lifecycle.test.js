@@ -5,7 +5,8 @@ const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 
 const {
-    PAGE_POLL_INTERVAL_MS,
+    DEFAULT_PAGE_POLL_INTERVAL_MS,
+    DEFAULT_CONFIRMATION_RETRY_MS,
     CONTROLLER_LEASE_MS,
     LEASE_RENEW_INTERVAL_MS,
     disarmAllBrowserWorkers,
@@ -21,8 +22,9 @@ const {
     waitForEnterOrTimeout,
 } = require('../trade_monitor');
 
-test('refactor preserves established monitoring timing', () => {
-    assert.equal(PAGE_POLL_INTERVAL_MS, 50);
+test('monitoring defaults use the bounded fast click path', () => {
+    assert.equal(DEFAULT_PAGE_POLL_INTERVAL_MS, 10);
+    assert.equal(DEFAULT_CONFIRMATION_RETRY_MS, 20);
     assert.equal(LEASE_RENEW_INTERVAL_MS, 1_000);
     assert.equal(CONTROLLER_LEASE_MS, 5_000);
 });

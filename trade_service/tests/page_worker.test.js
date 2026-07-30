@@ -75,9 +75,9 @@ function withFakeBrowser(options, callback) {
         },
     };
     global.MutationObserver = FakeMutationObserver;
-    global.setInterval = (handler) => {
+    global.setInterval = (handler, delay) => {
         const id = nextIntervalId++;
-        intervals.set(id, handler);
+        intervals.set(id, { handler, delay });
         return id;
     };
     global.clearInterval = (id) => intervals.delete(id);
@@ -89,8 +89,14 @@ function withFakeBrowser(options, callback) {
         get observer() {
             return observer;
         },
+        notifyMutation(mutations = [{ addedNodes: [{}] }]) {
+            observer.handler(mutations);
+        },
         tickIntervals() {
-            for (const handler of [...intervals.values()]) handler();
+            for (const { handler } of [...intervals.values()]) handler();
+        },
+        intervalDelays() {
+            return [...intervals.values()].map(({ delay }) => delay);
         },
         intervalCount() {
             return intervals.size;
@@ -236,25 +242,36 @@ test('Teleport anyway is limited to the listing this run selected', () => {
     });
 });
 
-test('Teleport anyway retries are paced instead of firing every poll', () => {
-    withFakeBrowser({ now: 6_000 }, ({ now, buttons, tickIntervals }) => {
+test('fast path immediately confirms and makes one rapid bounded retry', () => {
+    withFakeBrowser({ now: 6_000 }, ({
+        now,
+        buttons,
+        notifyMutation,
+        tickIntervals,
+        intervalDelays,
+    }) => {
         const listing = createListing();
         const travel = createButton('Travel to Hideout', { listing });
         buttons.push(travel);
-        installDefaultWorker({
-            leaseExpiresAt: 10_000,
-            confirmationRetryMs: 1_000,
-        });
+        installDefaultWorker({ leaseExpiresAt: 10_000 });
+
+        assert.deepEqual(intervalDelays(), [10]);
+        assert.equal(travel.clicks, 1);
 
         const teleport = createButton('Teleport anyway', { listing });
         buttons.splice(0, buttons.length, teleport);
-        tickIntervals();
-        tickIntervals();
-        now.value += 999;
+        notifyMutation([{ addedNodes: [], attributeName: 'disabled' }]);
+        assert.equal(teleport.clicks, 1);
+
+        now.value += 19;
         tickIntervals();
         assert.equal(teleport.clicks, 1);
 
         now.value += 1;
+        tickIntervals();
+        assert.equal(teleport.clicks, 2);
+
+        now.value += 1_000;
         tickIntervals();
         assert.equal(teleport.clicks, 2);
     });

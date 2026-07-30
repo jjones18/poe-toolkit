@@ -484,10 +484,14 @@ class TradeSniperWidget(QWidget):
             auto_resume = self.chk_auto_resume.isChecked()
             auto_resume_delay_s = self.auto_resume_delay_spin.value()
             cooldown_s = self.cooldown_spin.value()
+            poll_interval_ms = self.trade_config.get("check_interval_ms", 10)
+            confirmation_retry_ms = self.trade_config.get("confirmation_retry_ms", 20)
             self.service.start(
                 auto_resume=auto_resume,
                 auto_resume_delay_s=auto_resume_delay_s,
                 cooldown_s=cooldown_s,
+                poll_interval_ms=poll_interval_ms,
+                confirmation_retry_ms=confirmation_retry_ms,
                 game_id=self.game_id,
             )
     

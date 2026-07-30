@@ -339,6 +339,8 @@ class TradeService(QObject):
         auto_resume: bool = False,
         auto_resume_delay_s: int = 60,
         cooldown_s: int = 5,
+        poll_interval_ms: int = 10,
+        confirmation_retry_ms: int = 20,
         game_id: str = "poe1",
     ):
         """Start the trade monitoring service."""
@@ -378,6 +380,8 @@ class TradeService(QObject):
                 "trade_monitor.js",
                 f"--cooldown={cooldown_s}",
                 f"--auto-resume-delay={auto_resume_delay_s}",
+                f"--poll-interval-ms={poll_interval_ms}",
+                f"--confirmation-retry-ms={confirmation_retry_ms}",
                 f"--game={safe_game_id}",
             ]
             if auto_resume:

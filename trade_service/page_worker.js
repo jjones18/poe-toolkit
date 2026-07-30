@@ -44,7 +44,7 @@ function installPageWorker(options) {
         isClicking: false,
         pendingConfirmation: false,
         pendingListing: null,
-        confirmationRetryMs: options.confirmationRetryMs || 1_000,
+        confirmationRetryMs: options.confirmationRetryMs || 20,
         lastConfirmationClickTime: Number.NEGATIVE_INFINITY,
         searchId: options.searchId,
         runId: options.runId,
@@ -198,22 +198,22 @@ function installPageWorker(options) {
         }
     }
 
-    const observer = new MutationObserver((mutations) => {
-        for (let i = 0; i < mutations.length; i++) {
-            if (mutations[i].addedNodes.length > 0) {
-                clickTopTravelButton();
-                return;
-            }
-        }
+    const observer = new MutationObserver(() => {
+        clickTopTravelButton();
     });
 
     const resultsContainer = document.querySelector('.results');
     if (resultsContainer) {
-        observer.observe(resultsContainer, { childList: true, subtree: true });
+        observer.observe(resultsContainer, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            characterData: true,
+        });
         state.observer = observer;
     }
 
-    state.intervalId = setInterval(clickTopTravelButton, options.pollIntervalMs || 50);
+    state.intervalId = setInterval(clickTopTravelButton, options.pollIntervalMs || 10);
     clickTopTravelButton();
 
     return { installed: true, runId: state.runId, searchId: state.searchId };

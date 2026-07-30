@@ -280,6 +280,7 @@ class ConfigManager:
         },
         "trade_sniper": {
             "check_interval_ms": 10,
+            "confirmation_retry_ms": 20,
             "cooldown_ms": 5000,
             "auto_resume": False,
             "auto_resume_delay_ms": 60000

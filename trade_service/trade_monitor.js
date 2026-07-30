@@ -24,7 +24,8 @@ const {
     disarmPageWorker,
 } = require('./page_worker');
 
-const PAGE_POLL_INTERVAL_MS = 50;
+const DEFAULT_PAGE_POLL_INTERVAL_MS = 10;
+const DEFAULT_CONFIRMATION_RETRY_MS = 20;
 const CONTROLLER_LEASE_MS = 5000;
 const LEASE_RENEW_INTERVAL_MS = 1000;
 
@@ -198,6 +199,8 @@ const state = {
     autoResumeEnabled: false,
     autoResumeDelayMs: 60_000,
     cooldownMs: 5_000,
+    pollIntervalMs: DEFAULT_PAGE_POLL_INTERVAL_MS,
+    confirmationRetryMs: DEFAULT_CONFIRMATION_RETRY_MS,
 };
 
 function parseRuntimeControl(message) {
@@ -431,6 +434,18 @@ async function main() {
         if (Number.isFinite(parsed) && parsed > 0) state.autoResumeDelayMs = parsed * 1_000;
     }
 
+    const pollArg = args.find(a => a.startsWith('--poll-interval-ms='));
+    if (pollArg) {
+        const parsed = Number.parseInt(pollArg.split('=')[1], 10);
+        if (Number.isFinite(parsed) && parsed > 0) state.pollIntervalMs = parsed;
+    }
+
+    const confirmationArg = args.find(a => a.startsWith('--confirmation-retry-ms='));
+    if (confirmationArg) {
+        const parsed = Number.parseInt(confirmationArg.split('=')[1], 10);
+        if (Number.isFinite(parsed) && parsed > 0) state.confirmationRetryMs = parsed;
+    }
+
     // Buffer stdin by line so rapid UI updates cannot be coalesced or split.
     const input = createLineInput(process.stdin);
     runtime.input = input;
@@ -479,6 +494,10 @@ async function main() {
 
     const cooldownSeconds = state.cooldownMs / 1_000;
     const autoResumeSeconds = state.autoResumeDelayMs / 1_000;
+    console.log(
+        `Fast click path - ${state.pollIntervalMs}ms fallback poll, ` +
+        `${state.confirmationRetryMs}ms confirmation retry\n`,
+    );
     if (state.autoResumeEnabled) {
         console.log(`Auto-resume enabled - Will resume after ${autoResumeSeconds}s (cooldown: ${cooldownSeconds}s)\n`);
     } else {
@@ -550,7 +569,7 @@ async function startMonitoring(browser, gameConfig) {
         console.log('⏸️  Will PAUSE after each click (press Enter to resume)');
         console.log('⏹️  Press Ctrl+C to stop completely\n');
 
-        // Inject monitoring script into ALL tabs. Polling remains at the existing 50 ms.
+        // Inject the event-driven worker with a fast renderer-local polling fallback.
         await installMonitoredPageSet(
             tradePages,
             tabLabels,
@@ -563,7 +582,8 @@ async function startMonitoring(browser, gameConfig) {
                 cooldownMs: state.cooldownMs,
                 leaseExpiresAt: Date.now() + CONTROLLER_LEASE_MS,
                 tradePath: gameConfig.tradePath,
-                pollIntervalMs: PAGE_POLL_INTERVAL_MS,
+                pollIntervalMs: state.pollIntervalMs,
+                confirmationRetryMs: state.confirmationRetryMs,
             }),
             searchId => console.log(`  ${searchId} - monitoring enabled`),
         );
@@ -632,7 +652,8 @@ async function startMonitoring(browser, gameConfig) {
                             cooldownMs: state.cooldownMs,
                             leaseExpiresAt: Date.now() + CONTROLLER_LEASE_MS,
                             tradePath: gameConfig.tradePath,
-                            pollIntervalMs: PAGE_POLL_INTERVAL_MS,
+                            pollIntervalMs: state.pollIntervalMs,
+                            confirmationRetryMs: state.confirmationRetryMs,
                         }, runIsActive);
                         if (!result.installed || !runIsActive()) {
                             if (!wasTracked) {
@@ -896,7 +917,8 @@ if (require.main === module) {
 }
 
 module.exports = {
-    PAGE_POLL_INTERVAL_MS,
+    DEFAULT_PAGE_POLL_INTERVAL_MS,
+    DEFAULT_CONFIRMATION_RETRY_MS,
     CONTROLLER_LEASE_MS,
     LEASE_RENEW_INTERVAL_MS,
     disarmAllBrowserWorkers,
