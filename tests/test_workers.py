@@ -302,6 +302,26 @@ class BoundedOperationTests(unittest.TestCase):
 
         self.assertTrue(popen.call_args.kwargs["start_new_session"])
 
+    @patch("utils.workers.subprocess.Popen")
+    def test_subprocess_adapter_capture_output_uses_pipes(self, popen):
+        process = Mock()
+        process.communicate.return_value = ("captured stdout", "captured stderr")
+        process.returncode = 0
+        popen.return_value = process
+
+        result = run_cancellable_process(
+            [sys.executable, "--version"],
+            timeout=1.0,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIs(popen.call_args.kwargs["stdout"], subprocess.PIPE)
+        self.assertIs(popen.call_args.kwargs["stderr"], subprocess.PIPE)
+        self.assertTrue(popen.call_args.kwargs["text"])
+        self.assertEqual(result.stdout, "captured stdout")
+        self.assertEqual(result.stderr, "captured stderr")
+
     def test_subprocess_adapter_terminates_child_when_cancelled(self):
         token = CancellationToken()
         timer = threading.Timer(0.05, token.cancel)
@@ -314,8 +334,6 @@ class BoundedOperationTests(unittest.TestCase):
                     token=token,
                     timeout=5.0,
                     poll_interval=0.01,
-                    capture_output=True,
-                    text=True,
                 )
         finally:
             timer.cancel()
@@ -328,8 +346,6 @@ class BoundedOperationTests(unittest.TestCase):
                 [sys.executable, "-c", "import time; time.sleep(30)"],
                 timeout=0.03,
                 poll_interval=0.01,
-                capture_output=True,
-                text=True,
             )
 
     def test_http_adapter_rejects_unbounded_timeout(self):
