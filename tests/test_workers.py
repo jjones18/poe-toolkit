@@ -322,7 +322,33 @@ class BoundedOperationTests(unittest.TestCase):
         self.assertEqual(result.stdout, "captured stdout")
         self.assertEqual(result.stderr, "captured stderr")
 
-    def test_subprocess_adapter_terminates_child_when_cancelled(self):
+    @patch("utils.workers._stop_process", return_value=("", ""))
+    @patch("utils.workers.subprocess.Popen")
+    def test_subprocess_adapter_terminates_child_when_cancelled(
+        self, popen, stop_process
+    ):
+        token = CancellationToken()
+        process = Mock()
+
+        def cancel_during_poll(*args, **kwargs):
+            token.cancel()
+            raise subprocess.TimeoutExpired([sys.executable], 0.01)
+
+        process.communicate.side_effect = cancel_during_poll
+        popen.return_value = process
+
+        with self.assertRaises(CancelledError):
+            run_cancellable_process(
+                [sys.executable, "--version"],
+                token=token,
+                timeout=5.0,
+                poll_interval=0.01,
+            )
+
+        stop_process.assert_called_once_with(process)
+
+    @unittest.skipUnless(os.name == "posix", "POSIX real-child integration")
+    def test_subprocess_adapter_terminates_real_child_when_cancelled(self):
         token = CancellationToken()
         timer = threading.Timer(0.05, token.cancel)
         timer.start()
@@ -340,7 +366,30 @@ class BoundedOperationTests(unittest.TestCase):
 
         self.assertLess(time.monotonic() - started, 1.0)
 
-    def test_subprocess_adapter_enforces_deadline(self):
+    @patch("utils.workers._stop_process", return_value=("", ""))
+    @patch("utils.workers.time.monotonic", side_effect=(0.0, 0.005, 0.02))
+    @patch("utils.workers.subprocess.Popen")
+    def test_subprocess_adapter_enforces_deadline(
+        self, popen, monotonic, stop_process
+    ):
+        process = Mock()
+        process.communicate.side_effect = subprocess.TimeoutExpired(
+            [sys.executable], 0.005
+        )
+        popen.return_value = process
+
+        with self.assertRaises(subprocess.TimeoutExpired):
+            run_cancellable_process(
+                [sys.executable, "--version"],
+                timeout=0.01,
+                poll_interval=0.005,
+            )
+
+        self.assertEqual(monotonic.call_count, 3)
+        stop_process.assert_called_once_with(process)
+
+    @unittest.skipUnless(os.name == "posix", "POSIX real-child integration")
+    def test_subprocess_adapter_enforces_real_child_deadline(self):
         with self.assertRaises(subprocess.TimeoutExpired):
             run_cancellable_process(
                 [sys.executable, "-c", "import time; time.sleep(30)"],
