@@ -50,6 +50,19 @@ def _run_suite() -> int:
         traceback.print_exc()
         _emit_error("unittest discovery error", details)
         return 1
+    return _run_loaded_suite(suite)
+
+
+def _run_named_module(module_name: str) -> int:
+    faulthandler.enable(all_threads=True)
+    os.chdir(ROOT)
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    suite = unittest.defaultTestLoader.loadTestsFromName(module_name)
+    return _run_loaded_suite(suite)
+
+
+def _run_loaded_suite(suite: unittest.TestSuite) -> int:
     result = unittest.TextTestRunner(verbosity=2).run(suite)
 
     for kind, outcomes in (
@@ -66,31 +79,61 @@ def _run_supervised() -> int:
     output_path = Path(
         os.environ.get("RUNNER_TEMP", tempfile.gettempdir())
     ) / "poe-toolkit-test-output.log"
+    script = str(Path(__file__).resolve())
+    if os.name == "nt":
+        commands = [
+            [sys.executable, script, "--child-module", f"tests.{path.stem}"]
+            for path in sorted((ROOT / "tests").glob("test_*.py"))
+        ]
+    else:
+        commands = [[sys.executable, script, "--child"]]
+
+    returncode = 0
+    failed_command = None
     with output_path.open("w", encoding="utf-8") as output:
-        completed = subprocess.run(
-            [sys.executable, str(Path(__file__).resolve()), "--child"],
-            cwd=ROOT,
-            stdout=output,
-            stderr=subprocess.STDOUT,
-            check=False,
-        )
+        for command in commands:
+            if "--child-module" in command:
+                output.write(f"\n=== {command[-1]} ===\n")
+                output.flush()
+            completed = subprocess.run(
+                command,
+                cwd=ROOT,
+                stdout=output,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+            if completed.returncode:
+                returncode = completed.returncode
+                failed_command = command
+                break
     combined = output_path.read_text(encoding="utf-8", errors="replace")
     sys.stdout.write(combined)
     sys.stdout.flush()
-    if completed.returncode:
+    if returncode:
+        failed_target = failed_command[-1] if failed_command else "test suite"
         _emit_error(
             "unittest subprocess failure",
-            f"The unittest subprocess exited with code {completed.returncode}.",
+            f"{failed_target} exited with code {returncode}.",
         )
         _emit_error(
             "unittest subprocess output tail",
             combined[-2_000:] or "The unittest subprocess produced no output.",
         )
-    return completed.returncode
+    return returncode
 
 
 def main() -> int:
-    if os.environ.get("GITHUB_ACTIONS") == "true" and "--child" not in sys.argv[1:]:
+    if "--child-module" in sys.argv[1:]:
+        index = sys.argv.index("--child-module")
+        try:
+            module_name = sys.argv[index + 1]
+        except IndexError:
+            print("--child-module requires a module name", file=sys.stderr)
+            return 2
+        return _run_named_module(module_name)
+    if "--child" in sys.argv[1:]:
+        return _run_suite()
+    if os.environ.get("GITHUB_ACTIONS") == "true":
         return _run_supervised()
     return _run_suite()
 
