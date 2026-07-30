@@ -1,6 +1,7 @@
 import copy
 import os
 import sys
+import threading
 import time
 import types
 import importlib.machinery
@@ -170,13 +171,18 @@ class UltimatumM6Tests(unittest.TestCase):
             dialog.close()
 
     def test_tab_and_scan_use_worker_registry_and_gui_thread_does_not_block_on_prices(self):
+        price_started = threading.Event()
+        price_release = threading.Event()
+
         class SlowPrice:
             def __init__(self, league, game):
                 self.league = league
                 self.game = game
                 self.prices = {"Divine Orb": 200.0, "Chaos Orb": 1.0}
             def fetch_all_prices(self, force=False, context=None):
-                context.sleep(0.10)
+                price_started.set()
+                if not price_release.wait(2.0):
+                    raise RuntimeError("test did not release price worker")
                 return PriceFetchResult(status="success", game=self.game, league=self.league, source="poe.ninja", item_count=2)
             def get_price(self, name):
                 return self.prices.get(name)
@@ -185,32 +191,39 @@ class UltimatumM6Tests(unittest.TestCase):
         service = PriceService("poe1", "Settlers", fetcher_factory=SlowPrice)
         widget = UltimatumWidget(self._config(), price_service=service)
         calls = []
+        tab_started = threading.Event()
+        tab_release = threading.Event()
         try:
             tab_calls = []
             def slow_tab_fetch(*args, context=None, **kwargs):
                 tab_calls.append((args, kwargs))
-                context.sleep(0.10)
+                tab_started.set()
+                if not tab_release.wait(2.0):
+                    raise RuntimeError("test did not release tab worker")
                 return [{"i": 0, "n": "Ultimatums"}]
             with patch("tools.league_tools.ultimatum.tool.fetch_ultimatum_tab_list_operation", side_effect=slow_tab_fetch):
-                started = time.monotonic()
                 self.assertTrue(widget.fetch_tab_list())
                 QCoreApplication.processEvents()
-                self.assertLess(time.monotonic() - started, 0.05)
+                self.assertTrue(tab_started.wait(1.0))
+                self.assertTrue(widget.worker_registry.active_names)
                 self.assertTrue(widget.cancel_tabs_btn.isEnabled())
+                tab_release.set()
                 self.assertTrue(self._drain_until(lambda: len(tab_calls) == 1 and not widget.worker_registry.active_names, timeout=3.0))
                 self.assertTrue(widget.scan_btn.isEnabled())
 
             widget.tab_selector.load_tabs([{"i": 0, "n": "Ultimatums"}], preselected_indices=[0])
             with patch("tools.league_tools.ultimatum.tool.scan_ultimatum_operation", side_effect=lambda *a, **kw: calls.append((a, kw)) or ([], {}, [], a[5])):
-                started = time.monotonic()
                 self.assertTrue(widget.start_scan())
                 QCoreApplication.processEvents()
-                self.assertLess(time.monotonic() - started, 0.05)
+                self.assertTrue(price_started.wait(1.0))
                 self.assertEqual(calls, [])
                 self.assertTrue(widget.cancel_scan_btn.isEnabled())
+                price_release.set()
                 self.assertTrue(self._drain_until(lambda: len(calls) == 1 and not widget.worker_registry.active_names, timeout=3.0))
                 self.assertIn("context", calls[0][1])
         finally:
+            tab_release.set()
+            price_release.set()
             widget.cleanup()
             service.close()
 
