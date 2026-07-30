@@ -20,9 +20,11 @@ const {
     installPageWorker,
     renewPageWorkerLease,
     updatePageWorkerCooldown,
+    updatePageWorkerZoneSafety,
     disarmPageWorkerForRun,
     disarmPageWorker,
 } = require('./page_worker');
+const { ZoneGate } = require('./zone_gate');
 
 const DEFAULT_PAGE_POLL_INTERVAL_MS = 10;
 const DEFAULT_CONFIRMATION_RETRY_MS = 20;
@@ -41,6 +43,7 @@ const runtime = {
     reconnecting: false,
     shuttingDown: false,
     shutdownPromise: null,
+    zoneGate: null,
 };
 
 function isMonitoringRunActive(runId, generation = null) {
@@ -133,6 +136,7 @@ async function shutdownService(reason = 'requested') {
         runtime.activeRunId = null;
         runtime.activeGeneration = null;
         clearMonitorTimers();
+        if (runtime.zoneGate) runtime.zoneGate.stop();
 
         console.log(`\n🛑 Stopping automation (${reason})...`);
         const cleanup = await disarmAllBrowserWorkers(runtime.browser);
@@ -376,6 +380,42 @@ async function updateActiveWorkerCooldown(browser, runId, cooldownMs) {
     return result;
 }
 
+async function updateActiveWorkerZoneSafety(browser, runId, zoneSafe) {
+    if (!browser || !runId) return { updated: 0, failed: 0 };
+    const result = { updated: 0, failed: 0 };
+    let pages;
+    try {
+        pages = await browser.pages();
+    } catch (err) {
+        result.failed += 1;
+        return result;
+    }
+
+    for (const page of pages) {
+        try {
+            const updated = await page.evaluate(updatePageWorkerZoneSafety, { runId, zoneSafe });
+            if (updated) result.updated += 1;
+        } catch (err) {
+            result.failed += 1;
+        }
+    }
+    return result;
+}
+
+function logZoneGateState(zoneState) {
+    if (zoneState.kind === 'disabled') {
+        console.log('Zone safety gate disabled.');
+    } else if (zoneState.safe) {
+        console.log(`🏠 ZONE SAFE: ${zoneState.areaId} (${zoneState.kind}) - clicking enabled`);
+    } else if (zoneState.kind === 'missing-log') {
+        console.log('⛔ ZONE BLOCKED: Client.txt is not configured or could not be found');
+    } else if (zoneState.kind === 'unknown') {
+        console.log('⛔ ZONE BLOCKED: current area is unknown; waiting for Client.txt');
+    } else {
+        console.log(`⛔ ZONE BLOCKED: ${zoneState.areaId || zoneState.kind} is not an allowed town/hideout`);
+    }
+}
+
 async function attachBrowser(browser, gameConfig) {
     if (runtime.shuttingDown) return;
     runtime.browser = browser;
@@ -421,6 +461,25 @@ async function main() {
     const args = process.argv.slice(2);
     const gameConfig = getGameConfig(args);
     state.autoResumeEnabled = args.includes('--auto-resume');
+    const zoneGateEnabled = args.includes('--zone-gate');
+    const clientLogArg = args.find(a => a.startsWith('--client-log='));
+    const clientLogPath = clientLogArg ? clientLogArg.slice('--client-log='.length) : '';
+
+    runtime.zoneGate = new ZoneGate({
+        enabled: zoneGateEnabled,
+        logPath: clientLogPath,
+        gameId: gameConfig.id,
+    });
+    const initialZoneState = runtime.zoneGate.start();
+    logZoneGateState(initialZoneState);
+    runtime.zoneGate.on('change', zoneState => {
+        logZoneGateState(zoneState);
+        void updateActiveWorkerZoneSafety(
+            runtime.browser,
+            runtime.activeRunId,
+            zoneState.safe,
+        );
+    });
 
     const cooldownArg = args.find(a => a.startsWith('--cooldown='));
     if (cooldownArg) {
@@ -584,6 +643,7 @@ async function startMonitoring(browser, gameConfig) {
                 tradePath: gameConfig.tradePath,
                 pollIntervalMs: state.pollIntervalMs,
                 confirmationRetryMs: state.confirmationRetryMs,
+                zoneSafe: runtime.zoneGate ? runtime.zoneGate.getState().safe : true,
             }),
             searchId => console.log(`  ${searchId} - monitoring enabled`),
         );
@@ -654,6 +714,7 @@ async function startMonitoring(browser, gameConfig) {
                             tradePath: gameConfig.tradePath,
                             pollIntervalMs: state.pollIntervalMs,
                             confirmationRetryMs: state.confirmationRetryMs,
+                            zoneSafe: runtime.zoneGate ? runtime.zoneGate.getState().safe : true,
                         }, runIsActive);
                         if (!result.installed || !runIsActive()) {
                             if (!wasTracked) {
@@ -931,6 +992,7 @@ module.exports = {
     installMonitoredPageSet,
     getActiveRunPages,
     updateActiveWorkerCooldown,
+    updateActiveWorkerZoneSafety,
     waitForEnterOrTimeout,
 };
 

@@ -310,6 +310,8 @@ class TradeServiceStartTests(TradeServiceTestCase):
             poll_interval_ms=10,
             confirmation_retry_ms=20,
             game_id="poe1",
+            zone_gate_enabled=True,
+            client_log_path="/games/Path of Exile/logs/Client.txt",
         )
 
         command, = popen.call_args.args
@@ -324,6 +326,8 @@ class TradeServiceStartTests(TradeServiceTestCase):
                 "--poll-interval-ms=10",
                 "--confirmation-retry-ms=20",
                 "--game=poe1",
+                "--client-log=/games/Path of Exile/logs/Client.txt",
+                "--zone-gate",
                 "--auto-resume",
             ],
         )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,6 +15,7 @@ EXPECTED_ASSETS = {
     "trade_service/package.json",
     "trade_service/page_worker.js",
     "trade_service/trade_monitor.js",
+    "trade_service/zone_gate.js",
 }
 FORBIDDEN_PARTS = {
     "brave-profile",
@@ -77,6 +79,21 @@ def main() -> None:
             part in source.split("/") for part in FORBIDDEN_PARTS
         ):
             raise SystemExit(f"mutable asset included in package: {source}")
+
+    pyproject_text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    data_files_text = pyproject_text.split(
+        "[tool.setuptools.data-files]", 1
+    )[1].split("[tool.setuptools.dynamic]", 1)[0]
+    wheel_sources = set(
+        re.findall(r'"((?:data|config|trade_service)/[^"\n]+)"', data_files_text)
+    )
+    expected_wheel_sources = EXPECTED_ASSETS - {"src/utils/default_config.json"}
+    if wheel_sources != expected_wheel_sources:
+        missing = sorted(expected_wheel_sources - wheel_sources)
+        unexpected = sorted(wheel_sources - expected_wheel_sources)
+        raise SystemExit(
+            f"wheel data asset mismatch; missing={missing}, unexpected={unexpected}"
+        )
     print("packaging assets ok")
 
 

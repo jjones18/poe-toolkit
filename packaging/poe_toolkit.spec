@@ -13,6 +13,7 @@ datas = [
     (str(ROOT / "data" / "poedust_cache.json"), "data"),
     (str(ROOT / "trade_service" / "trade_monitor.js"), "trade_service"),
     (str(ROOT / "trade_service" / "page_worker.js"), "trade_service"),
+    (str(ROOT / "trade_service" / "zone_gate.js"), "trade_service"),
     (str(ROOT / "trade_service" / "package.json"), "trade_service"),
     (str(ROOT / "trade_service" / "package-lock.json"), "trade_service"),
     (str(ROOT / "trade_service" / "start_brave_debugging.bat"), "trade_service"),

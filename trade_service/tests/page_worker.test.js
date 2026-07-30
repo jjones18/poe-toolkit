@@ -7,6 +7,7 @@ const {
     installPageWorker,
     renewPageWorkerLease,
     updatePageWorkerCooldown,
+    updatePageWorkerZoneSafety,
     disarmPageWorkerForRun,
     disarmPageWorker,
 } = require('../page_worker');
@@ -171,6 +172,41 @@ test('expired controller lease prevents a delayed click', () => {
 
         assert.equal(travel.clicks, 0);
         assert.equal(global.window.poeAutoClicker.running, false);
+    });
+});
+
+test('unsafe zone blocks both Travel and pending Teleport anyway clicks', () => {
+    withFakeBrowser({ now: 6_000 }, ({ buttons, tickIntervals }) => {
+        const listing = createListing();
+        const travel = createButton('Travel to Hideout', { listing });
+        buttons.push(travel);
+        installDefaultWorker({ leaseExpiresAt: 10_000, zoneSafe: false });
+
+        assert.equal(travel.clicks, 0);
+
+        global.window.poeAutoClicker.pendingConfirmation = true;
+        global.window.poeAutoClicker.pendingListing = listing;
+        const teleport = createButton('Teleport anyway', { listing });
+        buttons.splice(0, buttons.length, teleport);
+        tickIntervals();
+
+        assert.equal(teleport.clicks, 0);
+    });
+});
+
+test('only the owning run can update zone safety and enable clicking', () => {
+    withFakeBrowser({ now: 6_000 }, ({ buttons, tickIntervals }) => {
+        const travel = createButton('Travel to Hideout');
+        buttons.push(travel);
+        installDefaultWorker({ leaseExpiresAt: 10_000, zoneSafe: false });
+
+        assert.equal(updatePageWorkerZoneSafety({ runId: 'stale', zoneSafe: true }), false);
+        tickIntervals();
+        assert.equal(travel.clicks, 0);
+
+        assert.equal(updatePageWorkerZoneSafety({ runId: 'run-1', zoneSafe: true }), true);
+        tickIntervals();
+        assert.equal(travel.clicks, 1);
     });
 });
 

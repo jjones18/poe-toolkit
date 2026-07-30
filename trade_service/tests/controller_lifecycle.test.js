@@ -19,6 +19,7 @@ const {
     installMonitoredPageSet,
     getActiveRunPages,
     updateActiveWorkerCooldown,
+    updateActiveWorkerZoneSafety,
     waitForEnterOrTimeout,
 } = require('../trade_monitor');
 
@@ -233,6 +234,29 @@ test('runtime cooldown update reaches active pages and reports failures', async 
     );
 
     assert.deepEqual(calls, [{ runId: 'run-7', cooldownMs: 8_000 }]);
+    assert.deepEqual(result, { updated: 1, failed: 1 });
+});
+
+test('zone safety transition reaches active pages and reports failures', async () => {
+    const calls = [];
+    const pages = [
+        {
+            evaluate: async (_fn, options) => {
+                calls.push(options);
+                return true;
+            },
+        },
+        { evaluate: async () => false },
+        { evaluate: async () => { throw new Error('page unavailable'); } },
+    ];
+
+    const result = await updateActiveWorkerZoneSafety(
+        { pages: async () => pages },
+        'run-zone',
+        false,
+    );
+
+    assert.deepEqual(calls, [{ runId: 'run-zone', zoneSafe: false }]);
     assert.deepEqual(result, { updated: 1, failed: 1 });
 });
 

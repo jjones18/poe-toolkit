@@ -39,6 +39,12 @@ class TradeSniperSettingsTests(unittest.TestCase):
             cooldown_ms=6_000,
             check_interval_ms=10,
             confirmation_retry_ms=20,
+            zone_gate_enabled=True,
+        )
+        ConfigManager.set_client_log_path(
+            self.config,
+            "/games/Path of Exile/logs/Client.txt",
+            "poe1",
         )
         setup_patch = patch.object(TradeSniperWidget, "check_setup")
         brave_patch = patch.object(TradeSniperWidget, "check_brave_status")
@@ -54,6 +60,7 @@ class TradeSniperSettingsTests(unittest.TestCase):
         self.assertTrue(self.widget.chk_auto_resume.isChecked())
         self.assertEqual(self.widget.auto_resume_delay_spin.value(), 75)
         self.assertEqual(self.widget.cooldown_spin.value(), 6)
+        self.assertTrue(self.widget.chk_zone_gate.isChecked())
 
     def test_fresh_defaults_enable_auto_resume_at_30_seconds(self):
         fresh_config = copy.deepcopy(ConfigManager.DEFAULTS)
@@ -63,6 +70,14 @@ class TradeSniperSettingsTests(unittest.TestCase):
 
         self.assertTrue(widget.chk_auto_resume.isChecked())
         self.assertEqual(widget.auto_resume_delay_spin.value(), 30)
+        self.assertTrue(widget.chk_zone_gate.isChecked())
+
+    @patch.object(ConfigManager, "save")
+    def test_zone_gate_toggle_persists_locally(self, save):
+        self.widget.chk_zone_gate.setChecked(False)
+
+        self.assertFalse(self.config["trade_sniper"]["zone_gate_enabled"])
+        save.assert_called_once_with(self.config)
 
     @patch.object(ConfigManager, "save")
     def test_timing_changes_persist_and_update_running_service(self, save):
@@ -124,6 +139,8 @@ class TradeSniperSettingsTests(unittest.TestCase):
             poll_interval_ms=10,
             confirmation_retry_ms=20,
             game_id="poe1",
+            zone_gate_enabled=True,
+            client_log_path="/games/Path of Exile/logs/Client.txt",
         )
 
     def test_failed_cleanup_restores_timer_and_keeps_service_connections(self):

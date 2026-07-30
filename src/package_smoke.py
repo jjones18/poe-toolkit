@@ -30,6 +30,7 @@ def run_package_smoke() -> dict[str, object]:
     assets = {
         "dust_data": resolve_immutable_resource("data/poedust_cache.json"),
         "trade_monitor": resolve_immutable_resource("trade_service/trade_monitor.js"),
+        "trade_zone_gate": resolve_immutable_resource("trade_service/zone_gate.js"),
         "trade_lock": resolve_immutable_resource("trade_service/package-lock.json"),
     }
     missing_assets = [name for name, path in assets.items() if not path.is_file()]

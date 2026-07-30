@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node trade_monitor.js",
     "test": "node --test tests/*.test.js",
-    "check": "node --check trade_monitor.js && node --check page_worker.js"
+    "check": "node --check trade_monitor.js && node --check page_worker.js && node --check zone_gate.js"
   },
   "keywords": [
     "poe",

@@ -118,7 +118,8 @@
         "confirmation_retry_ms": 20,
         "cooldown_ms": 5000,
         "auto_resume": true,
-        "auto_resume_delay_ms": 30000
+        "auto_resume_delay_ms": 30000,
+        "zone_gate_enabled": true
     },
     "debug_mode": false
 }

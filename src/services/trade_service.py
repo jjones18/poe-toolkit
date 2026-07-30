@@ -30,6 +30,7 @@ class TradeService(QObject):
     BUNDLE_FILES = (
         "trade_monitor.js",
         "page_worker.js",
+        "zone_gate.js",
         "package.json",
         "package-lock.json",
         "start_brave_debugging.bat",
@@ -342,6 +343,8 @@ class TradeService(QObject):
         poll_interval_ms: int = 10,
         confirmation_retry_ms: int = 20,
         game_id: str = "poe1",
+        zone_gate_enabled: bool = True,
+        client_log_path: str = "",
     ):
         """Start the trade monitoring service."""
         if self.is_running:
@@ -384,6 +387,10 @@ class TradeService(QObject):
                 f"--confirmation-retry-ms={confirmation_retry_ms}",
                 f"--game={safe_game_id}",
             ]
+            if client_log_path:
+                cmd.append(f"--client-log={client_log_path}")
+            if zone_gate_enabled:
+                cmd.append("--zone-gate")
             if auto_resume:
                 cmd.append("--auto-resume")
             

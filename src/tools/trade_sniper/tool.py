@@ -203,6 +203,15 @@ class TradeSniperWidget(QWidget):
         cooldown_row.addWidget(self.cooldown_spin)
         cooldown_row.addStretch()
         config_layout.addLayout(cooldown_row)
+
+        self.chk_zone_gate = QCheckBox("Only click while in a town or hideout")
+        self.chk_zone_gate.setChecked(self.trade_config.get("zone_gate_enabled", True))
+        self.chk_zone_gate.setToolTip(
+            "Uses the selected game's Client.txt. Unknown areas or a missing log "
+            "block Travel and Teleport anyway clicks."
+        )
+        self.chk_zone_gate.toggled.connect(self.on_zone_gate_toggled)
+        config_layout.addWidget(self.chk_zone_gate)
         
         layout.addWidget(config_group)
         
@@ -473,6 +482,10 @@ class TradeSniperWidget(QWidget):
             return
         if self.is_service_running:
             self.service.send_input(f"__cooldown__:{seconds}\n")
+
+    def on_zone_gate_toggled(self, checked: bool):
+        """Persist zone gating; a running service keeps its startup policy."""
+        self._save_trade_setting("zone_gate_enabled", checked)
     
     def on_start_resume_click(self):
         """Handle start/resume button click based on current state."""
@@ -486,6 +499,8 @@ class TradeSniperWidget(QWidget):
             cooldown_s = self.cooldown_spin.value()
             poll_interval_ms = self.trade_config.get("check_interval_ms", 10)
             confirmation_retry_ms = self.trade_config.get("confirmation_retry_ms", 20)
+            zone_gate_enabled = self.chk_zone_gate.isChecked()
+            client_log_path = ConfigManager.get_client_log_path(self.config, self.game_id)
             self.service.start(
                 auto_resume=auto_resume,
                 auto_resume_delay_s=auto_resume_delay_s,
@@ -493,6 +508,8 @@ class TradeSniperWidget(QWidget):
                 poll_interval_ms=poll_interval_ms,
                 confirmation_retry_ms=confirmation_retry_ms,
                 game_id=self.game_id,
+                zone_gate_enabled=zone_gate_enabled,
+                client_log_path=client_log_path,
             )
     
     def stop_service(self):
@@ -518,6 +535,7 @@ class TradeSniperWidget(QWidget):
             self.status_label.setText("Status: Running")
             self.status_label.setStyleSheet("font-size: 14px; color: #66ff66;")
             self.is_service_running = True
+            self.chk_zone_gate.setEnabled(False)
             # Swap to Resume button
             self.start_btn.setText("Resume (Enter)")
             self.start_btn.setStyleSheet("background-color: #2a5a7a; font-weight: bold; padding: 10px;")
@@ -527,6 +545,7 @@ class TradeSniperWidget(QWidget):
             self.status_label.setText("Status: Stopped")
             self.status_label.setStyleSheet("font-size: 14px; color: #ff6666;")
             self.is_service_running = False
+            self.chk_zone_gate.setEnabled(True)
             # Swap back to Start button
             self.start_btn.setText("Start Service")
             self.start_btn.setStyleSheet("background-color: #2a7a2a; font-weight: bold; padding: 10px;")

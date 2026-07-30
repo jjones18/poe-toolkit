@@ -97,7 +97,7 @@ class Milestone8PackagingTests(unittest.TestCase):
         self.assertEqual(payload["sidebar_items"], len(payload["tool_names"]))
         self.assertEqual(
             payload["immutable_assets"],
-            ["dust_data", "trade_lock", "trade_monitor"],
+            ["dust_data", "trade_lock", "trade_monitor", "trade_zone_gate"],
         )
         self.assertTrue(payload["navigation_aligned"])
         self.assertTrue(payload["closed"])

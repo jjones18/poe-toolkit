@@ -52,6 +52,7 @@ function installPageWorker(options) {
         generation: options.generation,
         leaseExpiresAt: options.leaseExpiresAt,
         tradePath: options.tradePath,
+        zoneSafe: options.zoneSafe !== false,
         maxClicksPerListing: 3,
         listingClicks: new WeakMap(),
     };
@@ -110,7 +111,7 @@ function installPageWorker(options) {
     }
 
     function clickTeleportAnyway() {
-        if (!hasLiveControllerLease() || !state.pendingConfirmation || state.isClicking) {
+        if (!hasLiveControllerLease() || !state.zoneSafe || !state.pendingConfirmation || state.isClicking) {
             return false;
         }
 
@@ -145,6 +146,7 @@ function installPageWorker(options) {
 
     function clickTopTravelButton() {
         if (!hasLiveControllerLease()) return false;
+        if (!state.zoneSafe) return false;
 
         // A confirmation is allowed while paused only when this run initiated it.
         if (clickTeleportAnyway()) return true;
@@ -236,6 +238,14 @@ function updatePageWorkerCooldown(options) {
     return true;
 }
 
+/** Update zone safety only when this worker belongs to the current controller run. */
+function updatePageWorkerZoneSafety(options) {
+    const state = window.poeAutoClicker;
+    if (!state || !state.running || state.runId !== options.runId) return false;
+    state.zoneSafe = options.zoneSafe === true;
+    return true;
+}
+
 /** Disarm a worker only when it still belongs to the expected controller run. */
 function disarmPageWorkerForRun(expectedRunId) {
     const state = window.poeAutoClicker;
@@ -285,6 +295,7 @@ module.exports = {
     installPageWorker,
     renewPageWorkerLease,
     updatePageWorkerCooldown,
+    updatePageWorkerZoneSafety,
     disarmPageWorkerForRun,
     disarmPageWorker,
 };

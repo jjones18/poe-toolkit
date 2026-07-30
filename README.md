@@ -38,6 +38,8 @@ Automated live search monitoring with browser integration:
 - Supports multiple live search tabs simultaneously
 - Pause/resume functionality
 - Adjustable auto-resume delay and teleport cooldown, both live-updated while running
+- Client.txt zone safety blocks Travel and confirmation clicks outside allowed towns/hideouts
+- Unknown areas and missing logs fail closed; see [Trade Sniper zone safety](docs/TRADE_SNIPER_ZONE_SAFETY.md)
 - Fail-closed controller lease and verified browser-worker cleanup on Stop
 
 ### 🩺 Diagnostics & Data Freshness
