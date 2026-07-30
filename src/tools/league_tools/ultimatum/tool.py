@@ -619,7 +619,9 @@ class UltimatumWidget(QWidget):
         return success
 
     def sync_config(self):
-        """Tool-local settings persist elsewhere; shared league belongs to Settings."""
+        """Synchronize tool-local filters before the main window persists config."""
+        self.ultimatum_config["min_profit"] = self.profit_slider.value()
+        self.config["ultimatum"] = self.ultimatum_config
 
     def refresh_shared_settings(self):
         """Refresh mirrored settings and fail closed on stale scan contexts."""

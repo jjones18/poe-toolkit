@@ -55,6 +55,15 @@ class TradeSniperSettingsTests(unittest.TestCase):
         self.assertEqual(self.widget.auto_resume_delay_spin.value(), 75)
         self.assertEqual(self.widget.cooldown_spin.value(), 6)
 
+    def test_fresh_defaults_enable_auto_resume_at_30_seconds(self):
+        fresh_config = copy.deepcopy(ConfigManager.DEFAULTS)
+        widget = TradeSniperWidget(fresh_config)
+        self.addCleanup(widget.brave_check_timer.stop)
+        self.addCleanup(widget.close)
+
+        self.assertTrue(widget.chk_auto_resume.isChecked())
+        self.assertEqual(widget.auto_resume_delay_spin.value(), 30)
+
     @patch.object(ConfigManager, "save")
     def test_timing_changes_persist_and_update_running_service(self, save):
         self.widget.is_service_running = True

@@ -169,6 +169,20 @@ class UltimatumM6Tests(unittest.TestCase):
         finally:
             dialog.close()
 
+    def test_sync_config_captures_current_profit_slider_for_persistence(self):
+        config = self._config()
+        widget = UltimatumWidget(config, price_service=Mock(spec=PriceService))
+        try:
+            widget.profit_slider.blockSignals(True)
+            widget.profit_slider.setValue(73)
+            widget.profit_slider.blockSignals(False)
+
+            widget.sync_config()
+
+            self.assertEqual(config["ultimatum"]["min_profit"], 73)
+        finally:
+            widget.cleanup()
+
     def test_tab_and_scan_use_worker_registry_and_gui_thread_does_not_block_on_prices(self):
         price_service = Mock(spec=PriceService)
         price_service.set_context.return_value = False

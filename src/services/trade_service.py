@@ -336,8 +336,8 @@ class TradeService(QObject):
 
     def start(
         self,
-        auto_resume: bool = False,
-        auto_resume_delay_s: int = 60,
+        auto_resume: bool = True,
+        auto_resume_delay_s: int = 30,
         cooldown_s: int = 5,
         poll_interval_ms: int = 10,
         confirmation_retry_ms: int = 20,

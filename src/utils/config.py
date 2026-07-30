@@ -282,8 +282,8 @@ class ConfigManager:
             "check_interval_ms": 10,
             "confirmation_retry_ms": 20,
             "cooldown_ms": 5000,
-            "auto_resume": False,
-            "auto_resume_delay_ms": 60000
+            "auto_resume": True,
+            "auto_resume_delay_ms": 30000
         },
         "kalguur_dust": {
             "min_efficiency": 10,

@@ -176,7 +176,7 @@ class TradeSniperWidget(QWidget):
         # Auto-resume checkbox and adjustable delay
         auto_resume_row = QHBoxLayout()
         self.chk_auto_resume = QCheckBox("Auto-resume after:")
-        self.chk_auto_resume.setChecked(self.trade_config.get("auto_resume", False))
+        self.chk_auto_resume.setChecked(self.trade_config.get("auto_resume", True))
         self.chk_auto_resume.toggled.connect(self.on_auto_resume_toggled)
         auto_resume_row.addWidget(self.chk_auto_resume)
 
@@ -184,7 +184,7 @@ class TradeSniperWidget(QWidget):
         self.auto_resume_delay_spin.setRange(1, 600)
         self.auto_resume_delay_spin.setSingleStep(1)
         self.auto_resume_delay_spin.setSuffix(" s")
-        auto_resume_delay_ms = self.trade_config.get("auto_resume_delay_ms", 60000)
+        auto_resume_delay_ms = self.trade_config.get("auto_resume_delay_ms", 30000)
         self.auto_resume_delay_spin.setValue(max(1, auto_resume_delay_ms // 1000))
         self.auto_resume_delay_spin.valueChanged.connect(self.on_auto_resume_delay_changed)
         auto_resume_row.addWidget(self.auto_resume_delay_spin)
