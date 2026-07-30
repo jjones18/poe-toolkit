@@ -68,7 +68,15 @@ class FakeProcess:
         self.returncode = -signal.SIGKILL
 
 
-class TradeServiceStopTests(unittest.TestCase):
+class TradeServiceTestCase(unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+        register = patch("services.trade_service.atexit.register")
+        register.start()
+        self.addCleanup(register.stop)
+
+
+class TradeServiceStopTests(TradeServiceTestCase):
     @unittest.skipIf(os.name == "nt", "POSIX process-group behavior")
     @patch("services.trade_service.platform.system", return_value="Linux")
     @patch("services.trade_service.os.getpgid", return_value=424242, create=True)
@@ -277,7 +285,7 @@ class TradeServiceStopTests(unittest.TestCase):
             self.assertIsNone(service.output_thread)
 
 
-class TradeServiceStartTests(unittest.TestCase):
+class TradeServiceStartTests(TradeServiceTestCase):
     @patch("services.trade_service.threading.Thread")
     @patch("services.trade_service.subprocess.Popen")
     @patch.object(TradeService, "check_dependencies", return_value=("v24.18.0", "11"))
@@ -374,7 +382,7 @@ class TradeServiceStartTests(unittest.TestCase):
             self.assertEqual(owner_file.read_text(encoding="utf-8"), str(os.getpid()))
 
 
-class TradeServiceDependencyTests(unittest.TestCase):
+class TradeServiceDependencyTests(TradeServiceTestCase):
     @patch("services.trade_service.run_cancellable_process")
     def test_dependency_probes_are_direct_bounded_and_cancellable(self, run_process):
         run_process.side_effect = [
@@ -432,7 +440,7 @@ class TradeServiceDependencyTests(unittest.TestCase):
             TradeService().check_dependencies(CancellationToken())
 
 
-class TradeServiceOutputTests(unittest.TestCase):
+class TradeServiceOutputTests(TradeServiceTestCase):
     def test_intentional_stop_does_not_emit_duplicate_process_ended_status(self):
         service = TradeService()
         process = FakeProcess()
