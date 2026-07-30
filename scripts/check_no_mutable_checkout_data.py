@@ -51,6 +51,23 @@ def repository_files() -> list[Path]:
     return [ROOT / entry.decode("utf-8") for entry in result.stdout.split(b"\0") if entry]
 
 
+def tracked_repository_paths() -> set[str]:
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "--cached", "-z"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return {rel for rel in MUTABLE_PATHS if (ROOT / rel).exists()}
+    return {
+        entry.decode("utf-8")
+        for entry in result.stdout.split(b"\0")
+        if entry
+    }
+
+
 def _unsafe_json_value(value: object) -> bool:
     if value is None:
         return False
@@ -97,9 +114,10 @@ def scan_file(path: Path) -> list[str]:
 
 
 def main() -> None:
+    tracked_paths = tracked_repository_paths()
     for rel in MUTABLE_PATHS:
-        if (ROOT / rel).exists():
-            raise SystemExit(f"mutable runtime artifact present in checkout: {rel}")
+        if rel in tracked_paths:
+            raise SystemExit(f"mutable runtime artifact tracked by git: {rel}")
 
     failures: list[str] = []
     for path in repository_files():

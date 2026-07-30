@@ -143,7 +143,18 @@ class Milestone8PackagingTests(unittest.TestCase):
         self.assertIn("-m venv", linux)
         self.assertIn("npm ci", linux)
 
-    def test_mutable_runtime_paths_absent_from_clean_checkout(self):
+    def test_mutable_runtime_paths_are_not_tracked(self):
+        result = subprocess.run(
+            ["git", "ls-files", "--cached", "-z"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+        )
+        tracked_paths = {
+            entry.decode("utf-8")
+            for entry in result.stdout.split(b"\0")
+            if entry
+        }
         for rel in (
             "config/user_config.json",
             "src/config/user_config.json",
@@ -152,7 +163,7 @@ class Milestone8PackagingTests(unittest.TestCase):
             "price_cache.json",
             "dust_cache.json",
         ):
-            self.assertFalse((ROOT / rel).exists(), rel)
+            self.assertNotIn(rel, tracked_paths)
 
 
 if __name__ == "__main__":
