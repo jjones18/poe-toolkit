@@ -93,22 +93,32 @@ def _run_supervised() -> int:
     with output_path.open("w", encoding="utf-8") as output:
         for command in commands:
             if "--child-module" in command:
-                output.write(f"\n=== {command[-1]} ===\n")
+                heading = f"\n=== {command[-1]} ===\n"
+                output.write(heading)
                 output.flush()
-            completed = subprocess.run(
+                sys.stdout.write(heading)
+                sys.stdout.flush()
+            process = subprocess.Popen(
                 command,
                 cwd=ROOT,
-                stdout=output,
+                stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                check=False,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                bufsize=1,
             )
-            if completed.returncode:
-                returncode = completed.returncode
+            assert process.stdout is not None
+            for line in process.stdout:
+                output.write(line)
+                output.flush()
+                sys.stdout.write(line)
+                sys.stdout.flush()
+            returncode = process.wait()
+            if returncode:
                 failed_command = command
                 break
     combined = output_path.read_text(encoding="utf-8", errors="replace")
-    sys.stdout.write(combined)
-    sys.stdout.flush()
     if returncode:
         failed_target = failed_command[-1] if failed_command else "test suite"
         _emit_error(
