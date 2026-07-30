@@ -11,6 +11,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
+MODULE_RESULT_PREFIX = "__POE_TOOLKIT_MODULE_RESULT__="
 
 
 def _escape_command_data(value: object) -> str:
@@ -109,12 +110,30 @@ def _run_supervised() -> int:
                 bufsize=1,
             )
             assert process.stdout is not None
+            declared_result = None
             for line in process.stdout:
                 output.write(line)
                 output.flush()
                 sys.stdout.write(line)
                 sys.stdout.flush()
-            returncode = process.wait()
+                if line.startswith(MODULE_RESULT_PREFIX):
+                    declared_result = int(line.removeprefix(MODULE_RESULT_PREFIX))
+                    if os.name == "nt":
+                        try:
+                            process.terminate()
+                        except OSError:
+                            pass
+                        break
+            if declared_result is not None:
+                process.stdout.close()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+                returncode = declared_result
+            else:
+                returncode = process.wait()
             if returncode:
                 failed_command = command
                 break
@@ -140,7 +159,10 @@ def main() -> int:
         except IndexError:
             print("--child-module requires a module name", file=sys.stderr)
             return 2
-        return _run_named_module(module_name)
+        result = _run_named_module(module_name)
+        if os.name == "nt":
+            print(f"{MODULE_RESULT_PREFIX}{result}", flush=True)
+        return result
     if "--child" in sys.argv[1:]:
         return _run_suite()
     if os.environ.get("GITHUB_ACTIONS") == "true":
