@@ -33,9 +33,9 @@ The checkout remains read-only at runtime. Do not put POESESSID, account names, 
 
 If an optional module is absent, affected tools remain represented in navigation and show an actionable missing-extra message instead of preventing basic startup.
 
-## Locked CI/development environment
+## Locked development and release environment
 
-The checked-in `uv.lock` is the reproducible Python dependency source used by CI and release builds:
+The checked-in `uv.lock` is the reproducible Python dependency source used by local development and release builds:
 
 ```powershell
 uv sync --locked --extra full --extra test --extra packaging
@@ -68,4 +68,4 @@ uv run --locked pyinstaller --noconfirm --clean packaging/poe_toolkit.spec
 uv run --locked python scripts/run_frozen_smoke.py dist
 ```
 
-The one-directory build contains immutable defaults/templates/data and trade-service JavaScript/package files. It excludes legacy `config/config.json`, mutable user config, caches, Brave profiles, secrets, and `node_modules`. The frozen smoke runner executes the generated application itself before CI publishes the artifact.
+The one-directory build contains immutable defaults/templates/data and trade-service JavaScript/package files. It excludes legacy `config/config.json`, mutable user config, caches, Brave profiles, secrets, and `node_modules`. Run the frozen smoke check before sharing the generated build.

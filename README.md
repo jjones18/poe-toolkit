@@ -156,7 +156,7 @@ cd ..
 
 </details>
 
-### Packaging / CI smoke
+### Packaging and local verification
 
 POE Toolkit 1.8.0 includes install metadata and a checked-in `uv.lock`. Use `uv sync --locked` for the core UI/API environment, or `uv sync --locked --extra full` for all runtime OCR/capture, overlay/input, and platform integrations. Packaging and test dependencies remain explicit extras; the Node service is independently locked by `trade_service/package-lock.json`. `requirements.txt` remains a bounded full-runtime compatibility list for existing pip workflows.
 
@@ -175,7 +175,7 @@ python src/main.py --package-smoke
 cd trade_service; npm ci; npm test; npm run check
 ```
 
-PyInstaller builds use `packaging/poe_toolkit.spec`, bundle immutable defaults/templates/assets/data and trade-service JS/package files, and exclude mutable user data/secrets (`config/config.json`, `user_config.json`, caches, Brave profile, and `node_modules`). CI executes the resulting frozen binary’s `--package-smoke` path before uploading it. See `docs/WINDOWS_SETUP.md` and `docs/RELEASE.md`.
+PyInstaller builds use `packaging/poe_toolkit.spec`, bundle immutable defaults/templates/assets/data and trade-service JS/package files, and exclude mutable user data/secrets (`config/config.json`, `user_config.json`, caches, Brave profile, and `node_modules`). Run the frozen binary smoke check locally before sharing a build. See `docs/WINDOWS_SETUP.md` and `docs/RELEASE.md`.
 
 ---
 

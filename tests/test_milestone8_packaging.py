@@ -143,31 +143,6 @@ class Milestone8PackagingTests(unittest.TestCase):
         self.assertIn("-m venv", linux)
         self.assertIn("npm ci", linux)
 
-    def test_distribution_ci_smokes_wheel_on_linux_and_windows(self):
-        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-        distribution = workflow.split("  distribution:\n", 1)[1].split("\n  package:\n", 1)[0]
-        self.assertIn("ubuntu-latest", distribution)
-        self.assertIn("windows-latest", distribution)
-        self.assertIn(".wheel-smoke/bin/poe-toolkit", distribution)
-        self.assertIn(".wheel-smoke/Scripts/poe-toolkit.exe", distribution)
-
-    def test_linux_ci_jobs_install_qt_runtime_libraries(self):
-        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-        self.assertIn("python scripts/run_ci_tests.py", workflow)
-        self.assertEqual(
-            workflow.count("name: Install Linux Qt runtime libraries"),
-            4,
-        )
-        for package in (
-            "libdbus-1-3",
-            "libegl1",
-            "libfontconfig1",
-            "libgl1",
-            "libglib2.0-0t64",
-            "libxkbcommon0",
-        ):
-            self.assertGreaterEqual(workflow.count(package), 4, package)
-
     def test_mutable_runtime_paths_absent_from_clean_checkout(self):
         for rel in (
             "config/user_config.json",

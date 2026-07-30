@@ -19,7 +19,7 @@
 5. **Milestone 5 — Kalguur Dust repair**
 6. **Milestone 6 — Ultimatum repair**
 7. **Milestone 7 — Overlay/calibration and dormant feature cleanup**
-8. **Milestone 8 — Packaging, CI, accessibility, and release readiness**
+8. **Milestone 8 — Packaging, testing, accessibility, and release readiness**
 
 This order intentionally defers tools that are not actively used. It first protects the currently used Trade Sniper and prevents shared Settings/Main Window behavior from corrupting or unexpectedly stopping it.
 
@@ -394,14 +394,14 @@ Choose one:
 
 # Milestone 8 — Packaging, testing, accessibility, and release readiness
 
-**Status:** Complete for release 1.8.0 packaging/CI readiness.
+**Status:** Complete for release 1.8.0 packaging and local verification readiness.
 
-**Verification target:** locked `uv` install, bounded optional extras, wheel/sdist build, exact PyInstaller asset/exclusion checks, Linux/Windows CI, source and frozen-binary package smoke, version consistency, mutable-checkout/secret guard, Node `npm ci/test/check/audit`, and fresh Linux/Windows setup documentation.
+**Verification target:** locked `uv` install, bounded optional extras, wheel/sdist build, exact PyInstaller asset/exclusion checks, local Linux/Windows tests, source and frozen-binary package smoke, version consistency, mutable-checkout/secret guard, Node `npm ci/test/check/audit`, and fresh Linux/Windows setup documentation.
 
-## 8.1 Test/CI foundation
+## 8.1 Test and local verification foundation
 
 - Commit current Python and Node regression tests.
-- Add CI for Python tests, Node tests, syntax checks, and secret scanning.
+- Add local Python and Node test commands, syntax checks, and mutable-state/credential guards.
 - Cover config corruption/atomicity, worker cleanup, mode reload, cache league separation, calibration, installers, and version consistency.
 
 ## 8.2 Reproducible installation

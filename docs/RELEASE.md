@@ -1,6 +1,6 @@
 # POE Toolkit 1.8.0 release readiness
 
-Milestone 8 adds locked Python/Node dependency metadata, a PyInstaller one-directory build, Linux/Windows CI, frozen-package smoke verification, optional-feature degradation, and fresh setup documentation.
+Milestone 8 adds locked Python/Node dependency metadata, a PyInstaller one-directory build, local Linux/Windows verification, frozen-package smoke verification, optional-feature degradation, and fresh setup documentation.
 
 ## Required evidence before tagging
 
@@ -15,7 +15,7 @@ Milestone 8 adds locked Python/Node dependency metadata, a PyInstaller one-direc
 - `uv build` produces a wheel/sdist whose installed wheel passes `poe-toolkit --package-smoke` with immutable dust and Trade Sniper assets present.
 - PyInstaller builds `packaging/poe_toolkit.spec` on Linux and Windows.
 - `python scripts/run_frozen_smoke.py dist` executes the generated binary’s `--package-smoke` path and inspects the distribution for forbidden mutable assets.
-- CI uploads only artifacts that passed the frozen smoke test.
+- Share only artifacts that passed the frozen smoke test locally.
 
 ## Mutable runtime guarantee
 
