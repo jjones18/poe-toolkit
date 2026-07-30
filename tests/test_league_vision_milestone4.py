@@ -80,6 +80,15 @@ class LeagueVisionMilestone4WidgetTests(unittest.TestCase):
         self.assertEqual(scanner_config["active_game"], "poe2")
         self.assertIn("screen_geometry", scanner_config)
 
+    def test_global_debug_mode_does_not_create_duplicate_tool_setting(self):
+        widget, config = self.make_widget()
+        self.addCleanup(widget.cleanup)
+        self.assertNotIn("debug_mode", config["league_vision"])
+
+        widget.set_debug_mode(True)
+
+        self.assertNotIn("debug_mode", config["league_vision"])
+
     def test_calibration_rolls_back_previous_button_when_persistence_fails(self):
         widget, config = self.make_widget()
         self.addCleanup(widget.cleanup)

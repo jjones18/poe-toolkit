@@ -142,6 +142,21 @@ class KalguurPreparationTests(unittest.TestCase):
         QCoreApplication.processEvents()
         return predicate()
 
+    def test_settings_are_sole_owner_of_league_and_widget_refreshes_from_config(self):
+        config = self._config()
+        price_service = Mock(spec=PriceService)
+        widget = KalguurDustWidget(config, price_service=price_service)
+        try:
+            self.assertFalse(widget.league_input.isEnabled())
+            ConfigManager.set_game_league(config, "poe1", "Hardcore")
+
+            widget.refresh_shared_settings()
+
+            self.assertEqual(widget.league_input.currentText(), "Hardcore")
+            self.assertIn("Settings", widget.league_input.toolTip())
+        finally:
+            widget.cleanup()
+
     def test_prepare_runs_in_worker_registry_and_gui_thread_not_blocked(self):
         class SlowDust:
             league = "Settlers"

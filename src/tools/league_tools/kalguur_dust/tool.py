@@ -161,6 +161,8 @@ class KalguurDustWidget(QWidget):
         creds_row.addWidget(QLabel("PoE 1 League:"))
         self.league_input = QComboBox()
         self.league_input.setEditable(False)
+        self.league_input.setEnabled(False)
+        self.league_input.setToolTip("Change the PoE 1 league in Settings.")
         for league in ConfigManager.get_game_league_options(self.config, self.game_id):
             self.league_input.addItem(league)
         selected_league = ConfigManager.get_game_league(self.config, self.game_id)

@@ -253,7 +253,6 @@ class ConfigManager:
         "league_vision": {
             "tesseract_path": "C:/Program Files/Tesseract-OCR/tesseract.exe" if sys.platform == "win32" else "tesseract",
             "ocr_threshold": 70,
-            "debug_mode": False,
             "scan_mode": "auto",
             "scan_interval_mouse": 100,
             "scan_interval_center": 500,

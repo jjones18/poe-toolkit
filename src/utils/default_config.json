@@ -15,7 +15,6 @@
     },
     "league_vision": {
         "ocr_threshold": 70,
-        "debug_mode": false,
         "scan_mode": "auto",
         "scan_interval_mouse": 100,
         "scan_interval_center": 500,

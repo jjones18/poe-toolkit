@@ -672,7 +672,6 @@ class LeagueVisionWidget(QWidget):
 
     def set_debug_mode(self, enabled: bool):
         """Set debug mode (called from main window global toggle)."""
-        self.vision_config["debug_mode"] = enabled
         self.log(f"Debug mode {'enabled' if enabled else 'disabled'}")
         if enabled:
             self.log("OCR output will be logged to debug.log and shown in log area")
