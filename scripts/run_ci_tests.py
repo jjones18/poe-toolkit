@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 import traceback
 import unittest
 
@@ -108,6 +109,7 @@ def _run_supervised() -> int:
                 encoding="utf-8",
                 errors="replace",
                 bufsize=1,
+                env={**os.environ, "POE_TOOLKIT_MODULE_SUPERVISED": "1"},
             )
             assert process.stdout is not None
             declared_result = None
@@ -162,6 +164,9 @@ def main() -> int:
         result = _run_named_module(module_name)
         if os.name == "nt":
             print(f"{MODULE_RESULT_PREFIX}{result}", flush=True)
+            if os.environ.get("POE_TOOLKIT_MODULE_SUPERVISED") == "1":
+                while True:
+                    time.sleep(3600)
         return result
     if "--child" in sys.argv[1:]:
         return _run_suite()
