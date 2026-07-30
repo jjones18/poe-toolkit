@@ -17,7 +17,7 @@ The service output reports `ZONE SAFE` or `ZONE BLOCKED` with the detected inter
 
 ## PoE 1 towns
 
-The allowlist includes one town for each of the ten acts plus Karui Shores:
+The allowlist includes one town for each of the ten acts plus both Epilogue towns:
 
 - Act 1: `1_1_town`
 - Act 2: `1_2_town`
@@ -29,6 +29,7 @@ The allowlist includes one town for each of the ten acts plus Karui Shores:
 - Act 8: `2_8_town`
 - Act 9: `2_9_town`
 - Act 10: `2_10_town`
+- Oriath (Epilogue): `2_11_town`
 - Karui Shores: `2_11_endgame_town`
 
 ## Hideouts

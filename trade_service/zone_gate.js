@@ -17,6 +17,7 @@ const POE1_TOWN_AREA_IDS = new Set([
   '2_8_town',
   '2_9_town',
   '2_10_town',
+  '2_11_town',
   '2_11_endgame_town',
 ]);
 

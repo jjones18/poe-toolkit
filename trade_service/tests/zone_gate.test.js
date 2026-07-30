@@ -20,7 +20,7 @@ const POE1_ACT_TOWNS = [
   '2_6_town', '2_7_town', '2_8_town', '2_9_town', '2_10_town',
 ];
 
-test('PoE 1 explicitly allows all ten act towns and Karui Shores', () => {
+test('PoE 1 explicitly allows all ten act towns and both Epilogue towns', () => {
   for (const areaId of POE1_ACT_TOWNS) {
     assert.equal(POE1_TOWN_AREA_IDS.has(areaId), true, areaId);
     assert.deepEqual(classifyArea('poe1', areaId), {
@@ -29,8 +29,10 @@ test('PoE 1 explicitly allows all ten act towns and Karui Shores', () => {
       kind: 'town',
     });
   }
-  assert.equal(POE1_TOWN_AREA_IDS.has('2_11_endgame_town'), true);
-  assert.equal(classifyArea('poe1', '2_11_endgame_town').safe, true);
+  for (const areaId of ['2_11_town', '2_11_endgame_town']) {
+    assert.equal(POE1_TOWN_AREA_IDS.has(areaId), true, areaId);
+    assert.equal(classifyArea('poe1', areaId).safe, true, areaId);
+  }
 });
 
 test('PoE 2 explicitly allows known campaign and endgame towns', () => {
