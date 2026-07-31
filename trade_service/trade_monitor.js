@@ -358,6 +358,59 @@ async function installMonitoredPageSet(
     }
 }
 
+async function renewOrRepairMonitoredPageWorker(
+    page,
+    searchId,
+    runId,
+    workerOptions,
+    isActive = () => isMonitoringRunActive(runId, workerOptions.generation),
+) {
+    if (!isActive()) {
+        return { renewed: false, repaired: false, reason: 'inactive-run' };
+    }
+    if (page.isClosed?.()) {
+        return { renewed: false, repaired: false, reason: 'page-closed' };
+    }
+
+    const url = page.url();
+    if (
+        !isLiveTradeUrl(url, workerOptions.tradePath) ||
+        getSearchId(url) !== searchId
+    ) {
+        return { renewed: false, repaired: false, reason: 'route-mismatch' };
+    }
+
+    let renewed;
+    try {
+        renewed = await page.evaluate(renewPageWorkerLease, {
+            runId,
+            leaseExpiresAt: workerOptions.leaseExpiresAt,
+        });
+    } catch (err) {
+        // A page in the middle of navigation will be retried on the next heartbeat.
+        return { renewed: false, repaired: false, reason: 'page-unavailable' };
+    }
+    if (renewed) {
+        return { renewed: true, repaired: false, reason: 'lease-renewed' };
+    }
+    if (!isActive()) {
+        return { renewed: false, repaired: false, reason: 'inactive-run' };
+    }
+
+    const result = await installMonitoredPageWorker(
+        page,
+        searchId,
+        runId,
+        workerOptions,
+        isActive,
+    );
+    return {
+        renewed: false,
+        repaired: result.installed === true,
+        reason: result.installed === true ? 'worker-missing' : 'repair-rejected',
+    };
+}
+
 async function updateActiveWorkerCooldown(browser, runId, cooldownMs) {
     if (!browser || !runId) return { updated: 0, failed: 0 };
     const result = { updated: 0, failed: 0 };
@@ -628,23 +681,25 @@ async function startMonitoring(browser, gameConfig) {
         console.log('⏸️  Will PAUSE after each click (press Enter to resume)');
         console.log('⏹️  Press Ctrl+C to stop completely\n');
 
+        const createWorkerOptions = searchId => ({
+            runId,
+            controllerId: runtime.controllerId,
+            generation,
+            searchId,
+            cooldownMs: state.cooldownMs,
+            leaseExpiresAt: Date.now() + CONTROLLER_LEASE_MS,
+            tradePath: gameConfig.tradePath,
+            pollIntervalMs: state.pollIntervalMs,
+            confirmationRetryMs: state.confirmationRetryMs,
+            zoneSafe: runtime.zoneGate ? runtime.zoneGate.getState().safe : true,
+        });
+
         // Inject the event-driven worker with a fast renderer-local polling fallback.
         await installMonitoredPageSet(
             tradePages,
             tabLabels,
             runId,
-            searchId => ({
-                runId,
-                controllerId: runtime.controllerId,
-                generation,
-                searchId,
-                cooldownMs: state.cooldownMs,
-                leaseExpiresAt: Date.now() + CONTROLLER_LEASE_MS,
-                tradePath: gameConfig.tradePath,
-                pollIntervalMs: state.pollIntervalMs,
-                confirmationRetryMs: state.confirmationRetryMs,
-                zoneSafe: runtime.zoneGate ? runtime.zoneGate.getState().safe : true,
-            }),
+            createWorkerOptions,
             searchId => console.log(`  ${searchId} - monitoring enabled`),
         );
 
@@ -657,12 +712,21 @@ async function startMonitoring(browser, gameConfig) {
         addMonitorInterval(async () => {
             if (leaseRenewalInProgress || runtime.shuttingDown || runtime.activeRunId !== runId) return;
             leaseRenewalInProgress = true;
-            const leaseExpiresAt = Date.now() + CONTROLLER_LEASE_MS;
             try {
                 for (const page of tradePages) {
                     if (page.isClosed()) continue;
                     try {
-                        await page.evaluate(renewPageWorkerLease, { runId, leaseExpiresAt });
+                        const searchId = tabLabels.get(page);
+                        const result = await renewOrRepairMonitoredPageWorker(
+                            page,
+                            searchId,
+                            runId,
+                            createWorkerOptions(searchId),
+                            () => isMonitoringRunActive(runId, generation),
+                        );
+                        if (result.repaired) {
+                            console.log(`🔧 ${searchId} - worker restored after page reload`);
+                        }
                     } catch (err) {
                         // Navigation or CDP loss: the existing lease expires and fails closed.
                     }
@@ -704,18 +768,13 @@ async function startMonitoring(browser, gameConfig) {
                         tabLabels.set(page, searchId);
                         
                         console.log(`   Adding: ${searchId}`);
-                        const result = await installMonitoredPageWorker(page, searchId, runId, {
-                            runId,
-                            controllerId: runtime.controllerId,
-                            generation,
+                        const result = await installMonitoredPageWorker(
+                            page,
                             searchId,
-                            cooldownMs: state.cooldownMs,
-                            leaseExpiresAt: Date.now() + CONTROLLER_LEASE_MS,
-                            tradePath: gameConfig.tradePath,
-                            pollIntervalMs: state.pollIntervalMs,
-                            confirmationRetryMs: state.confirmationRetryMs,
-                            zoneSafe: runtime.zoneGate ? runtime.zoneGate.getState().safe : true,
-                        }, runIsActive);
+                            runId,
+                            createWorkerOptions(searchId),
+                            runIsActive,
+                        );
                         if (!result.installed || !runIsActive()) {
                             if (!wasTracked) {
                                 const index = tradePages.indexOf(page);
@@ -742,6 +801,7 @@ async function startMonitoring(browser, gameConfig) {
                 // Check all tabs for clicks and pause state
                 let anyPaused = false;
                 let totalClicks = 0;
+                let activeWorkerCount = 0;
                 let pausedSearchId = '';
                 const closedPages = [];
                 
@@ -760,6 +820,7 @@ async function startMonitoring(browser, gameConfig) {
                                 worker && worker.running && worker.runId === expectedRunId
                             );
                             return {
+                                isCurrentRun,
                                 clickCount: isCurrentRun ? worker.clickCount : 0,
                                 isPaused: isCurrentRun ? worker.paused : false,
                                 searchId: isCurrentRun ? worker.searchId : ''
@@ -767,6 +828,7 @@ async function startMonitoring(browser, gameConfig) {
                         }, runId);
                         
                         totalClicks += status.clickCount;
+                        if (status.isCurrentRun) activeWorkerCount += 1;
                         
                         if (status.isPaused) {
                             anyPaused = true;
@@ -852,7 +914,10 @@ async function startMonitoring(browser, gameConfig) {
 
                 // Periodic status update (only when not paused)
                 if (!anyPaused && Date.now() - lastNotification > 30000) {
-                    console.log(`📊 Status: Monitoring ${tradePages.length} tabs | Clicks: ${clickCount} | ${new Date().toLocaleTimeString()}`);
+                    const monitoredTabs = activeWorkerCount === tradePages.length
+                        ? `${activeWorkerCount}`
+                        : `${activeWorkerCount}/${tradePages.length}`;
+                    console.log(`📊 Status: Monitoring ${monitoredTabs} tabs | Clicks: ${clickCount} | ${new Date().toLocaleTimeString()}`);
                     lastNotification = Date.now();
                 }
             } catch (err) {
@@ -990,6 +1055,7 @@ module.exports = {
     detachTravelResponseLogging,
     installMonitoredPageWorker,
     installMonitoredPageSet,
+    renewOrRepairMonitoredPageWorker,
     getActiveRunPages,
     updateActiveWorkerCooldown,
     updateActiveWorkerZoneSafety,

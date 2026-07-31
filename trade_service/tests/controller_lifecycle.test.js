@@ -17,6 +17,7 @@ const {
     detachTravelResponseLogging,
     installMonitoredPageWorker,
     installMonitoredPageSet,
+    renewOrRepairMonitoredPageWorker,
     getActiveRunPages,
     updateActiveWorkerCooldown,
     updateActiveWorkerZoneSafety,
@@ -200,6 +201,82 @@ test('tab discovery drops pages when run ownership changes during browser lookup
 
     const pages = await getActiveRunPages(browser, 'old-run', () => active);
     assert.equal(pages, null);
+});
+
+test('lease heartbeat repairs a missing worker after a same-search reload', async () => {
+    const page = new EventEmitter();
+    const calls = [];
+    page.url = () => 'https://www.pathofexile.com/trade/search/Allflame/search-a/live';
+    page.isClosed = () => false;
+    page.evaluate = async (fn, options) => {
+        calls.push({ name: fn.name, options });
+        if (fn.name === 'renewPageWorkerLease') return false;
+        if (fn.name === 'installPageWorker') return { installed: true, runId: 'run-a' };
+        throw new Error(`unexpected evaluate: ${fn.name}`);
+    };
+
+    const result = await renewOrRepairMonitoredPageWorker(
+        page,
+        'search-a',
+        'run-a',
+        {
+            runId: 'run-a',
+            controllerId: 'controller-a',
+            generation: 1,
+            searchId: 'search-a',
+            tradePath: '/trade',
+            leaseExpiresAt: 9_000,
+        },
+        () => true,
+    );
+
+    assert.deepEqual(result, { renewed: false, repaired: true, reason: 'worker-missing' });
+    assert.deepEqual(calls.map(call => call.name), ['renewPageWorkerLease', 'installPageWorker']);
+    assert.equal(page.listenerCount('response'), 1);
+    detachTravelResponseLogging(page);
+});
+
+test('lease heartbeat leaves a healthy current worker installed', async () => {
+    const page = new EventEmitter();
+    const calls = [];
+    page.url = () => 'https://www.pathofexile.com/trade/search/Allflame/search-a/live';
+    page.isClosed = () => false;
+    page.evaluate = async (fn) => {
+        calls.push(fn.name);
+        return true;
+    };
+
+    const result = await renewOrRepairMonitoredPageWorker(
+        page,
+        'search-a',
+        'run-a',
+        { runId: 'run-a', searchId: 'search-a', tradePath: '/trade', leaseExpiresAt: 9_000 },
+        () => true,
+    );
+
+    assert.deepEqual(result, { renewed: true, repaired: false, reason: 'lease-renewed' });
+    assert.deepEqual(calls, ['renewPageWorkerLease']);
+    assert.equal(page.listenerCount('response'), 0);
+});
+
+test('lease heartbeat will not repair a worker under a stale search identity', async () => {
+    const page = new EventEmitter();
+    page.url = () => 'https://www.pathofexile.com/trade/search/Allflame/search-b/live';
+    page.isClosed = () => false;
+    page.evaluate = async () => {
+        throw new Error('should not evaluate under the wrong search identity');
+    };
+
+    const result = await renewOrRepairMonitoredPageWorker(
+        page,
+        'search-a',
+        'run-a',
+        { runId: 'run-a', searchId: 'search-a', tradePath: '/trade', leaseExpiresAt: 9_000 },
+        () => true,
+    );
+
+    assert.deepEqual(result, { renewed: false, repaired: false, reason: 'route-mismatch' });
+    assert.equal(page.listenerCount('response'), 0);
 });
 
 test('stdin line input separates coalesced runtime updates', () => {

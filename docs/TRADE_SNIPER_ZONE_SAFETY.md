@@ -81,3 +81,9 @@ Unknown future towns fail closed until their internal IDs are verified.
 4. Restart Trade Sniper after changing this setting or the Client.txt path.
 
 The checkbox is persisted in the per-user `user_config.json`; it is never written to the checked-in legacy config.
+
+## Timing and page reloads
+
+- `Client.txt` is checked every 250 ms. After a safe area is logged, the controller pushes the new state to the page workers over local CDP; this is normally well under one second in total.
+- A same-URL browser reload destroys the browser-resident worker even though the tab and search ID have not changed. The one-second controller lease heartbeat detects a missing worker and reinstalls it with the current zone state, cooldown, and confirmation timing.
+- Periodic status reports count healthy current-run workers. If a tab is temporarily missing its worker, the report uses `healthy/tracked` form such as `Monitoring 5/6 tabs` until recovery.
