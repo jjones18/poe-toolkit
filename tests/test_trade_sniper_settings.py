@@ -80,6 +80,7 @@ class TradeSniperSettingsTests(unittest.TestCase):
         save.assert_called_once_with(self.config)
 
     def test_allow_current_zone_button_tracks_exact_zone_safety(self):
+        self.widget.is_service_running = True
         self.widget._handle_zone_state(
             {"safe": False, "areaId": "FutureLeagueHub", "kind": "unsafe-area"}
         )
@@ -92,6 +93,7 @@ class TradeSniperSettingsTests(unittest.TestCase):
         self.assertFalse(self.widget.allow_current_zone_btn.isEnabled())
 
     def test_machine_zone_state_updates_ui_without_polluting_service_log(self):
+        self.widget.is_service_running = True
         self.widget.log(
             '__POE_TOOLKIT_ZONE_STATE__:{"safe":false,'
             '"areaId":"FutureLeagueHub","kind":"unsafe-area"}'
@@ -100,6 +102,30 @@ class TradeSniperSettingsTests(unittest.TestCase):
         self.assertEqual(self.widget.current_zone_id, "FutureLeagueHub")
         self.assertTrue(self.widget.allow_current_zone_btn.isEnabled())
         self.assertNotIn("POE_TOOLKIT_ZONE_STATE", self.widget.log_area.toPlainText())
+
+    @patch.object(ConfigManager, "save")
+    def test_stopped_service_clears_zone_and_rejects_stale_allow_action(self, save):
+        self.widget.is_service_running = True
+        self.widget._handle_zone_state(
+            {"safe": False, "areaId": "FutureLeagueHub", "kind": "unsafe-area"}
+        )
+        self.assertTrue(self.widget.allow_current_zone_btn.isEnabled())
+
+        self.widget.on_status_changed("stopped")
+
+        self.assertEqual(self.widget.current_zone_id, "")
+        self.assertEqual(self.widget.current_zone_label.text(), "Current zone: Unknown")
+        self.assertFalse(self.widget.allow_current_zone_btn.isEnabled())
+
+        self.widget.current_zone_id = "StaleFutureLeagueHub"
+        self.widget.current_zone_safe = False
+        self.widget.allow_current_zone()
+
+        save.assert_not_called()
+        self.assertNotIn(
+            "StaleFutureLeagueHub",
+            self.config["trade_sniper"]["custom_allowed_zones"]["poe1"],
+        )
 
     @patch.object(ConfigManager, "save")
     def test_allow_current_zone_persists_per_game_and_updates_running_service(self, save):

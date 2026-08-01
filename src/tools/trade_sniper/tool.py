@@ -545,7 +545,10 @@ class TradeSniperWidget(QWidget):
     def _update_allow_current_zone_button(self):
         already_custom = self.current_zone_id in self._get_custom_allowed_zones()
         can_allow = bool(
-            self.current_zone_id and not self.current_zone_safe and not already_custom
+            self.is_service_running
+            and self.current_zone_id
+            and not self.current_zone_safe
+            and not already_custom
         )
         self.allow_current_zone_btn.setEnabled(can_allow)
         if self.current_zone_safe or already_custom:
@@ -560,7 +563,8 @@ class TradeSniperWidget(QWidget):
         """Persist and immediately allow the exact currently detected area ID."""
         area_id = self.current_zone_id
         if (
-            not AREA_ID_PATTERN.fullmatch(area_id)
+            not self.is_service_running
+            or not AREA_ID_PATTERN.fullmatch(area_id)
             or self.current_zone_safe
             or area_id in self._get_custom_allowed_zones()
         ):
@@ -660,6 +664,10 @@ class TradeSniperWidget(QWidget):
             self.status_label.setStyleSheet("font-size: 14px; color: #ff6666;")
             self.is_service_running = False
             self.chk_zone_gate.setEnabled(True)
+            self.current_zone_id = ""
+            self.current_zone_safe = False
+            self.current_zone_label.setText("Current zone: Unknown")
+            self._update_allow_current_zone_button()
             # Swap back to Start button
             self.start_btn.setText("Start Service")
             self.start_btn.setStyleSheet("background-color: #2a7a2a; font-weight: bold; padding: 10px;")
