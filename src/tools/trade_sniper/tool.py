@@ -103,6 +103,7 @@ class TradeSniperWidget(QWidget):
         self.brave_ready = False
         self.current_zone_id = ""
         self.current_zone_safe = False
+        self.current_zone_kind = "unknown"
         self._worker_registry = WorkerRegistry(max_threads=3)
 
         self.service = service or TradeService()
@@ -231,6 +232,13 @@ class TradeSniperWidget(QWidget):
         )
         self.allow_current_zone_btn.clicked.connect(self.allow_current_zone)
         zone_row.addWidget(self.allow_current_zone_btn)
+        self.remove_current_zone_btn = QPushButton("Remove Current Zone")
+        self.remove_current_zone_btn.setEnabled(False)
+        self.remove_current_zone_btn.setToolTip(
+            "Only custom zones added for the active game can be removed."
+        )
+        self.remove_current_zone_btn.clicked.connect(self.remove_current_zone)
+        zone_row.addWidget(self.remove_current_zone_btn)
         zone_row.addStretch()
         config_layout.addLayout(zone_row)
         
@@ -537,12 +545,14 @@ class TradeSniperWidget(QWidget):
             area_id = ""
         self.current_zone_id = area_id
         self.current_zone_safe = state.get("safe") is True
+        kind = state.get("kind", "unknown")
+        self.current_zone_kind = kind if isinstance(kind, str) else "unknown"
         self.current_zone_label.setText(
             f"Current zone: {area_id}" if area_id else "Current zone: Unknown"
         )
-        self._update_allow_current_zone_button()
+        self._update_zone_action_buttons()
 
-    def _update_allow_current_zone_button(self):
+    def _update_zone_action_buttons(self):
         already_custom = self.current_zone_id in self._get_custom_allowed_zones()
         can_allow = bool(
             self.is_service_running
@@ -559,6 +569,24 @@ class TradeSniperWidget(QWidget):
             tooltip = "Start Trade Sniper to detect the exact current area ID."
         self.allow_current_zone_btn.setToolTip(tooltip)
 
+        can_remove = bool(
+            self.is_service_running
+            and self.current_zone_id
+            and already_custom
+            and self.current_zone_kind == "custom"
+        )
+        self.remove_current_zone_btn.setEnabled(can_remove)
+        if can_remove:
+            remove_tooltip = (
+                "Remove this exact area ID from the active game's custom allowlist "
+                "and block it now."
+            )
+        elif self.current_zone_kind in {"town", "hideout"}:
+            remove_tooltip = "Built-in towns and hideouts cannot be removed."
+        else:
+            remove_tooltip = "Only custom zones added for the active game can be removed."
+        self.remove_current_zone_btn.setToolTip(remove_tooltip)
+
     def allow_current_zone(self):
         """Persist and immediately allow the exact currently detected area ID."""
         area_id = self.current_zone_id
@@ -568,7 +596,7 @@ class TradeSniperWidget(QWidget):
             or self.current_zone_safe
             or area_id in self._get_custom_allowed_zones()
         ):
-            self._update_allow_current_zone_button()
+            self._update_zone_action_buttons()
             return
 
         candidate = copy.deepcopy(self.config)
@@ -597,11 +625,53 @@ class TradeSniperWidget(QWidget):
         self.config.clear()
         self.config.update(candidate)
         self.trade_config = self.config.setdefault("trade_sniper", {})
-        self._update_allow_current_zone_button()
+        self.current_zone_safe = True
+        self.current_zone_kind = "custom"
+        self._update_zone_action_buttons()
         self.log(f"Allowed zone for {self.game_profile['label']}: {area_id}")
         if self.is_service_running:
             if not self.service.send_input(f"__allow_zone__:{area_id}\n"):
                 self.log("Runtime update failed; the zone will be allowed on next service start.")
+
+    def remove_current_zone(self):
+        """Remove and immediately block the exact current custom area ID."""
+        area_id = self.current_zone_id
+        if (
+            not self.is_service_running
+            or not AREA_ID_PATTERN.fullmatch(area_id)
+            or self.current_zone_kind != "custom"
+            or area_id not in self._get_custom_allowed_zones()
+        ):
+            self._update_zone_action_buttons()
+            return
+
+        candidate = copy.deepcopy(self.config)
+        candidate_trade = candidate.get("trade_sniper", {})
+        by_game = candidate_trade.get("custom_allowed_zones", {})
+        zones = by_game.get(self.game_id, []) if isinstance(by_game, dict) else []
+        if not isinstance(zones, list) or area_id not in zones:
+            self._update_zone_action_buttons()
+            return
+        by_game[self.game_id] = [zone for zone in zones if zone != area_id]
+
+        try:
+            ConfigManager.save(candidate)
+        except ConfigSaveError as error:
+            self.status_label.setText(f"Status: Config save failed: {error}")
+            self.status_label.setStyleSheet("font-size: 14px; color: #ff6666;")
+            self.log(f"ERROR: Could not remove {area_id}: {error}")
+            return
+
+        self.config.clear()
+        self.config.update(candidate)
+        self.trade_config = self.config.setdefault("trade_sniper", {})
+        self.current_zone_safe = False
+        self.current_zone_kind = "unsafe-area"
+        self._update_zone_action_buttons()
+        self.log(f"Removed zone for {self.game_profile['label']}: {area_id}")
+        if not self.service.send_input(f"__remove_zone__:{area_id}\n"):
+            self.log("Runtime removal failed; stopping Trade Sniper to fail closed.")
+            self.stop_service()
     
     def on_start_resume_click(self):
         """Handle start/resume button click based on current state."""
@@ -666,8 +736,9 @@ class TradeSniperWidget(QWidget):
             self.chk_zone_gate.setEnabled(True)
             self.current_zone_id = ""
             self.current_zone_safe = False
+            self.current_zone_kind = "unknown"
             self.current_zone_label.setText("Current zone: Unknown")
-            self._update_allow_current_zone_button()
+            self._update_zone_action_buttons()
             # Swap back to Start button
             self.start_btn.setText("Start Service")
             self.start_btn.setStyleSheet("background-color: #2a7a2a; font-weight: bold; padding: 10px;")

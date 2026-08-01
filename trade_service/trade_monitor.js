@@ -209,9 +209,12 @@ const state = {
 };
 
 function parseRuntimeControl(message) {
-    const allowZoneMatch = /^__allow_zone__:([A-Za-z0-9_]+)$/.exec(message);
-    if (allowZoneMatch) {
-        return { type: 'allowZone', areaId: allowZoneMatch[1] };
+    const zoneMatch = /^__(allow|remove)_zone__:([A-Za-z0-9_]+)$/.exec(message);
+    if (zoneMatch) {
+        return {
+            type: zoneMatch[1] === 'allow' ? 'allowZone' : 'removeZone',
+            areaId: zoneMatch[2],
+        };
     }
     const match = /^__(auto_resume_delay|cooldown)__:(\d+)$/.exec(message);
     if (!match) return null;
@@ -599,6 +602,10 @@ async function main() {
             } else if (control?.type === 'allowZone') {
                 if (runtime.zoneGate?.allowArea(control.areaId)) {
                     console.log(`Added ${control.areaId} to the runtime zone allowlist.`);
+                }
+            } else if (control?.type === 'removeZone') {
+                if (runtime.zoneGate?.removeArea(control.areaId)) {
+                    console.log(`Removed ${control.areaId} from the runtime zone allowlist.`);
                 }
             }
         }

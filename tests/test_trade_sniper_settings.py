@@ -86,11 +86,13 @@ class TradeSniperSettingsTests(unittest.TestCase):
         )
         self.assertEqual(self.widget.current_zone_label.text(), "Current zone: FutureLeagueHub")
         self.assertTrue(self.widget.allow_current_zone_btn.isEnabled())
+        self.assertFalse(self.widget.remove_current_zone_btn.isEnabled())
 
         self.widget._handle_zone_state(
             {"safe": True, "areaId": "DeepwaterHub", "kind": "town"}
         )
         self.assertFalse(self.widget.allow_current_zone_btn.isEnabled())
+        self.assertFalse(self.widget.remove_current_zone_btn.isEnabled())
 
     def test_machine_zone_state_updates_ui_without_polluting_service_log(self):
         self.widget.is_service_running = True
@@ -116,10 +118,12 @@ class TradeSniperSettingsTests(unittest.TestCase):
         self.assertEqual(self.widget.current_zone_id, "")
         self.assertEqual(self.widget.current_zone_label.text(), "Current zone: Unknown")
         self.assertFalse(self.widget.allow_current_zone_btn.isEnabled())
+        self.assertFalse(self.widget.remove_current_zone_btn.isEnabled())
 
         self.widget.current_zone_id = "StaleFutureLeagueHub"
         self.widget.current_zone_safe = False
         self.widget.allow_current_zone()
+        self.widget.remove_current_zone()
 
         save.assert_not_called()
         self.assertNotIn(
@@ -149,6 +153,73 @@ class TradeSniperSettingsTests(unittest.TestCase):
             "__allow_zone__:FutureLeagueHub\n"
         )
         self.assertFalse(self.widget.allow_current_zone_btn.isEnabled())
+        self.assertTrue(self.widget.remove_current_zone_btn.isEnabled())
+
+    @patch.object(ConfigManager, "save")
+    def test_remove_current_zone_persists_per_game_and_updates_running_service(self, save):
+        self.config["trade_sniper"]["custom_allowed_zones"]["poe1"] = [
+            "FutureLeagueHub"
+        ]
+        self.widget.is_service_running = True
+        self.widget.service.send_input = Mock(return_value=True)
+        self.widget._handle_zone_state(
+            {"safe": True, "areaId": "FutureLeagueHub", "kind": "custom"}
+        )
+        self.assertTrue(self.widget.remove_current_zone_btn.isEnabled())
+
+        self.widget.remove_current_zone()
+
+        self.assertEqual(
+            self.config["trade_sniper"]["custom_allowed_zones"]["poe1"], []
+        )
+        self.assertEqual(
+            self.config["trade_sniper"]["custom_allowed_zones"]["poe2"], []
+        )
+        save.assert_called_once()
+        self.widget.service.send_input.assert_called_once_with(
+            "__remove_zone__:FutureLeagueHub\n"
+        )
+        self.assertFalse(self.widget.remove_current_zone_btn.isEnabled())
+
+    def test_remove_current_zone_save_failure_is_transactional(self):
+        self.config["trade_sniper"]["custom_allowed_zones"]["poe1"] = [
+            "FutureLeagueHub"
+        ]
+        self.widget.is_service_running = True
+        self.widget.service.send_input = Mock(return_value=True)
+        self.widget._handle_zone_state(
+            {"safe": True, "areaId": "FutureLeagueHub", "kind": "custom"}
+        )
+        before = copy.deepcopy(self.config)
+
+        with patch.object(
+            ConfigManager,
+            "save",
+            side_effect=ConfigSaveError("simulated disk failure"),
+        ):
+            self.widget.remove_current_zone()
+
+        self.assertEqual(self.config, before)
+        self.widget.service.send_input.assert_not_called()
+        self.assertTrue(self.widget.remove_current_zone_btn.isEnabled())
+
+    @patch.object(ConfigManager, "save")
+    def test_remove_runtime_delivery_failure_stops_service_fail_closed(self, save):
+        self.config["trade_sniper"]["custom_allowed_zones"]["poe1"] = [
+            "FutureLeagueHub"
+        ]
+        self.widget.is_service_running = True
+        self.widget.service.send_input = Mock(return_value=False)
+        self.widget.stop_service = Mock()
+        self.widget._handle_zone_state(
+            {"safe": True, "areaId": "FutureLeagueHub", "kind": "custom"}
+        )
+
+        self.widget.remove_current_zone()
+
+        save.assert_called_once()
+        self.widget.stop_service.assert_called_once_with()
+        self.assertIn("fail closed", self.widget.log_area.toPlainText())
 
     def test_allow_current_zone_save_failure_is_transactional(self):
         self.widget.is_service_running = True

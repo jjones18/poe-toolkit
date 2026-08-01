@@ -72,6 +72,12 @@ test('runtime control parser accepts only safe exact area IDs', () => {
     });
     assert.equal(parseRuntimeControl('__allow_zone__:bad-zone'), null);
     assert.equal(parseRuntimeControl('__allow_zone__:Town\n__shutdown__'), null);
+    assert.deepEqual(parseRuntimeControl('__remove_zone__:FutureLeagueHub'), {
+        type: 'removeZone',
+        areaId: 'FutureLeagueHub',
+    });
+    assert.equal(parseRuntimeControl('__remove_zone__:bad-zone'), null);
+    assert.equal(parseRuntimeControl('__remove_zone__:Town\n__shutdown__'), null);
 });
 
 test('travel response classifier distinguishes confirmation from accepted teleport', () => {

@@ -149,6 +149,14 @@ class ZoneGate extends EventEmitter {
     return true;
   }
 
+  removeArea(areaId) {
+    if (!isValidAreaId(areaId) || !this.allowedAreaIds.delete(areaId)) return false;
+    if (this.state.areaId === areaId) {
+      this._setState(classifyArea(this.gameId, areaId, this.allowedAreaIds));
+    }
+    return true;
+  }
+
   _setState(next) {
     const previous = this.state;
     this.state = next;

@@ -170,3 +170,33 @@ test('allowArea immediately reclassifies the current exact area ID', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('removeArea immediately blocks a current custom area again', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'poe-zone-gate-remove-'));
+  const logPath = path.join(dir, 'Client.txt');
+  fs.writeFileSync(
+    logPath,
+    '[DEBUG Client] Generating level 1 area "FutureLeagueHub" with seed 1\n',
+  );
+  const gate = new ZoneGate({
+    enabled: true,
+    logPath,
+    gameId: 'poe1',
+    allowedAreaIds: ['FutureLeagueHub'],
+  });
+
+  try {
+    assert.equal(gate.start().safe, true);
+    assert.equal(gate.removeArea('FutureLeagueHub'), true);
+    assert.deepEqual(gate.getState(), {
+      safe: false,
+      areaId: 'FutureLeagueHub',
+      kind: 'unsafe-area',
+    });
+    assert.equal(gate.removeArea('FutureLeagueHub'), false);
+    assert.equal(gate.removeArea('DeepwaterHub'), false);
+  } finally {
+    gate.stop();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

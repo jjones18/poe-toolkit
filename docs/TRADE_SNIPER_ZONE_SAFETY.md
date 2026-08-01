@@ -85,8 +85,13 @@ Unknown future towns fail closed until their internal IDs are explicitly allowed
 While Trade Sniper is running, the configuration panel shows the exact current
 internal area ID. **Allow Current Zone** is enabled only for a detected area that
 is not already safe. Clicking it stores that ID for the active game and updates
-the running service immediately; no restart is needed. The button remains
-disabled for built-in towns, hideouts, and previously added custom areas.
+the running service immediately; no restart is needed. **Remove Current Zone**
+is enabled only when the exact current area is one of that game's custom entries.
+Removing it immediately reclassifies the area as unsafe across active trade
+workers. Built-in towns and hideouts cannot be removed. If the live removal
+command cannot be delivered, Trade Sniper stops fail-closed rather than leaving
+the area active until restart. Both actions are disabled when the service stops,
+and the stale detected area is cleared.
 
 The checkbox and per-game `custom_allowed_zones` are persisted in the per-user
 `user_config.json`; they are never written to the checked-in legacy config.
