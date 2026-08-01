@@ -312,6 +312,7 @@ class TradeServiceStartTests(TradeServiceTestCase):
             game_id="poe1",
             zone_gate_enabled=True,
             client_log_path="/games/Path of Exile/logs/Client.txt",
+            allowed_zones=["FutureLeagueHub", "bad-zone"],
         )
 
         command, = popen.call_args.args
@@ -327,6 +328,7 @@ class TradeServiceStartTests(TradeServiceTestCase):
                 "--confirmation-retry-ms=20",
                 "--game=poe1",
                 "--client-log=/games/Path of Exile/logs/Client.txt",
+                "--allowed-zone=FutureLeagueHub",
                 "--zone-gate",
                 "--auto-resume",
             ],

@@ -7,6 +7,7 @@ import atexit
 import hashlib
 import os
 import platform
+import re
 import signal
 import shutil
 import subprocess
@@ -345,6 +346,7 @@ class TradeService(QObject):
         game_id: str = "poe1",
         zone_gate_enabled: bool = True,
         client_log_path: str = "",
+        allowed_zones: list[str] | None = None,
     ):
         """Start the trade monitoring service."""
         if self.is_running:
@@ -389,6 +391,9 @@ class TradeService(QObject):
             ]
             if client_log_path:
                 cmd.append(f"--client-log={client_log_path}")
+            for area_id in allowed_zones or []:
+                if isinstance(area_id, str) and re.fullmatch(r"[A-Za-z0-9_]+", area_id):
+                    cmd.append(f"--allowed-zone={area_id}")
             if zone_gate_enabled:
                 cmd.append("--zone-gate")
             if auto_resume:
@@ -503,8 +508,10 @@ class TradeService(QObject):
             try:
                 self.process.stdin.write(text)
                 self.process.stdin.flush()
+                return True
             except Exception as e:
                 self.log_output.emit(f"Error sending input: {e}")
+        return False
     
     def resume(self):
         """Resume the paused service (send Enter key)."""

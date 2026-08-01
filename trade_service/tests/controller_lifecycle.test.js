@@ -65,6 +65,15 @@ test('runtime control parser accepts timing updates in seconds', () => {
     assert.equal(parseRuntimeControl('__cooldown__:not-a-number'), null);
 });
 
+test('runtime control parser accepts only safe exact area IDs', () => {
+    assert.deepEqual(parseRuntimeControl('__allow_zone__:FutureLeagueHub'), {
+        type: 'allowZone',
+        areaId: 'FutureLeagueHub',
+    });
+    assert.equal(parseRuntimeControl('__allow_zone__:bad-zone'), null);
+    assert.equal(parseRuntimeControl('__allow_zone__:Town\n__shutdown__'), null);
+});
+
 test('travel response classifier distinguishes confirmation from accepted teleport', () => {
     assert.deepEqual(classifyTravelResponse(200, { success: false }), {
         kind: 'confirmation-required',

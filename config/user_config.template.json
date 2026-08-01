@@ -22,6 +22,12 @@
             "client_log_path": "C:/Path/To/Path of Exile 2/logs/Client.txt"
         }
     },
+    "trade_sniper": {
+        "custom_allowed_zones": {
+            "poe1": [],
+            "poe2": []
+        }
+    },
     "overlay": {
         "x_offset": 18,
         "y_offset": 160,

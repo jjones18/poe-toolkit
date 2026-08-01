@@ -17,7 +17,8 @@ The service output reports `ZONE SAFE` or `ZONE BLOCKED` with the detected inter
 
 ## PoE 1 towns
 
-The allowlist includes one town for each of the ten acts plus both Epilogue towns:
+The allowlist includes one town for each of the ten acts, both Epilogue towns,
+and verified league hubs:
 
 - Act 1: `1_1_town`
 - Act 2: `1_2_town`
@@ -31,6 +32,7 @@ The allowlist includes one town for each of the ten acts plus both Epilogue town
 - Act 10: `2_10_town`
 - Oriath (Epilogue): `2_11_town`
 - Karui Shores: `2_11_endgame_town`
+- Deepwater league hub: `DeepwaterHub`
 
 ## Hideouts
 
@@ -71,7 +73,7 @@ The same anchored hideout rule applies to PoE 2. Known campaign/endgame town IDs
 - `P1_Town`, `P2_Town`, `P3_Town`
 - `G_Endgame_Town`
 
-Unknown future towns fail closed until their internal IDs are verified.
+Unknown future towns fail closed until their internal IDs are explicitly allowed.
 
 ## Configuration
 
@@ -80,7 +82,14 @@ Unknown future towns fail closed until their internal IDs are verified.
 3. Keep **Only click while in a town or hideout** checked in Trade Sniper.
 4. Restart Trade Sniper after changing this setting or the Client.txt path.
 
-The checkbox is persisted in the per-user `user_config.json`; it is never written to the checked-in legacy config.
+While Trade Sniper is running, the configuration panel shows the exact current
+internal area ID. **Allow Current Zone** is enabled only for a detected area that
+is not already safe. Clicking it stores that ID for the active game and updates
+the running service immediately; no restart is needed. The button remains
+disabled for built-in towns, hideouts, and previously added custom areas.
+
+The checkbox and per-game `custom_allowed_zones` are persisted in the per-user
+`user_config.json`; they are never written to the checked-in legacy config.
 
 ## Timing and page reloads
 

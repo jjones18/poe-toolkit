@@ -282,7 +282,11 @@ class ConfigManager:
             "confirmation_retry_ms": 20,
             "cooldown_ms": 5000,
             "auto_resume": True,
-            "auto_resume_delay_ms": 30000
+            "auto_resume_delay_ms": 30000,
+            "custom_allowed_zones": {
+                "poe1": [],
+                "poe2": []
+            }
         },
         "kalguur_dust": {
             "min_efficiency": 10,

@@ -30,6 +30,7 @@ const DEFAULT_PAGE_POLL_INTERVAL_MS = 10;
 const DEFAULT_CONFIRMATION_RETRY_MS = 20;
 const CONTROLLER_LEASE_MS = 5000;
 const LEASE_RENEW_INTERVAL_MS = 1000;
+const ZONE_STATE_PREFIX = '__POE_TOOLKIT_ZONE_STATE__:';
 
 const runtime = {
     browser: null,
@@ -208,6 +209,10 @@ const state = {
 };
 
 function parseRuntimeControl(message) {
+    const allowZoneMatch = /^__allow_zone__:([A-Za-z0-9_]+)$/.exec(message);
+    if (allowZoneMatch) {
+        return { type: 'allowZone', areaId: allowZoneMatch[1] };
+    }
     const match = /^__(auto_resume_delay|cooldown)__:(\d+)$/.exec(message);
     if (!match) return null;
 
@@ -467,6 +472,7 @@ function logZoneGateState(zoneState) {
     } else {
         console.log(`⛔ ZONE BLOCKED: ${zoneState.areaId || zoneState.kind} is not an allowed town/hideout`);
     }
+    console.log(`${ZONE_STATE_PREFIX}${JSON.stringify(zoneState)}`);
 }
 
 async function attachBrowser(browser, gameConfig) {
@@ -517,11 +523,15 @@ async function main() {
     const zoneGateEnabled = args.includes('--zone-gate');
     const clientLogArg = args.find(a => a.startsWith('--client-log='));
     const clientLogPath = clientLogArg ? clientLogArg.slice('--client-log='.length) : '';
+    const allowedAreaIds = args
+        .filter(a => a.startsWith('--allowed-zone='))
+        .map(a => a.slice('--allowed-zone='.length));
 
     runtime.zoneGate = new ZoneGate({
         enabled: zoneGateEnabled,
         logPath: clientLogPath,
         gameId: gameConfig.id,
+        allowedAreaIds,
     });
     const initialZoneState = runtime.zoneGate.start();
     logZoneGateState(initialZoneState);
@@ -586,6 +596,10 @@ async function main() {
                 ).then(result => {
                     console.log(`Updated cooldown in ${result.updated} active tab(s)`);
                 });
+            } else if (control?.type === 'allowZone') {
+                if (runtime.zoneGate?.allowArea(control.areaId)) {
+                    console.log(`Added ${control.areaId} to the runtime zone allowlist.`);
+                }
             }
         }
     });
@@ -1047,6 +1061,7 @@ module.exports = {
     DEFAULT_CONFIRMATION_RETRY_MS,
     CONTROLLER_LEASE_MS,
     LEASE_RENEW_INTERVAL_MS,
+    ZONE_STATE_PREFIX,
     disarmAllBrowserWorkers,
     createLineInput,
     parseRuntimeControl,

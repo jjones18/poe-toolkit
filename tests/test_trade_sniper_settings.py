@@ -79,6 +79,70 @@ class TradeSniperSettingsTests(unittest.TestCase):
         self.assertFalse(self.config["trade_sniper"]["zone_gate_enabled"])
         save.assert_called_once_with(self.config)
 
+    def test_allow_current_zone_button_tracks_exact_zone_safety(self):
+        self.widget._handle_zone_state(
+            {"safe": False, "areaId": "FutureLeagueHub", "kind": "unsafe-area"}
+        )
+        self.assertEqual(self.widget.current_zone_label.text(), "Current zone: FutureLeagueHub")
+        self.assertTrue(self.widget.allow_current_zone_btn.isEnabled())
+
+        self.widget._handle_zone_state(
+            {"safe": True, "areaId": "DeepwaterHub", "kind": "town"}
+        )
+        self.assertFalse(self.widget.allow_current_zone_btn.isEnabled())
+
+    def test_machine_zone_state_updates_ui_without_polluting_service_log(self):
+        self.widget.log(
+            '__POE_TOOLKIT_ZONE_STATE__:{"safe":false,'
+            '"areaId":"FutureLeagueHub","kind":"unsafe-area"}'
+        )
+
+        self.assertEqual(self.widget.current_zone_id, "FutureLeagueHub")
+        self.assertTrue(self.widget.allow_current_zone_btn.isEnabled())
+        self.assertNotIn("POE_TOOLKIT_ZONE_STATE", self.widget.log_area.toPlainText())
+
+    @patch.object(ConfigManager, "save")
+    def test_allow_current_zone_persists_per_game_and_updates_running_service(self, save):
+        self.widget.is_service_running = True
+        self.widget.service.send_input = Mock(return_value=True)
+        self.widget._handle_zone_state(
+            {"safe": False, "areaId": "FutureLeagueHub", "kind": "unsafe-area"}
+        )
+
+        self.widget.allow_current_zone()
+
+        self.assertEqual(
+            self.config["trade_sniper"]["custom_allowed_zones"]["poe1"],
+            ["FutureLeagueHub"],
+        )
+        self.assertEqual(
+            self.config["trade_sniper"]["custom_allowed_zones"]["poe2"], []
+        )
+        save.assert_called_once()
+        self.widget.service.send_input.assert_called_once_with(
+            "__allow_zone__:FutureLeagueHub\n"
+        )
+        self.assertFalse(self.widget.allow_current_zone_btn.isEnabled())
+
+    def test_allow_current_zone_save_failure_is_transactional(self):
+        self.widget.is_service_running = True
+        self.widget.service.send_input = Mock(return_value=True)
+        self.widget._handle_zone_state(
+            {"safe": False, "areaId": "FutureLeagueHub", "kind": "unsafe-area"}
+        )
+        before = copy.deepcopy(self.config)
+
+        with patch.object(
+            ConfigManager,
+            "save",
+            side_effect=ConfigSaveError("simulated disk failure"),
+        ):
+            self.widget.allow_current_zone()
+
+        self.assertEqual(self.config, before)
+        self.widget.service.send_input.assert_not_called()
+        self.assertTrue(self.widget.allow_current_zone_btn.isEnabled())
+
     @patch.object(ConfigManager, "save")
     def test_timing_changes_persist_and_update_running_service(self, save):
         self.widget.is_service_running = True
@@ -141,6 +205,7 @@ class TradeSniperSettingsTests(unittest.TestCase):
             game_id="poe1",
             zone_gate_enabled=True,
             client_log_path="/games/Path of Exile/logs/Client.txt",
+            allowed_zones=[],
         )
 
     def test_failed_cleanup_restores_timer_and_keeps_service_connections(self):

@@ -19,6 +19,7 @@ const POE1_TOWN_AREA_IDS = new Set([
   '2_10_town',
   '2_11_town',
   '2_11_endgame_town',
+  'DeepwaterHub',
 ]);
 
 const POE2_TOWN_AREA_IDS = new Set([
@@ -40,7 +41,16 @@ function extractAreaId(line) {
   return match ? match[1] : null;
 }
 
-function classifyArea(gameId, areaId) {
+function isValidAreaId(areaId) {
+  return typeof areaId === 'string' && /^[A-Za-z0-9_]+$/.test(areaId);
+}
+
+function normalizeAllowedAreaIds(areaIds) {
+  if (!areaIds || typeof areaIds[Symbol.iterator] !== 'function') return new Set();
+  return new Set([...areaIds].filter(isValidAreaId));
+}
+
+function classifyArea(gameId, areaId, allowedAreaIds = []) {
   const normalizedAreaId = typeof areaId === 'string' ? areaId : '';
   if (!normalizedAreaId) {
     return { safe: false, areaId: '', kind: 'unknown' };
@@ -55,6 +65,10 @@ function classifyArea(gameId, areaId) {
   const towns = gameId === 'poe2' ? POE2_TOWN_AREA_IDS : POE1_TOWN_AREA_IDS;
   if (towns.has(normalizedAreaId)) {
     return { safe: true, areaId: normalizedAreaId, kind: 'town' };
+  }
+
+  if (normalizeAllowedAreaIds(allowedAreaIds).has(normalizedAreaId)) {
+    return { safe: true, areaId: normalizedAreaId, kind: 'custom' };
   }
 
   return { safe: false, areaId: normalizedAreaId, kind: 'unsafe-area' };
@@ -83,10 +97,10 @@ function latestAreaIdFromText(text) {
   return latest;
 }
 
-function readLatestArea(logPath, gameId, maxBytes = DEFAULT_TAIL_BYTES) {
+function readLatestArea(logPath, gameId, maxBytes = DEFAULT_TAIL_BYTES, allowedAreaIds = []) {
   try {
     const { text } = readTail(logPath, maxBytes);
-    return classifyArea(gameId, latestAreaIdFromText(text));
+    return classifyArea(gameId, latestAreaIdFromText(text), allowedAreaIds);
   } catch (error) {
     return {
       safe: false,
@@ -102,12 +116,14 @@ class ZoneGate extends EventEmitter {
     enabled = true,
     logPath = '',
     gameId = 'poe1',
+    allowedAreaIds = [],
     pollIntervalMs = DEFAULT_POLL_INTERVAL_MS,
   } = {}) {
     super();
     this.enabled = Boolean(enabled);
     this.logPath = logPath;
     this.gameId = gameId === 'poe2' ? 'poe2' : 'poe1';
+    this.allowedAreaIds = normalizeAllowedAreaIds(allowedAreaIds);
     this.pollIntervalMs = pollIntervalMs;
     this.state = this.enabled
       ? { safe: false, areaId: '', kind: logPath ? 'unknown' : 'missing-log' }
@@ -120,6 +136,17 @@ class ZoneGate extends EventEmitter {
 
   getState() {
     return { ...this.state };
+  }
+
+  allowArea(areaId) {
+    if (!isValidAreaId(areaId) || classifyArea(this.gameId, areaId).safe) return false;
+    const sizeBefore = this.allowedAreaIds.size;
+    this.allowedAreaIds.add(areaId);
+    if (this.allowedAreaIds.size === sizeBefore) return false;
+    if (this.state.areaId === areaId) {
+      this._setState(classifyArea(this.gameId, areaId, this.allowedAreaIds));
+    }
+    return true;
   }
 
   _setState(next) {
@@ -147,7 +174,7 @@ class ZoneGate extends EventEmitter {
       this.offset = stat.size;
       this.inode = stat.ino;
       this.partial = '';
-      this._setState(classifyArea(this.gameId, areaId));
+      this._setState(classifyArea(this.gameId, areaId, this.allowedAreaIds));
     } catch (error) {
       this.offset = 0;
       this.inode = null;
@@ -167,7 +194,9 @@ class ZoneGate extends EventEmitter {
     this.partial = lines.pop() || '';
     for (const line of lines) {
       const areaId = extractAreaId(line);
-      if (areaId) this._setState(classifyArea(this.gameId, areaId));
+      if (areaId) {
+        this._setState(classifyArea(this.gameId, areaId, this.allowedAreaIds));
+      }
     }
   }
 
@@ -219,6 +248,7 @@ module.exports = {
   POE1_TOWN_AREA_IDS,
   POE2_TOWN_AREA_IDS,
   extractAreaId,
+  isValidAreaId,
   classifyArea,
   readLatestArea,
   ZoneGate,

@@ -35,6 +35,25 @@ test('PoE 1 explicitly allows all ten act towns and both Epilogue towns', () => 
   }
 });
 
+test('PoE 1 treats the Deepwater league hub as a built-in safe town', () => {
+  assert.equal(POE1_TOWN_AREA_IDS.has('DeepwaterHub'), true);
+  assert.deepEqual(classifyArea('poe1', 'DeepwaterHub'), {
+    safe: true,
+    areaId: 'DeepwaterHub',
+    kind: 'town',
+  });
+});
+
+test('custom allowed zones are classified explicitly', () => {
+  assert.equal(classifyArea('poe1', 'FutureLeagueHub').safe, false);
+  assert.deepEqual(classifyArea('poe1', 'FutureLeagueHub', ['FutureLeagueHub']), {
+    safe: true,
+    areaId: 'FutureLeagueHub',
+    kind: 'custom',
+  });
+  assert.equal(classifyArea('poe2', 'FutureLeagueHub').safe, false);
+});
+
 test('PoE 2 explicitly allows known campaign and endgame towns', () => {
   for (const areaId of ['G1_town', 'G2_town', 'G3_town', 'G4_town', 'G_Endgame_Town', 'P1_Town', 'P2_Town', 'P3_Town']) {
     assert.equal(POE2_TOWN_AREA_IDS.has(areaId), true, areaId);
@@ -124,6 +143,28 @@ test('watcher blocks in a map and enables only after a safe zone transition', as
       areaId: 'HideoutBeach',
       kind: 'hideout',
     });
+  } finally {
+    gate.stop();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('allowArea immediately reclassifies the current exact area ID', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'poe-zone-allow-'));
+  const logPath = path.join(dir, 'Client.txt');
+  fs.writeFileSync(logPath, '[DEBUG Client] Generating level 80 area "FutureLeagueHub" with seed 1\n');
+  const gate = new ZoneGate({ enabled: true, logPath, gameId: 'poe1' });
+
+  try {
+    assert.equal(gate.start().safe, false);
+    assert.equal(gate.allowArea('FutureLeagueHub'), true);
+    assert.deepEqual(gate.getState(), {
+      safe: true,
+      areaId: 'FutureLeagueHub',
+      kind: 'custom',
+    });
+    assert.equal(gate.allowArea('FutureLeagueHub'), false);
+    assert.equal(gate.allowArea('bad-zone;control'), false);
   } finally {
     gate.stop();
     fs.rmSync(dir, { recursive: true, force: true });

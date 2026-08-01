@@ -2,8 +2,10 @@
 Trade Sniper Tool - Control panel for trade automation service.
 """
 
+import copy
 import json
 import os
+import re
 import shutil
 import sys
 import subprocess
@@ -20,6 +22,10 @@ from tools.base_tool import BaseTool
 from services.trade_service import TradeService
 from utils.config import ConfigManager, ConfigSaveError
 from utils.workers import WorkerRegistry
+
+
+ZONE_STATE_PREFIX = "__POE_TOOLKIT_ZONE_STATE__:"
+AREA_ID_PATTERN = re.compile(r"^[A-Za-z0-9_]+$")
 
 
 def get_trade_profile_dir(platform_name=None, environ=None, home=None):
@@ -95,6 +101,8 @@ class TradeSniperWidget(QWidget):
         self.game_profile = ConfigManager.get_game_profile(self.game_id)
         self.trade_url = ConfigManager.get_trade_url(config, self.game_id)
         self.brave_ready = False
+        self.current_zone_id = ""
+        self.current_zone_safe = False
         self._worker_registry = WorkerRegistry(max_threads=3)
 
         self.service = service or TradeService()
@@ -212,6 +220,19 @@ class TradeSniperWidget(QWidget):
         )
         self.chk_zone_gate.toggled.connect(self.on_zone_gate_toggled)
         config_layout.addWidget(self.chk_zone_gate)
+
+        zone_row = QHBoxLayout()
+        self.current_zone_label = QLabel("Current zone: Unknown")
+        zone_row.addWidget(self.current_zone_label)
+        self.allow_current_zone_btn = QPushButton("Allow Current Zone")
+        self.allow_current_zone_btn.setEnabled(False)
+        self.allow_current_zone_btn.setToolTip(
+            "Start Trade Sniper to detect the exact current area ID."
+        )
+        self.allow_current_zone_btn.clicked.connect(self.allow_current_zone)
+        zone_row.addWidget(self.allow_current_zone_btn)
+        zone_row.addStretch()
+        config_layout.addLayout(zone_row)
         
         layout.addWidget(config_group)
         
@@ -445,6 +466,13 @@ class TradeSniperWidget(QWidget):
             self.log(f"ERROR: Failed to launch Brave: {e}")
     
     def log(self, message: str):
+        if message.startswith(ZONE_STATE_PREFIX):
+            try:
+                state = json.loads(message[len(ZONE_STATE_PREFIX):])
+            except (TypeError, ValueError, json.JSONDecodeError):
+                return
+            self._handle_zone_state(state)
+            return
         self.log_area.append(message)
         # Auto-scroll to bottom
         scrollbar = self.log_area.verticalScrollBar()
@@ -486,6 +514,90 @@ class TradeSniperWidget(QWidget):
     def on_zone_gate_toggled(self, checked: bool):
         """Persist zone gating; a running service keeps its startup policy."""
         self._save_trade_setting("zone_gate_enabled", checked)
+
+    def _get_custom_allowed_zones(self) -> list[str]:
+        """Return validated custom area IDs for the active game."""
+        by_game = self.trade_config.get("custom_allowed_zones", {})
+        if not isinstance(by_game, dict):
+            return []
+        zones = by_game.get(self.game_id, [])
+        if not isinstance(zones, list):
+            return []
+        return list(dict.fromkeys(
+            zone for zone in zones
+            if isinstance(zone, str) and AREA_ID_PATTERN.fullmatch(zone)
+        ))
+
+    def _handle_zone_state(self, state: dict):
+        """Update the UI from the Node gate's exact machine-readable state."""
+        if not isinstance(state, dict):
+            return
+        area_id = state.get("areaId", "")
+        if not isinstance(area_id, str) or not AREA_ID_PATTERN.fullmatch(area_id):
+            area_id = ""
+        self.current_zone_id = area_id
+        self.current_zone_safe = state.get("safe") is True
+        self.current_zone_label.setText(
+            f"Current zone: {area_id}" if area_id else "Current zone: Unknown"
+        )
+        self._update_allow_current_zone_button()
+
+    def _update_allow_current_zone_button(self):
+        already_custom = self.current_zone_id in self._get_custom_allowed_zones()
+        can_allow = bool(
+            self.current_zone_id and not self.current_zone_safe and not already_custom
+        )
+        self.allow_current_zone_btn.setEnabled(can_allow)
+        if self.current_zone_safe or already_custom:
+            tooltip = "The current zone is already allowed."
+        elif self.current_zone_id:
+            tooltip = "Persist this exact area ID for the active game and allow it now."
+        else:
+            tooltip = "Start Trade Sniper to detect the exact current area ID."
+        self.allow_current_zone_btn.setToolTip(tooltip)
+
+    def allow_current_zone(self):
+        """Persist and immediately allow the exact currently detected area ID."""
+        area_id = self.current_zone_id
+        if (
+            not AREA_ID_PATTERN.fullmatch(area_id)
+            or self.current_zone_safe
+            or area_id in self._get_custom_allowed_zones()
+        ):
+            self._update_allow_current_zone_button()
+            return
+
+        candidate = copy.deepcopy(self.config)
+        candidate_trade = candidate.setdefault("trade_sniper", {})
+        by_game = candidate_trade.setdefault(
+            "custom_allowed_zones", {"poe1": [], "poe2": []}
+        )
+        if not isinstance(by_game, dict):
+            by_game = {"poe1": [], "poe2": []}
+            candidate_trade["custom_allowed_zones"] = by_game
+        zones = by_game.setdefault(self.game_id, [])
+        if not isinstance(zones, list):
+            zones = []
+            by_game[self.game_id] = zones
+        if area_id not in zones:
+            zones.append(area_id)
+
+        try:
+            ConfigManager.save(candidate)
+        except ConfigSaveError as error:
+            self.status_label.setText(f"Status: Config save failed: {error}")
+            self.status_label.setStyleSheet("font-size: 14px; color: #ff6666;")
+            self.log(f"ERROR: Could not allow {area_id}: {error}")
+            return
+
+        self.config.clear()
+        self.config.update(candidate)
+        self.trade_config = self.config.setdefault("trade_sniper", {})
+        self._update_allow_current_zone_button()
+        self.log(f"Allowed zone for {self.game_profile['label']}: {area_id}")
+        if self.is_service_running:
+            if not self.service.send_input(f"__allow_zone__:{area_id}\n"):
+                self.log("Runtime update failed; the zone will be allowed on next service start.")
     
     def on_start_resume_click(self):
         """Handle start/resume button click based on current state."""
@@ -501,6 +613,7 @@ class TradeSniperWidget(QWidget):
             confirmation_retry_ms = self.trade_config.get("confirmation_retry_ms", 20)
             zone_gate_enabled = self.chk_zone_gate.isChecked()
             client_log_path = ConfigManager.get_client_log_path(self.config, self.game_id)
+            allowed_zones = self._get_custom_allowed_zones()
             self.service.start(
                 auto_resume=auto_resume,
                 auto_resume_delay_s=auto_resume_delay_s,
@@ -510,6 +623,7 @@ class TradeSniperWidget(QWidget):
                 game_id=self.game_id,
                 zone_gate_enabled=zone_gate_enabled,
                 client_log_path=client_log_path,
+                allowed_zones=allowed_zones,
             )
     
     def stop_service(self):
