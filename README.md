@@ -214,7 +214,7 @@ Configuration has a read-only checked-in base and a private per-user override:
 | `config/config.json` | Legacy checkout-local file; never packaged or read by 1.8.0 | ✅ Preserved for compatibility only |
 | Per-user `user_config.json` | All mutable settings, credentials, paths, and calibration | Outside the checkout |
 
-Stash grid calibration uses explicit named profiles: Standard (12x12) and Quad (24x24). The app previews the full grid and only persists calibration after confirmation.
+Stash grid calibration uses explicit named profiles: Standard (12x12) and Quad (24x24). The app finds the selected PoE client's exact window, places the clickable instructions over that window on its monitor, records global desktop coordinates, previews the full grid, and only persists calibration after confirmation. Calibration fails visibly instead of targeting the Toolkit monitor when the selected game window cannot be found.
 
 Per-user locations:
 

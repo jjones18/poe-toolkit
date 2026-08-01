@@ -32,7 +32,8 @@ class CalibrationOverlay(BaseOverlay):
 
     def mousePressEvent(self, event):
         if event.button() in (Qt.MouseButton.LeftButton, Qt.MouseButton.RightButton):
-            self.calibration_clicked.emit(int(event.pos().x()), int(event.pos().y()))
+            position = event.globalPosition()
+            self.calibration_clicked.emit(int(position.x()), int(position.y()))
 
     def paintEvent(self, event):
         painter = QPainter(self)

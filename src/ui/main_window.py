@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QStackedWidget, QPushButton, QLabel, QFrame, QMessageBox,
     QMenuBar, QMenu, QComboBox
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QRect, Qt
 from PyQt6.QtGui import QFont, QAction, QGuiApplication
 
 from ui.overlay_manager import OverlayManager
@@ -20,6 +20,7 @@ from ui.geometry_utils import RectSpec, clamp_window_geometry
 from utils import APP_VERSION
 from utils.config import ConfigManager, ConfigSaveError
 from utils.coordinate_mapper import StashGridMapper
+from utils import platform_utils
 from services.trade_service import TradeService
 from services.price_service import PriceService
 
@@ -650,9 +651,42 @@ class MainWindow(QMainWindow):
     
     def start_calibration(self, cal_type: CalibrationType = CalibrationType.STASH_GRID,
                           stash_profile: StashGridProfile = StashGridProfile.STANDARD):
-        """Start calibration for a specific region type."""
+        """Start calibration over the exact active-game window on its monitor."""
+        game_id = ConfigManager.get_active_game(self.config)
+        game_profile = ConfigManager.GAME_PROFILES[game_id]
+        game_title = platform_utils.exact_window_title_for_game(game_id)
+        game_match = platform_utils.POE_GAME_MATCHES[game_id]
+        game_rect = platform_utils.find_window_rect(
+            game_title,
+            exact_title=True,
+            process_names=game_match["process_names"],
+            title_matcher=lambda title: platform_utils.is_exact_poe_window_title(title, game_id),
+        )
+        if not game_rect or game_rect.get("width", 0) <= 0 or game_rect.get("height", 0) <= 0:
+            self.calibration_manager.cancel()
+            self.overlay.set_calibration_mode(False)
+            try:
+                self.overlay.calibration_clicked.disconnect(self.on_calibration_click)
+            except TypeError:
+                pass
+            self.overlay.finish_calibration()
+            self.status_label.setText("Calibration unavailable: game window not found")
+            QMessageBox.warning(
+                self,
+                "Game Window Not Found",
+                f"Could not find the {game_profile['full_name']} window.\n\n"
+                "Start the selected game and keep its window visible, then try calibration again.",
+            )
+            return False
+
+        target_geometry = QRect(
+            int(game_rect["left"]),
+            int(game_rect["top"]),
+            int(game_rect["width"]),
+            int(game_rect["height"]),
+        )
         msg = self.calibration_manager.start_calibration(cal_type, stash_profile)
-        self.overlay.enable_for_calibration()
+        self.overlay.enable_for_calibration(target_geometry)
         self.overlay_btn.setChecked(True)
         self.overlay.set_calibration_mode(True, msg)
         try:
@@ -664,6 +698,7 @@ class MainWindow(QMainWindow):
         config = CALIBRATION_CONFIGS[cal_type]
         suffix = f" - {stash_profile.label}" if cal_type == CalibrationType.STASH_GRID else ""
         self.status_label.setText(f"Calibrating: {config.name}{suffix}")
+        return True
     
     def on_calibration_click(self, x: int, y: int):
         """Handle calibration clicks using CalibrationManager."""
@@ -733,6 +768,7 @@ class MainWindow(QMainWindow):
         
         # Clear preview
         self.overlay.clear_calibration_preview()
+        self.overlay.finish_calibration()
         
         if reply == QMessageBox.StandardButton.Yes:
             # Confirm and save

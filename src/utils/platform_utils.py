@@ -13,6 +13,36 @@ from pathlib import Path
 IS_WINDOWS = sys.platform == "win32"
 IS_LINUX = sys.platform.startswith("linux")
 
+POE_GAME_MATCHES = {
+    "poe1": {
+        "window_titles": ("Path of Exile",),
+        "process_names": ("PathOfExile.exe", "PathOfExileSteam.exe", "PathOfExile_x64.exe"),
+    },
+    "poe2": {
+        "window_titles": ("Path of Exile 2",),
+        "process_names": ("PathOfExile2.exe", "PathOfExile2Steam.exe"),
+    },
+}
+
+
+def normalize_game_id(game_id: str | None) -> str:
+    return game_id if game_id in POE_GAME_MATCHES else "poe1"
+
+
+def exact_window_title_for_game(game_id: str | None) -> str:
+    return POE_GAME_MATCHES[normalize_game_id(game_id)]["window_titles"][0]
+
+
+def is_exact_poe_window_title(title: str, game_id: str | None) -> bool:
+    return str(title or "").strip() in POE_GAME_MATCHES[normalize_game_id(game_id)]["window_titles"]
+
+
+def is_exact_poe_process_name(process_name: str, game_id: str | None) -> bool:
+    candidate = str(process_name or "").strip().replace('\\', '/').rsplit('/', 1)[-1].lower()
+    return candidate in {
+        name.lower() for name in POE_GAME_MATCHES[normalize_game_id(game_id)]["process_names"]
+    }
+
 # --- Windows: win32gui ---
 if IS_WINDOWS:
     try:

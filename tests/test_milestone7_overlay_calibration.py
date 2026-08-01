@@ -1,8 +1,10 @@
 import copy
+import importlib.machinery
 import os
 import sys
+import types
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -11,7 +13,40 @@ SRC_DIR = os.path.join(PROJECT_ROOT, "src")
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
-from PyQt6.QtCore import QObject, QRect, pyqtSignal
+
+def optional_module_stub(name):
+    module = sys.modules.get(name)
+    if module is None:
+        module = types.ModuleType(name)
+        sys.modules[name] = module
+    module.__spec__ = importlib.machinery.ModuleSpec(name, loader=None)
+    return module
+
+
+for optional_module in ("cv2", "mss", "pynput", "keyboard"):
+    optional_module_stub(optional_module)
+cv2_stub = optional_module_stub("cv2")
+cv2_stub.COLOR_BGR2GRAY = 1
+cv2_stub.COLOR_BGR2HSV = 2
+cv2_stub.THRESH_BINARY = 0
+cv2_stub.ADAPTIVE_THRESH_GAUSSIAN_C = 0
+cv2_stub.cvtColor = Mock(side_effect=lambda image, _code: image)
+cv2_stub.threshold = Mock(side_effect=lambda image, *_args: (None, image))
+cv2_stub.adaptiveThreshold = Mock(side_effect=lambda image, *_args: image)
+cv2_stub.inRange = Mock(side_effect=lambda *_args: 1)
+cv2_stub.bitwise_or = Mock(side_effect=lambda left, _right: left)
+numpy_stub = Mock()
+numpy_stub.array.side_effect = lambda value, *_args, **_kwargs: value
+sys.modules.setdefault("numpy", numpy_stub)
+pytesseract_stub = optional_module_stub("pytesseract")
+pytesseract_stub.Output = Mock()
+pytesseract_stub.Output.DICT = "DICT"
+pytesseract_stub.pytesseract = Mock()
+pytesseract_stub.pytesseract.tesseract_cmd = "tesseract"
+pytesseract_stub.image_to_data = Mock()
+pytesseract_stub.image_to_string = Mock()
+
+from PyQt6.QtCore import QObject, QPointF, QRect, Qt, pyqtSignal
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from tools.league_vision.tool import LeagueVisionWidget
@@ -25,6 +60,7 @@ from ui.calibration import (
 from ui.geometry_utils import RectSpec, clamp_window_geometry
 from ui.main_window import MainWindow
 from ui.overlay_manager import OverlayManager
+from ui.overlays.calibration_overlay import CalibrationOverlay
 from utils.config import ConfigManager
 
 
@@ -205,6 +241,41 @@ class OverlayManagerVisibilityTests(unittest.TestCase):
         self.assertTrue(manager.highlight_layer.isVisible())
         self.assertFalse(manager.alert_layer.isVisible())
 
+    def test_calibration_target_uses_game_window_and_preview_translates_global_coordinates(self):
+        manager = OverlayManager()
+        self.addCleanup(manager.close)
+        target = QRect(1920, 100, 1280, 720)
+
+        manager.enable_for_calibration(target)
+        manager.set_calibration_mode(True, "Click")
+        manager.set_calibration_preview(2000, 180, 10, cols=12, rows=12)
+
+        self.assertEqual(manager.calibration_layer.geometry(), target)
+        self.assertEqual(manager.calibration_layer.preview_rects["grid"], QRect(80, 80, 120, 120))
+
+        manager.finish_calibration()
+        self.assertIsNone(manager.calibration_target_geometry)
+
+
+class CalibrationOverlayInputTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QApplication.instance() or QApplication([])
+
+    def test_mouse_click_emits_global_desktop_coordinates(self):
+        overlay = CalibrationOverlay()
+        self.addCleanup(overlay.close)
+        received = []
+        overlay.calibration_clicked.connect(lambda x, y: received.append((x, y)))
+        event = Mock()
+        event.button.return_value = Qt.MouseButton.LeftButton
+        event.globalPosition.return_value = QPointF(2010, 320)
+        event.pos.return_value = QPointF(10, 20)
+
+        overlay.mousePressEvent(event)
+
+        self.assertEqual(received, [(2010, 320)])
+
 
 class FakeScannerWorker(QObject):
     debug_rect_signal = pyqtSignal(int, int, int, int, str)
@@ -347,12 +418,49 @@ class MainWindowCalibrationUiTests(unittest.TestCase):
             window = MainWindow(trade_service=service)
         self.addCleanup(window.close)
 
-        window.start_calibration(CalibrationType.STASH_GRID, StashGridProfile.QUAD)
+        game_rect = {"left": 1920, "top": 100, "width": 1280, "height": 720}
+        with patch("ui.main_window.platform_utils.find_window_rect", return_value=game_rect) as find_window:
+            started = window.start_calibration(CalibrationType.STASH_GRID, StashGridProfile.QUAD)
 
+        self.assertTrue(started)
+        find_window.assert_called_once_with(
+            "Path of Exile 2",
+            exact_title=True,
+            process_names=("PathOfExile2.exe", "PathOfExile2Steam.exe"),
+            title_matcher=ANY,
+        )
         self.assertTrue(window.overlay.isVisible())
         self.assertTrue(window.overlay_btn.isChecked())
+        self.assertEqual(window.overlay.calibration_layer.geometry(), QRect(1920, 100, 1280, 720))
         self.assertIn("Quad (24x24)", window.status_label.text())
         self.assertIn("Quad (24x24)", window.overlay.calibration_layer.message)
+
+    def test_start_calibration_fails_closed_when_active_game_window_is_missing(self):
+        config = copy.deepcopy(ConfigManager.DEFAULTS)
+        ConfigManager.set_active_game(config, "poe1")
+        service = Mock()
+        service.is_running = False
+        with (
+            patch.object(ConfigManager, "load", return_value=config),
+            patch.object(ConfigManager, "save", return_value=True),
+            patch("tools.trade_sniper.tool.TradeSniperWidget.check_setup"),
+            patch("tools.trade_sniper.tool.TradeSniperWidget.check_brave_status"),
+        ):
+            window = MainWindow(trade_service=service)
+        self.addCleanup(window.close)
+
+        with (
+            patch("ui.main_window.platform_utils.find_window_rect", return_value=None),
+            patch.object(QMessageBox, "warning", return_value=QMessageBox.StandardButton.Ok) as warning,
+        ):
+            started = window.start_calibration(CalibrationType.STASH_GRID, StashGridProfile.STANDARD)
+
+        self.assertFalse(started)
+        self.assertFalse(window.calibration_manager.is_active())
+        self.assertFalse(window.overlay.isVisible())
+        self.assertFalse(window.overlay.calibration_layer.has_visible_content())
+        self.assertIn("Path of Exile 1", warning.call_args.args[2])
+        self.assertEqual(window.status_label.text(), "Calibration unavailable: game window not found")
 
     def test_confirm_dialog_saves_only_on_yes_after_preview(self):
         config = copy.deepcopy(ConfigManager.DEFAULTS)
@@ -366,7 +474,11 @@ class MainWindowCalibrationUiTests(unittest.TestCase):
             patch("tools.trade_sniper.tool.TradeSniperWidget.check_brave_status"),
         ):
             window = MainWindow(trade_service=service)
-            window.start_calibration(CalibrationType.STASH_GRID, StashGridProfile.STANDARD)
+            with patch(
+                "ui.main_window.platform_utils.find_window_rect",
+                return_value={"left": 0, "top": 0, "width": 1920, "height": 1080},
+            ):
+                window.start_calibration(CalibrationType.STASH_GRID, StashGridProfile.STANDARD)
             with patch.object(QMessageBox, "question", return_value=QMessageBox.StandardButton.Yes):
                 window.on_calibration_click(0, 0)
                 window.on_calibration_click(120, 120)

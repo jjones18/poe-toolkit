@@ -3,7 +3,7 @@ from .overlays.debug_overlay import DebugOverlay
 from .overlays.calibration_overlay import CalibrationOverlay
 from .overlays.alert_overlay import AlertOverlay
 from .overlay import BlockerWindow # Reuse existing blocker window logic
-from PyQt6.QtCore import QObject, QTimer, pyqtSignal
+from PyQt6.QtCore import QObject, QPoint, QRect, QTimer, pyqtSignal
 
 
 class OverlayManager(QObject):
@@ -16,6 +16,7 @@ class OverlayManager(QObject):
     def __init__(self):
         super().__init__()
         self.overlay_enabled = False
+        self.calibration_target_geometry = None
         self.highlight_layer = HighlightOverlay()
         self.debug_layer = DebugOverlay()
         self.calibration_layer = CalibrationOverlay()
@@ -43,6 +44,8 @@ class OverlayManager(QObject):
         if geometry:
             for layer in self._all_layers:
                 layer.setGeometry(geometry)
+        if self.calibration_target_geometry:
+            self.calibration_layer.setGeometry(self.calibration_target_geometry)
 
     def _hide_all_layers(self):
         for layer in self._all_layers:
@@ -84,9 +87,15 @@ class OverlayManager(QObject):
         self._sync_layer_geometries()
         self._apply_visibility()
 
-    def enable_for_calibration(self):
-        """Controlled path for callers that intentionally start calibration."""
+    def enable_for_calibration(self, target_geometry: QRect):
+        """Enable calibration over the exact game window on any monitor."""
+        self.calibration_target_geometry = QRect(target_geometry)
         self.set_overlay_enabled(True)
+
+    def finish_calibration(self):
+        """Release the game-window target after preview confirmation/cancellation."""
+        self.calibration_target_geometry = None
+        self._sync_layer_geometries()
 
     def create_blocker(self, rect: dict, message: str = "UNSAFE"):
         if rect.get('w', 0) <= 0 or rect.get('h', 0) <= 0:
@@ -166,18 +175,24 @@ class OverlayManager(QObject):
 
     def set_calibration_mode(self, active, message=""):
         self.calibration_layer.set_mode(active, message)
+        # setWindowFlags() may let the window manager reset a tool window's
+        # position, so always restore the exact game target afterward.
+        self._sync_layer_geometries()
         self._apply_visibility()
 
     def set_calibration_preview(self, ox, oy, cell, is_quad=False, cols=None, rows=None, cell_width=None, cell_height=None):
-        from PyQt6.QtCore import QRect
         grid_cols = int(cols or (24 if is_quad else 12))
         grid_rows = int(rows or grid_cols)
         cw = float(cell_width if cell_width is not None else cell)
         ch = float(cell_height if cell_height is not None else cell)
         total_w = int(round(grid_cols * cw))
         total_h = int(round(grid_rows * ch))
+        local_origin = QPoint(
+            int(ox) - self.calibration_layer.geometry().x(),
+            int(oy) - self.calibration_layer.geometry().y(),
+        )
         rects = {
-            'grid': QRect(int(ox), int(oy), total_w, total_h),
+            'grid': QRect(local_origin.x(), local_origin.y(), total_w, total_h),
             'offset_x': int(ox), 'offset_y': int(oy),
             'cell_width': cw, 'cell_height': ch,
             'cols': grid_cols, 'rows': grid_rows,
@@ -188,8 +203,8 @@ class OverlayManager(QObject):
         self._apply_visibility()
 
     def set_calibration_region_preview(self, x, y, w, h):
-        from PyQt6.QtCore import QRect
-        self.calibration_layer.set_region_preview(QRect(x, y, w, h))
+        geometry = self.calibration_layer.geometry()
+        self.calibration_layer.set_region_preview(QRect(x - geometry.x(), y - geometry.y(), w, h))
         self._apply_visibility()
 
     def clear_calibration_preview(self):
