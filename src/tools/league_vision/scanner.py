@@ -198,16 +198,23 @@ class ScannerWorker(QThread):
 
     def update_config(self, config: dict):
         """Apply settings that are safe to change while the scanner is running."""
-        self.config = apply_ocr_profile(config)
-        self.debug_mode = self.config.get("debug_mode", False)
-        self.game_id = normalize_game_id(self.config.get("active_game"))
-        self.screen_geometry = self.config.get("screen_geometry", self.screen_geometry)
-        self.vision.window_title = exact_window_title_for_game(self.game_id)
-        self.vision.resolution_config = self.config.get("resolution_override")
-        self.vision.exact_title = True
-        self.vision.process_names = POE_GAME_MATCHES[self.game_id]["process_names"]
-        self.vision.title_matcher = lambda title: is_exact_poe_window_title(title, self.game_id)
-        pytesseract.pytesseract.tesseract_cmd = self.config.get("tesseract_path", "tesseract")
+        # C3: stage everything into fresh objects, then swap references
+        # atomically so a scan cycle never sees a half-updated matcher set.
+        staged_config = apply_ocr_profile(config)
+        staged_game_id = normalize_game_id(staged_config.get("active_game"))
+        staged_vision_state = {
+            "window_title": exact_window_title_for_game(staged_game_id),
+            "resolution_config": staged_config.get("resolution_override"),
+            "process_names": POE_GAME_MATCHES[staged_game_id]["process_names"],
+            "title_matcher": lambda title, gid=staged_game_id: is_exact_poe_window_title(title, gid),
+        }
+        self.config = staged_config
+        self.debug_mode = staged_config.get("debug_mode", False)
+        self.game_id = staged_game_id
+        self.screen_geometry = staged_config.get("screen_geometry", self.screen_geometry)
+        for attr, value in staged_vision_state.items():
+            setattr(self.vision, attr, value)
+        pytesseract.pytesseract.tesseract_cmd = staged_config.get("tesseract_path", "tesseract")
 
     def stop(self):
         """Stop the scanner."""
