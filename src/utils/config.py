@@ -544,8 +544,47 @@ class ConfigManager:
         return cls.get_game_profile(game_id)["trade_path"]
 
     @classmethod
+    def _user_override_payload(cls, config: dict) -> dict:
+        """Extract only user-specific state from a merged config.
+
+        Bundled defaults are authoritative for everything not listed here;
+        persisting them would freeze stale defaults into user_config.json and
+        shadow future default changes. Sections that users can genuinely
+        modify (per tools' sync_config writers) are kept whole.
+        """
+        payload: dict = {}
+        for key in cls.USER_SPECIFIC_KEYS:
+            if key in config:
+                payload[key] = copy.deepcopy(config[key])
+        # "theme" is user-visible state even though no toggle ships yet;
+        # keep any non-default value so a future theme switch survives.
+        if config.get("theme") != cls.DEFAULTS.get("theme"):
+            payload["theme"] = config.get("theme")
+        # Tool-owned sections whose values diverge from defaults at runtime
+        # via their settings UIs. Keep them whole rather than diffing.
+        for key in ("ultimatum", "trade_sniper", "kalguur_dust", "league_vision"):
+            if key in config:
+                section = copy.deepcopy(config[key])
+                if key == "league_vision":
+                    # Only the nested user-specific subset is personal; the
+                    # rest tracks bundled defaults (scan regions, keywords).
+                    vision_defaults = cls.DEFAULTS.get("league_vision", {})
+                    filtered = {
+                        k: v
+                        for k, v in section.items()
+                        if k in cls.USER_SPECIFIC_LEAGUE_VISION_KEYS or k in (
+                            "syndicate_enabled",
+                            "map_device_button",
+                        ) or section.get(k) != vision_defaults.get(k)
+                    }
+                    payload["league_vision"] = filtered
+                else:
+                    payload[key] = section
+        return payload
+
+    @classmethod
     def save(cls, config: dict):
-        """Atomically save the complete private override; never rewrite the checkout."""
+        """Atomically save user-specific overrides; never rewrite the checkout."""
         if cls.save_blocked:
             message = cls.last_error or (
                 "Saving is blocked because the existing user configuration could not "
@@ -553,7 +592,8 @@ class ConfigManager:
             )
             raise ConfigSaveError(message)
 
-        payload = copy.deepcopy(config)
+        payload = cls._user_override_payload(config)
+        payload["config_schema_version"] = cls.CURRENT_SCHEMA_VERSION
         cls.normalize(payload)
 
         try:
