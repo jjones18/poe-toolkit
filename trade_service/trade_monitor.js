@@ -956,52 +956,60 @@ async function startMonitoring(browser, gameConfig) {
                         console.log(`  -> OR wait ${state.autoResumeDelayMs / 1_000} seconds for auto-resume`);
                     }
                     console.log('='.repeat(60) + '\n');
-                    
-                    const getAutoResume = () => state.autoResumeEnabled;
-                    const getAutoResumeDelay = () => state.autoResumeDelayMs;
-                    const input = runtime.input || process.stdin;
-                    if (state.autoResumeEnabled) {
-                        await waitForEnterOrTimeout(
-                            getAutoResume,
-                            getAutoResumeDelay,
-                            5000,
-                            input,
-                        );
-                    } else {
-                        await waitForEnter(
-                            getAutoResume,
-                            getAutoResumeDelay,
-                            5000,
-                            input,
-                        );
-                    }
-                    
-                    if (runtime.shuttingDown || runtime.activeRunId !== runId) return;
 
-                    for (const page of tradePages) {
+                    // M4: the pause wait runs OUTSIDE the status interval so
+                    // housekeeping (closed-tab cleanup, click counting, lease
+                    // renewal, tab detection) keeps running while paused.
+                    void (async () => {
                         try {
-                            if (!page.isClosed()) {
-                                await page.evaluate((expectedRunId) => {
-                                    if (window.poeAutoClicker?.runId === expectedRunId) {
-                                        window.poeAutoClicker.paused = false;
-                                        window.poeAutoClicker.isClicking = false;
-                                        // M3: do NOT clear pendingConfirmation /
-                                        // pendingListing here. If auto-resume fires
-                                        // while a "Teleport anyway" confirmation is
-                                        // pending, wiping it abandons a travel that
-                                        // was already initiated. The confirmation
-                                        // flow is lease- and zone-gated, so letting
-                                        // it finish stays fail-closed.
-                                    }
-                                }, runId);
+                            const getAutoResume = () => state.autoResumeEnabled;
+                            const getAutoResumeDelay = () => state.autoResumeDelayMs;
+                            const input = runtime.input || process.stdin;
+                            if (state.autoResumeEnabled) {
+                                await waitForEnterOrTimeout(
+                                    getAutoResume,
+                                    getAutoResumeDelay,
+                                    5000,
+                                    input,
+                                );
+                            } else {
+                                await waitForEnter(
+                                    getAutoResume,
+                                    getAutoResumeDelay,
+                                    5000,
+                                    input,
+                                );
                             }
-                        } catch (err) {
-                            // Page may have closed
+
+                            if (runtime.shuttingDown || runtime.activeRunId !== runId) return;
+
+                            for (const page of tradePages) {
+                                try {
+                                    if (!page.isClosed()) {
+                                        await page.evaluate((expectedRunId) => {
+                                            if (window.poeAutoClicker?.runId === expectedRunId) {
+                                                window.poeAutoClicker.paused = false;
+                                                window.poeAutoClicker.isClicking = false;
+                                                // M3: do NOT clear pendingConfirmation /
+                                                // pendingListing here. If auto-resume fires
+                                                // while a "Teleport anyway" confirmation is
+                                                // pending, wiping it abandons a travel that
+                                                // was already initiated. The confirmation
+                                                // flow is lease- and zone-gated, so letting
+                                                // it finish stays fail-closed.
+                                            }
+                                        }, runId);
+                                    }
+                                } catch (err) {
+                                    // Page may have closed
+                                }
+                            }
+
+                            console.log(`RESUMED - Monitoring all ${tradePages.length} tabs...\n`);
+                        } finally {
+                            waitingForResume = false;
                         }
-                    }
-                    
-                    console.log(`RESUMED - Monitoring all ${tradePages.length} tabs...\n`);
-                    waitingForResume = false;
+                    })();
                 }
 
                 // Periodic status update (only when not paused)
