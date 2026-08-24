@@ -70,6 +70,11 @@ class TradeService(QObject):
         self.output_thread = None
         self._running = False
         self._stopping = False
+        # M5: guards process lifecycle mutations. stop() runs on a worker
+        # thread while the GUI thread can concurrently call start(),
+        # send_input(), or resume(); without this lock a resume can race a
+        # stop into a closing stdin pipe and resurrect inconsistent state.
+        self._process_lock = threading.RLock()
         
         atexit.register(self._force_cleanup)
         if platform.system() != 'Windows':
@@ -442,16 +447,17 @@ class TradeService(QObject):
             if platform.system() != 'Windows':
                 popen_kwargs['start_new_session'] = True
             
-            self.process = subprocess.Popen(cmd, **popen_kwargs)
-            
-            self._stopping = False
-            self._running = True
-            self.status_changed.emit("running")
-            self.log_output.emit("Trade service started.")
-            
-            # Start output reader thread
-            self.output_thread = threading.Thread(target=self._read_output, daemon=True)
-            self.output_thread.start()
+            with self._process_lock:
+                self.process = subprocess.Popen(cmd, **popen_kwargs)
+
+                self._stopping = False
+                self._running = True
+                self.status_changed.emit("running")
+                self.log_output.emit("Trade service started.")
+
+                # Start output reader thread
+                self.output_thread = threading.Thread(target=self._read_output, daemon=True)
+                self.output_thread.start()
             
         except Exception as e:
             self._release_ownership()
@@ -461,17 +467,20 @@ class TradeService(QObject):
     def stop(self, token: CancellationToken | None = None):
         """Disarm browser workers, accelerating escalation when cancellation is requested."""
         token = token or CancellationToken()
-        if not self.is_running:
-            self.log_output.emit("Service is not running.")
-            return False
+        with self._process_lock:
+            if not self.is_running:
+                self.log_output.emit("Service is not running.")
+                return False
 
-        process = self.process
-        if process is None:
-            self._running = False
-            self.status_changed.emit("stopped")
-            return True
+            process = self.process
+            if process is None:
+                self._running = False
+                self.status_changed.emit("stopped")
+                return True
 
-        self._stopping = True
+            # Claim the stopping flag under the lock so a concurrent
+            # send_input()/resume() sees a consistent view.
+            self._stopping = True
 
         try:
             # Always ask Node to disarm browser workers. Cancellation skips only
@@ -516,16 +525,18 @@ class TradeService(QObject):
             self.log_output.emit(f"Error stopping service: {e}")
 
         if process.poll() is None:
-            self._stopping = False
-            self._running = True
-            self.process = process
+            with self._process_lock:
+                self._stopping = False
+                self._running = True
+                self.process = process
             self.status_changed.emit("error")
             self.log_output.emit("Trade service could not be stopped; browser automation may still be active.")
             return False
 
-        self._running = False
-        self.process = None
-        self._stopping = False
+        with self._process_lock:
+            self._running = False
+            self.process = None
+            self._stopping = False
         self._close_process_resources(process)
         self._release_ownership()
         self.status_changed.emit("stopped")
@@ -534,13 +545,14 @@ class TradeService(QObject):
 
     def send_input(self, text: str):
         """Send input to the running process (e.g., Enter to resume)."""
-        if self.is_running and self.process.stdin:
-            try:
-                self.process.stdin.write(text)
-                self.process.stdin.flush()
-                return True
-            except Exception as e:
-                self.log_output.emit(f"Error sending input: {e}")
+        with self._process_lock:
+            if self.is_running and self.process is not None and self.process.stdin:
+                try:
+                    self.process.stdin.write(text)
+                    self.process.stdin.flush()
+                    return True
+                except Exception as e:
+                    self.log_output.emit(f"Error sending input: {e}")
         return False
     
     def resume(self):
@@ -571,9 +583,12 @@ class TradeService(QObject):
             self.log_output.emit(f"Output reader error: {e}")
         
         # Unexpected process exits update status. Intentional Stop owns its status.
-        if self._running and not self._stopping and self.process is process:
-            self._running = False
-            self.process = None
+        with self._process_lock:
+            owns_state = self._running and not self._stopping and self.process is process
+            if owns_state:
+                self._running = False
+                self.process = None
+        if owns_state:
             self._release_ownership()
             self.status_changed.emit("stopped")
             self.log_output.emit("Trade service ended.")
