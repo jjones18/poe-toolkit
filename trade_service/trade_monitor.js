@@ -100,6 +100,17 @@ function createLineInput(source) {
     source.on('end', () => {
         if (buffer.length > 0) input.emit('data', Buffer.from(buffer));
         buffer = '';
+        // Parent closed the pipe (clean stop or controller death): treat as a
+        // shutdown request so the service never outlives its controller.
+        input.emit('eof');
+    });
+
+    source.on('close', () => {
+        if (!input.destroyed) input.emit('eof');
+    });
+
+    source.on('error', () => {
+        if (!input.destroyed) input.emit('eof');
     });
 
     return input;
@@ -574,6 +585,26 @@ async function main() {
         if (Number.isFinite(parsed) && parsed > 0) state.confirmationRetryMs = parsed;
     }
 
+    // H4 backstop: verify the parent controller PID periodically. If the
+    // Python GUI was SIGKILLed (no stdin close, no signal delivered yet),
+    // a vanished controller PID ends the service regardless.
+    const parentPidArg = args.find(a => a.startsWith('--controller-pid='));
+    if (parentPidArg) {
+        const controllerPid = Number.parseInt(parentPidArg.split('=')[1], 10);
+        if (Number.isFinite(controllerPid) && controllerPid > 0 && process.platform !== 'win32') {
+            const parentWatcher = setInterval(() => {
+                try {
+                    // process.kill(pid, 0) throws when the PID no longer exists.
+                    process.kill(controllerPid, 0);
+                } catch (err) {
+                    clearInterval(parentWatcher);
+                    void shutdownService(`controller pid ${controllerPid} no longer exists`);
+                }
+            }, 5_000);
+            parentWatcher.unref?.();
+        }
+    }
+
     // Buffer stdin by line so rapid UI updates cannot be coalesced or split.
     const input = createLineInput(process.stdin);
     runtime.input = input;
@@ -612,6 +643,12 @@ async function main() {
                 }
             }
         }
+    });
+
+    // Parent pipe closed or errored: the controller is gone or stopping.
+    // Shut down so browser workers are always disarmed by a live owner.
+    input.on('eof', () => {
+        void shutdownService('controller stdin closed');
     });
     
     console.log(`PoE Trade Auto - Connect to Existing Browser (${gameConfig.label})\n`);

@@ -211,10 +211,36 @@ class TradeService(QObject):
         except (OSError, TypeError, ValueError):
             return None
 
+    @staticmethod
+    def _pid_cmdline_matches(pid: int, expected_fragment: str) -> bool:
+        """Return whether the process still runs the expected command line.
+
+        Guards against a recycled PID making an ownership lock look alive
+        forever. On any read failure, assume match (fail closed) so we never
+        steal another process's lock on incomplete information.
+        """
+        try:
+            with open(f"/proc/{pid}/cmdline", "rb") as handle:
+                cmdline = handle.read().decode("utf-8", errors="replace")
+        except OSError:
+            return True
+        return expected_fragment in cmdline
+
+    def _owner_lock_is_stale(self, owner_pid: int) -> bool:
+        """A lock is stale when its PID is dead or was recycled by another program."""
+        if not self._pid_is_alive(owner_pid):
+            return True
+        if platform.system() == "Windows":
+            return False
+        # The controller is this Python GUI process; its cmdline contains
+        # this script path fragment. A recycled PID running something else
+        # does not.
+        return not self._pid_cmdline_matches(owner_pid, "python")
+
     def _claim_ownership(self):
         """Atomically claim this installation without inspecting other Node processes."""
         owner_pid = self._read_owner_pid()
-        if owner_pid and self._pid_is_alive(owner_pid):
+        if owner_pid and not self._owner_lock_is_stale(owner_pid):
             return False, owner_pid
 
         if owner_pid is not None or os.path.exists(self.owner_file):
@@ -398,6 +424,10 @@ class TradeService(QObject):
                 cmd.append("--zone-gate")
             if auto_resume:
                 cmd.append("--auto-resume")
+            # H4: let Node verify this controller is still alive so it can
+            # never outlive a hard-killed GUI as an autonomous orphan.
+            if platform.system() != "Windows":
+                cmd.append(f"--controller-pid={os.getpid()}")
             
             popen_kwargs = dict(
                 cwd=self.service_dir,

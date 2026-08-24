@@ -331,6 +331,7 @@ class TradeServiceStartTests(TradeServiceTestCase):
                 "--allowed-zone=FutureLeagueHub",
                 "--zone-gate",
                 "--auto-resume",
+                f"--controller-pid={os.getpid()}",
             ],
         )
         self.assertFalse(kwargs["shell"])
