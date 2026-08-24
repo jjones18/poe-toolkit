@@ -393,6 +393,9 @@ async function renewOrRepairMonitoredPageWorker(
         renewed = await page.evaluate(renewPageWorkerLease, {
             runId,
             leaseExpiresAt: workerOptions.leaseExpiresAt,
+            // Heartbeat reconciliation: push the CURRENT gate state so a lost
+            // zone-change event cannot leave a stale zoneSafe=true in place.
+            zoneSafe: runtime.zoneGate ? runtime.zoneGate.getState().safe : false,
         });
     } catch (err) {
         // A page in the middle of navigation will be retried on the next heartbeat.
@@ -712,7 +715,7 @@ async function startMonitoring(browser, gameConfig) {
             tradePath: gameConfig.tradePath,
             pollIntervalMs: state.pollIntervalMs,
             confirmationRetryMs: state.confirmationRetryMs,
-            zoneSafe: runtime.zoneGate ? runtime.zoneGate.getState().safe : true,
+            zoneSafe: runtime.zoneGate ? runtime.zoneGate.getState().safe : false,
         });
 
         // Inject the event-driven worker with a fast renderer-local polling fallback.

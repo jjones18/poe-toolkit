@@ -129,6 +129,28 @@ function installDefaultWorker(overrides = {}) {
     });
 }
 
+test('missing zoneSafe option fails closed (worker installs blocked from clicking)', () => {
+    withFakeBrowser({}, () => {
+        installDefaultWorker({});
+        const state = global.window.poeAutoClicker;
+        assert.equal(state.zoneSafe, false);
+    });
+});
+
+test('explicitly undefined zoneSafe via null also fails closed', () => {
+    withFakeBrowser({}, () => {
+        installDefaultWorker({ zoneSafe: null });
+        assert.equal(global.window.poeAutoClicker.zoneSafe, false);
+    });
+});
+
+test('zoneSafe must be exactly true to arm clicking', () => {
+    withFakeBrowser({}, () => {
+        installDefaultWorker({ zoneSafe: true });
+        assert.equal(global.window.poeAutoClicker.zoneSafe, true);
+    });
+});
+
 test('older controller generation cannot overwrite a newer page worker', () => {
     withFakeBrowser({}, () => {
         installDefaultWorker({ runId: 'run-new', generation: 2 });
@@ -227,7 +249,7 @@ test('Teleport anyway remains immediate after this run initiates Travel', () => 
     withFakeBrowser({ now: 6_000 }, ({ buttons, tickIntervals }) => {
         const travel = createButton('Travel to Hideout');
         buttons.push(travel);
-        installDefaultWorker({ leaseExpiresAt: 8_000 });
+        installDefaultWorker({ leaseExpiresAt: 8_000, zoneSafe: true });
 
         assert.equal(travel.clicks, 1);
         assert.equal(global.window.poeAutoClicker.paused, true);
@@ -245,7 +267,7 @@ test('disabled Teleport anyway is neither clicked nor counted', () => {
         const listing = createListing();
         const travel = createButton('Travel to Hideout', { listing });
         buttons.push(travel);
-        installDefaultWorker({ leaseExpiresAt: 10_000 });
+        installDefaultWorker({ leaseExpiresAt: 10_000, zoneSafe: true });
 
         const teleport = createButton('In demand. Teleport anyway?', {
             listing,
@@ -266,7 +288,7 @@ test('Teleport anyway is limited to the listing this run selected', () => {
         const unrelatedListing = createListing();
         const travel = createButton('Travel to Hideout', { listing: selectedListing });
         buttons.push(travel);
-        installDefaultWorker({ leaseExpiresAt: 10_000 });
+        installDefaultWorker({ leaseExpiresAt: 10_000, zoneSafe: true });
 
         const unrelated = createButton('Teleport anyway', { listing: unrelatedListing });
         const selected = createButton('Teleport anyway', { listing: selectedListing });
@@ -289,7 +311,7 @@ test('fast path immediately confirms and makes one rapid bounded retry', () => {
         const listing = createListing();
         const travel = createButton('Travel to Hideout', { listing });
         buttons.push(travel);
-        installDefaultWorker({ leaseExpiresAt: 10_000 });
+        installDefaultWorker({ leaseExpiresAt: 10_000, zoneSafe: true });
 
         assert.deepEqual(intervalDelays(), [10]);
         assert.equal(travel.clicks, 1);
@@ -327,9 +349,38 @@ test('worker refuses to click after SPA navigation leaves its live search', () =
     });
 });
 
+test('lease renewal reconciles zone safety (lost change-event self-heals)', () => {
+    withFakeBrowser({}, () => {
+        installDefaultWorker({ zoneSafe: true });
+        assert.equal(global.window.poeAutoClicker.zoneSafe, true);
+
+        // Renewal carrying zoneSafe=false (player entered a map) must flip the worker blocked.
+        assert.equal(
+            renewPageWorkerLease({ runId: 'run-1', leaseExpiresAt: 8_000, zoneSafe: false }),
+            true,
+        );
+        assert.equal(global.window.poeAutoClicker.zoneSafe, false);
+        assert.equal(global.window.poeAutoClicker.leaseExpiresAt, 8_000);
+
+        // And back to safe on returning to town.
+        assert.equal(
+            renewPageWorkerLease({ runId: 'run-1', leaseExpiresAt: 9_000, zoneSafe: true }),
+            true,
+        );
+        assert.equal(global.window.poeAutoClicker.zoneSafe, true);
+
+        // A renewal without a boolean zoneSafe leaves existing state untouched.
+        assert.equal(
+            renewPageWorkerLease({ runId: 'run-1', leaseExpiresAt: 10_000 }),
+            true,
+        );
+        assert.equal(global.window.poeAutoClicker.zoneSafe, true);
+    });
+});
+
 test('only the owning run can renew a worker lease', () => {
     withFakeBrowser({}, ({ now, buttons, tickIntervals }) => {
-        installDefaultWorker({ leaseExpiresAt: 1_500 });
+        installDefaultWorker({ leaseExpiresAt: 1_500, zoneSafe: true });
         assert.equal(renewPageWorkerLease({ runId: 'stale-run', leaseExpiresAt: 8_000 }), false);
         assert.equal(renewPageWorkerLease({ runId: 'run-1', leaseExpiresAt: 8_000 }), true);
 

@@ -52,7 +52,7 @@ function installPageWorker(options) {
         generation: options.generation,
         leaseExpiresAt: options.leaseExpiresAt,
         tradePath: options.tradePath,
-        zoneSafe: options.zoneSafe !== false,
+        zoneSafe: options.zoneSafe === true,
         maxClicksPerListing: 3,
         listingClicks: new WeakMap(),
     };
@@ -226,6 +226,12 @@ function renewPageWorkerLease(options) {
     const state = window.poeAutoClicker;
     if (!state || !state.running || state.runId !== options.runId) return false;
     state.leaseExpiresAt = options.leaseExpiresAt;
+    // Reconcile zone safety on every heartbeat. If a zone-gate 'change' push
+    // was lost (CDP hiccup mid-navigation), the next renewal corrects it
+    // instead of letting a stale zoneSafe=true survive indefinitely.
+    if (typeof options.zoneSafe === 'boolean') {
+        state.zoneSafe = options.zoneSafe;
+    }
     return true;
 }
 
