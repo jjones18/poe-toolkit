@@ -187,6 +187,7 @@ class ConfigManager:
         "overlay",      # calibration settings are PC-specific
         "window",       # window position is PC-specific
         "calibration",  # All calibration data
+        "crafting",     # Per-user hotkeys, timing, and attempt preferences
     }
     
     # Nested keys within league_vision that are user-specific
@@ -286,6 +287,17 @@ class ConfigManager:
             "custom_allowed_zones": {
                 "poe1": [],
                 "poe2": []
+            }
+        },
+        "crafting": {
+            "poe1": {
+                "mode": "links",
+                "target": 5,
+                "unlimited": True,
+                "max_attempts": 1500,
+                "apply_delay_ms": 80,
+                "start_hotkey": "Numpad Plus",
+                "stop_hotkey": "Numpad Minus"
             }
         },
         "kalguur_dust": {

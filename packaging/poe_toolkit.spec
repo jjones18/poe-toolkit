@@ -24,6 +24,10 @@ hiddenimports = [
     "mss",
     "numpy",
     "pynput",
+    "dbus",
+    "dbus.bus",
+    "dbus.mainloop",
+    "dbus.mainloop.glib",
     "pytesseract",
 ]
 

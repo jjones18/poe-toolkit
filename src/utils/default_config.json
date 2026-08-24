@@ -121,5 +121,16 @@
         "auto_resume_delay_ms": 30000,
         "zone_gate_enabled": true
     },
+    "crafting": {
+        "poe1": {
+            "mode": "links",
+            "target": 5,
+            "unlimited": true,
+            "max_attempts": 1500,
+            "apply_delay_ms": 80,
+            "start_hotkey": "Numpad Plus",
+            "stop_hotkey": "Numpad Minus"
+        }
+    },
     "debug_mode": false
 }

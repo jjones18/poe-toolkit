@@ -28,6 +28,17 @@
             "poe2": []
         }
     },
+    "crafting": {
+        "poe1": {
+            "mode": "links",
+            "target": 5,
+            "unlimited": true,
+            "max_attempts": 1500,
+            "apply_delay_ms": 80,
+            "start_hotkey": "Numpad Plus",
+            "stop_hotkey": "Numpad Minus"
+        }
+    },
     "overlay": {
         "x_offset": 18,
         "y_offset": 160,
