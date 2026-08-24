@@ -116,6 +116,10 @@ def scan_ultimatum_operation(session_id, account, league, config, tab_indices, p
         if failed_tabs and len(failed_tabs) == total_tabs:
             details = "; ".join(f"{idx}: {msg}" for idx, msg in failed_tabs[:3])
             raise RuntimeError(f"Every selected stash tab fetch failed ({details}). Check credentials/league/network and Retry.")
+        # C4: surface aggregate rate-limit skips so a rescan is obvious.
+        rate_limited = [idx for idx, msg in failed_tabs if "429" in msg or "rate limit" in msg.lower()]
+        if rate_limited:
+            print(f"WARNING: {len(rate_limited)}/{total_tabs} tab(s) skipped due to PoE API rate limiting; rescan those tabs.")
         return all_highlights, found_stats, all_parsed_items, price_fetcher
     finally:
         client.close()

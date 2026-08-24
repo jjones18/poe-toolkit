@@ -172,6 +172,15 @@ def scan_stash_operation(session_id: str, account: str, league: str, tab_indices
             detail = "; ".join(failed_tabs[:3]) or "all selected tabs returned invalid responses"
             raise RuntimeError(f"Every selected stash tab fetch failed ({total_tabs}/{total_tabs}). {detail}. Check credentials/league/network and Retry.")
         stats['failed_tabs'] = failed_tabs
+        # C4: make rate-limit losses obvious so a rescan is clearly needed
+        # instead of tabs disappearing as individual log lines.
+        rate_limited = [m for m in failed_tabs if "429" in m or "rate limit" in m.lower()]
+        stats['rate_limited_tabs'] = len(rate_limited)
+        if rate_limited:
+            log(
+                f"WARNING: {len(rate_limited)}/{total_tabs} tab(s) were skipped due to PoE API "
+                f"rate limiting. Wait a minute and rescan those tabs."
+            )
         stats['tabs_with_items'] = list(stats['tabs_with_items'])
         all_items.sort(key=lambda item: item.efficiency if item.efficiency is not None else -1, reverse=True)
         log(f"Scan complete. Found {stats['valuable_uniques']} valuable uniques out of {stats['total_uniques']} total.")
