@@ -191,8 +191,16 @@ function getGameConfig(args) {
 function isLiveTradeUrl(url, tradePath) {
     try {
         const parsed = new URL(url);
+        // Strict host boundary: exact match or subdomain of pathofexile.com.
+        // Loose includes() previously accepted hosts like evilpathofexile.com.
+        const host = parsed.hostname.toLowerCase();
+        const isHostMatch = (
+            host === 'pathofexile.com' ||
+            host === 'www.pathofexile.com' ||
+            host.endsWith('.pathofexile.com')
+        );
         const isPathMatch = parsed.pathname === tradePath || parsed.pathname.startsWith(`${tradePath}/`);
-        return parsed.hostname.includes('pathofexile.com') && isPathMatch && parsed.pathname.includes('/live');
+        return isHostMatch && isPathMatch && parsed.pathname.includes('/live');
     } catch (err) {
         return false;
     }
@@ -270,7 +278,13 @@ function attachTravelResponseLogging(page, searchId, runId) {
         } catch (err) {
             return;
         }
-        if (url.hostname !== 'www.pathofexile.com' || url.pathname !== '/api/trade/whisper') {
+        const whisperHost = url.hostname.toLowerCase();
+        const whisperHostOk = (
+            whisperHost === 'pathofexile.com' ||
+            whisperHost === 'www.pathofexile.com' ||
+            whisperHost.endsWith('.pathofexile.com')
+        );
+        if (!whisperHostOk || url.pathname !== '/api/trade/whisper') {
             return;
         }
 
@@ -1122,6 +1136,7 @@ module.exports = {
     updateActiveWorkerCooldown,
     updateActiveWorkerZoneSafety,
     waitForEnterOrTimeout,
+    isLiveTradeUrl,
 };
 
 

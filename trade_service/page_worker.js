@@ -78,7 +78,15 @@ function installPageWorker(options) {
         try {
             const parsed = new URL(window.location.href);
             const expectedSuffix = `/${state.searchId}/live`;
-            return parsed.hostname.endsWith('pathofexile.com') &&
+            // Strict host boundary: subdomains allowed, suffix impostors
+            // like pathofexile.com.evil.io rejected.
+            const host = parsed.hostname.toLowerCase();
+            const isHostMatch = (
+                host === 'pathofexile.com' ||
+                host === 'www.pathofexile.com' ||
+                host.endsWith('.pathofexile.com')
+            );
+            return isHostMatch &&
                 parsed.pathname.startsWith(`${state.tradePath}/search/`) &&
                 parsed.pathname.endsWith(expectedSuffix);
         } catch (err) {

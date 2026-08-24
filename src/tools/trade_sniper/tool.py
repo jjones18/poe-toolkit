@@ -68,6 +68,20 @@ def prepare_trade_profile_dir(target_dir=None, legacy_dir=None):
     return target
 
 
+def _is_pathofexile_trade_host(hostname: str) -> bool:
+    """Strict host boundary shared with trade_monitor.js/page_worker.js.
+
+    Accepts pathofexile.com, www.pathofexile.com, and subdomains; rejects
+    suffix impostors like evilpathofexile.com and pathofexile.com.evil.io.
+    """
+    host = (hostname or "").lower()
+    return (
+        host == "pathofexile.com"
+        or host == "www.pathofexile.com"
+        or host.endswith(".pathofexile.com")
+    )
+
+
 def evaluate_devtools_readiness(version: dict, targets: list, trade_url: str):
     """Validate CDP identity and find a page under the selected game's trade path."""
     if not isinstance(version, dict) or not version.get("webSocketDebuggerUrl"):
@@ -83,7 +97,9 @@ def evaluate_devtools_readiness(version: dict, targets: list, trade_url: str):
             candidate.path == expected_path
             or candidate.path.startswith(f"{expected_path}/")
         )
-        if candidate.netloc == expected.netloc and path_matches:
+        # Host check mirrors the Node service so a tab accepted here is also
+        # accepted by the monitor (and vice versa).
+        if _is_pathofexile_trade_host(candidate.hostname) and path_matches:
             browser = version.get("Browser", "Chromium")
             return True, f"{browser}: compatible trade tab ready"
 
