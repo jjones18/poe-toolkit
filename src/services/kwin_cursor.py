@@ -55,7 +55,13 @@ def read_kwin_cursor_position() -> tuple[int, int]:
             timeout=2,
         )
         pattern = re.compile(rf"{re.escape(marker)} x=(-?\d+) y=(-?\d+)")
+        # C2: poll with a single growing journalctl read instead of one
+        # subprocess spawn per 30ms tick (up to ~50 spawns over the old
+        # 1.5s deadline). Each retry widens the window and the sleep grows
+        # with it, so a typical read resolves in 1-3 journalctl calls.
+        delay = 0.03
         deadline = time.monotonic() + 1.5
+        lines_seen = 40
         while time.monotonic() < deadline:
             journal = subprocess.run(
                 [
@@ -63,7 +69,7 @@ def read_kwin_cursor_position() -> tuple[int, int]:
                     "--user",
                     "-b",
                     "-n",
-                    "120",
+                    str(lines_seen),
                     "--no-pager",
                     "-o",
                     "cat",
@@ -76,7 +82,9 @@ def read_kwin_cursor_position() -> tuple[int, int]:
             match = pattern.search(journal.stdout)
             if match:
                 return int(match.group(1)), int(match.group(2))
-            time.sleep(0.03)
+            lines_seen = min(lines_seen * 2, 2000)
+            time.sleep(delay)
+            delay = min(delay * 2, 0.25)
         raise RuntimeError("Timed out reading KWin compositor cursor position")
     finally:
         if script_id is not None:
