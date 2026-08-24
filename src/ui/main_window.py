@@ -23,6 +23,11 @@ from utils.coordinate_mapper import StashGridMapper
 from utils import platform_utils
 from services.trade_service import TradeService
 from services.price_service import PriceService
+from services.game_input_service import (
+    GameInputService,
+    GameInputUnavailable,
+    WindowSnapshot,
+)
 
 
 class SidebarButton(QPushButton):
@@ -67,7 +72,8 @@ class MainWindow(QMainWindow):
     """Main application window with sidebar navigation."""
     
     def __init__(self, trade_service: TradeService | None = None,
-                 price_service: PriceService | None = None):
+                 price_service: PriceService | None = None,
+                 game_input_service: GameInputService | None = None):
         super().__init__()
         self.setWindowTitle("POE Toolkit")
         self.setMinimumSize(900, 700)
@@ -79,6 +85,7 @@ class MainWindow(QMainWindow):
         active_league = ConfigManager.get_game_league(self.config, active_game)
         self.price_service = price_service or PriceService(active_game, active_league)
         self.price_service.set_context(active_game, active_league)
+        self.game_input_service = game_input_service or GameInputService()
         
         # Restore window geometry safely across monitor changes.
         geometry = self._safe_restored_geometry(self.config.get("window", {}))
@@ -231,7 +238,7 @@ class MainWindow(QMainWindow):
         # Overlay controls
         self.overlay_btn = SidebarButton("Show Overlay")
         self.overlay_btn.setAccessibleName("Show Overlay")
-        self.overlay_btn.setToolTip("Toggle all overlay layers on or off (highlight, debug, calibration, alerts, blockers)")
+        self.overlay_btn.setToolTip("Toggle all overlay layers on or off (highlight, debug, calibration, target preview, alerts, blockers)")
         self.overlay_btn.setShortcut("Ctrl+O")
         self.overlay_btn.clicked.connect(self.toggle_overlay)
         layout.addWidget(self.overlay_btn)
@@ -309,6 +316,7 @@ class MainWindow(QMainWindow):
         from tools.diagnostics_tool import DiagnosticsTool
         from tools.settings_tool import SettingsTool
         from tools.trade_sniper import TradeSniperTool
+        from tools.crafting import CraftingTool
 
         active_game = ConfigManager.get_active_game(self.config)
         tool_specs: list[tuple[type | None, dict]] = [
@@ -338,6 +346,11 @@ class MainWindow(QMainWindow):
         tool_specs.append((TradeSniperTool, {
             "config": self.config,
             "service": self.trade_service,
+        }))
+        tool_specs.append((CraftingTool, {
+            "config": self.config,
+            "save_callback": self._persist_config,
+            "game_input_service": self.game_input_service,
         }))
         tool_specs.append((DiagnosticsTool, {
             "config": self.config,
@@ -398,6 +411,12 @@ class MainWindow(QMainWindow):
             widget.overlay_debug_rect_update.connect(self.overlay.set_debug_rect)
         if hasattr(widget, "overlay_guidance_update"):
             widget.overlay_guidance_update.connect(self.overlay.set_guidance_text)
+        if hasattr(widget, "calibration_requested"):
+            widget.calibration_requested.connect(self.on_crafting_calibration_requested)
+        if hasattr(widget, "target_preview_requested"):
+            widget.target_preview_requested.connect(self.on_target_preview_requested)
+        if hasattr(widget, "target_preview_clear_requested"):
+            widget.target_preview_clear_requested.connect(self.on_target_preview_clear_requested)
 
     def _add_unavailable_tool(self, name: str, error: Exception):
         """Add an actionable placeholder without breaking navigation indices."""
@@ -650,9 +669,12 @@ class MainWindow(QMainWindow):
             self.overlay_btn.setChecked(True)
     
     def start_calibration(self, cal_type: CalibrationType = CalibrationType.STASH_GRID,
-                          stash_profile: StashGridProfile = StashGridProfile.STANDARD):
+                          stash_profile: StashGridProfile = StashGridProfile.STANDARD,
+                          *, game_id: str | None = None,
+                          point_role: str | None = None,
+                          point_label: str | None = None):
         """Start calibration over the exact active-game window on its monitor."""
-        game_id = ConfigManager.get_active_game(self.config)
+        game_id = game_id or ConfigManager.get_active_game(self.config)
         game_profile = ConfigManager.GAME_PROFILES[game_id]
         game_title = platform_utils.exact_window_title_for_game(game_id)
         game_match = platform_utils.POE_GAME_MATCHES[game_id]
@@ -685,7 +707,13 @@ class MainWindow(QMainWindow):
             int(game_rect["width"]),
             int(game_rect["height"]),
         )
-        msg = self.calibration_manager.start_calibration(cal_type, stash_profile)
+        msg = self.calibration_manager.start_calibration(
+            cal_type,
+            stash_profile,
+            game_id=game_id,
+            point_role=point_role,
+            point_label=point_label,
+        )
         self.overlay.enable_for_calibration(target_geometry)
         self.overlay_btn.setChecked(True)
         self.overlay.set_calibration_mode(True, msg)
@@ -699,6 +727,62 @@ class MainWindow(QMainWindow):
         suffix = f" - {stash_profile.label}" if cal_type == CalibrationType.STASH_GRID else ""
         self.status_label.setText(f"Calibrating: {config.name}{suffix}")
         return True
+
+    def on_crafting_calibration_requested(self, game_id: str, role: str, label: str):
+        """Route Crafting bounds/point calibration through the shared overlay."""
+        if role == "bounds":
+            return self.start_calibration(
+                CalibrationType.CURRENCY_TAB_BOUNDS,
+                game_id=game_id,
+            )
+        return self.start_calibration(
+            CalibrationType.CRAFTING_POINT,
+            game_id=game_id,
+            point_role=role,
+            point_label=label,
+        )
+
+    def on_target_preview_requested(self, game_id: str, targets):
+        """Resolve and show click-through targets without preparing game input."""
+        from tools.crafting.layout import targets_to_desktop_markers
+
+        match = platform_utils.POE_GAME_MATCHES[game_id]
+        rect = platform_utils.find_window_rect(
+            platform_utils.exact_window_title_for_game(game_id),
+            exact_title=True,
+            process_names=match["process_names"],
+            title_matcher=lambda title: platform_utils.is_exact_poe_window_title(title, game_id),
+        )
+        if not rect:
+            self.status_label.setText("Target preview unavailable: exact game window not found")
+            return False
+        snapshot = WindowSnapshot(
+            game_id=game_id,
+            title=platform_utils.exact_window_title_for_game(game_id),
+            process_name="",
+            pid="",
+            left=int(rect["left"]),
+            top=int(rect["top"]),
+            width=int(rect["width"]),
+            height=int(rect["height"]),
+        )
+        try:
+            markers = targets_to_desktop_markers(targets, snapshot)
+        except (GameInputUnavailable, KeyError, TypeError, ValueError) as error:
+            self.overlay.clear_target_preview()
+            self.status_label.setStyleSheet("color: #ff6666;")
+            self.status_label.setText(f"Target preview rejected: {error}")
+            return False
+        geometry = QRect(snapshot.left, snapshot.top, snapshot.width, snapshot.height)
+        self.overlay.enable_target_preview(geometry, markers)
+        self.overlay_btn.setChecked(True)
+        self.status_label.setStyleSheet("color: #66ff66;")
+        self.status_label.setText("Target preview shown — click-through; no input sent")
+        return True
+
+    def on_target_preview_clear_requested(self):
+        self.overlay.clear_target_preview()
+        self.status_label.setText("Target preview cleared")
     
     def on_calibration_click(self, x: int, y: int):
         """Handle calibration clicks using CalibrationManager."""
@@ -717,73 +801,132 @@ class MainWindow(QMainWindow):
             pass
 
     def on_calibration_complete(self, cal_type: CalibrationType, result: dict):
-        """Handle calibration completion."""
+        """Preview, confirm, and persist a completed calibration."""
         config = CALIBRATION_CONFIGS[cal_type]
-        
-        # Show preview on overlay
-        if cal_type == CalibrationType.STASH_GRID:
-            is_quad = result.get('is_quad_calibrated', False)
-            self.overlay.set_calibration_preview(
-                result.get('x_offset', result.get('x', 0)),
-                result.get('y_offset', result.get('y', 0)),
-                result.get('cell_size', 52),
-                is_quad,
-                cols=result.get('grid_cols'),
-                rows=result.get('grid_rows'),
-                cell_width=result.get('cell_width'),
-                cell_height=result.get('cell_height'),
-            )
-        else:
-            # For other regions, show a simple rect preview
-            self.overlay.set_calibration_region_preview(
-                result['x'], result['y'], result['width'], result['height']
-            )
-        
-        self.overlay.set_calibration_mode(False)
-        
-        # Update mapper if this was stash grid calibration (so the preview works if we use set_calibration_preview)
-        if cal_type == CalibrationType.STASH_GRID:
-            self.mapper.offset_x = result.get('x_offset', result.get('x', 0))
-            self.mapper.offset_y = result.get('y_offset', result.get('y', 0))
-            self.mapper.cell_size = result.get('cell_size', 52)
-            
-            profile = StashGridProfile.from_value(result.get('profile'))
-            status_msg = (f"Profile: {profile.label}\n"
-                          f"Grid: {result.get('grid_cols', profile.grid_size)} x {result.get('grid_rows', profile.grid_size)}\n"
-                          f"Offset: ({self.mapper.offset_x}, {self.mapper.offset_y})\n"
-                          f"Cell Size: {self.mapper.cell_size}")
-        else:
-            status_msg = (f"Region: ({result['x']}, {result['y']}) - "
-                          f"({result['x2']}, {result['y2']})\n"
-                          f"Size: {result['width']} x {result['height']}")
 
-        # Show blocking dialog
+        if cal_type in {
+            CalibrationType.CURRENCY_TAB_BOUNDS,
+            CalibrationType.CRAFTING_POINT,
+        }:
+            geometry = self.overlay.calibration_target_geometry
+            if geometry is None:
+                self.calibration_manager.cancel()
+                self.status_label.setText("Calibration rejected: game-window reference was lost")
+                return
+            result["window_rect"] = {
+                "left": geometry.x(),
+                "top": geometry.y(),
+                "width": geometry.width(),
+                "height": geometry.height(),
+            }
+
+        if cal_type == CalibrationType.STASH_GRID:
+            is_quad = result.get("is_quad_calibrated", False)
+            self.overlay.set_calibration_preview(
+                result.get("x_offset", result.get("x", 0)),
+                result.get("y_offset", result.get("y", 0)),
+                result.get("cell_size", 52),
+                is_quad,
+                cols=result.get("grid_cols"),
+                rows=result.get("grid_rows"),
+                cell_width=result.get("cell_width"),
+                cell_height=result.get("cell_height"),
+            )
+        elif cal_type == CalibrationType.CURRENCY_TAB_BOUNDS:
+            from tools.crafting.layout import derive_currency_points, preview_markers
+
+            # A new bounds calibration intentionally resets old absolute point
+            # overrides, so preview only newly-derived coordinates.
+            try:
+                points = derive_currency_points(result)
+            except ValueError as error:
+                self.overlay.clear_calibration_preview()
+                self.overlay.finish_calibration()
+                self.calibration_manager.cancel()
+                self.status_label.setStyleSheet("color: #ff6666;")
+                self.status_label.setText(f"Calibration rejected: {error}")
+                QMessageBox.warning(self, "Invalid Calibration", str(error))
+                try:
+                    self.overlay.calibration_clicked.disconnect(self.on_calibration_click)
+                except TypeError:
+                    pass
+                return
+            self.overlay.set_calibration_region_preview(
+                result["x"], result["y"], result["width"], result["height"]
+            )
+            self.overlay.set_calibration_point_previews(preview_markers(points))
+        elif cal_type == CalibrationType.CRAFTING_POINT:
+            from tools.crafting.layout import POINT_COLORS
+
+            self.overlay.set_calibration_point_previews([{
+                "x": result["x"],
+                "y": result["y"],
+                "label": result.get("point_label", "Crafting Point"),
+                "color": POINT_COLORS.get(result.get("point_role"), "#ffffff"),
+            }])
+        else:
+            self.overlay.set_calibration_region_preview(
+                result["x"], result["y"], result["width"], result["height"]
+            )
+
+        self.overlay.set_calibration_mode(False)
+
+        if cal_type == CalibrationType.STASH_GRID:
+            self.mapper.offset_x = result.get("x_offset", result.get("x", 0))
+            self.mapper.offset_y = result.get("y_offset", result.get("y", 0))
+            self.mapper.cell_size = result.get("cell_size", 52)
+            profile = StashGridProfile.from_value(result.get("profile"))
+            status_msg = (
+                f"Profile: {profile.label}\n"
+                f"Grid: {result.get('grid_cols', profile.grid_size)} x "
+                f"{result.get('grid_rows', profile.grid_size)}\n"
+                f"Offset: ({self.mapper.offset_x}, {self.mapper.offset_y})\n"
+                f"Cell Size: {self.mapper.cell_size}"
+            )
+        elif cal_type == CalibrationType.CRAFTING_POINT:
+            status_msg = (
+                f"{result.get('point_label', 'Crafting point')}: "
+                f"({result['x']}, {result['y']})"
+            )
+        else:
+            status_msg = (
+                f"Region: ({result['x']}, {result['y']}) - "
+                f"({result['x2']}, {result['y2']})\n"
+                f"Size: {result['width']} x {result['height']}"
+            )
+
         reply = QMessageBox.question(
             self,
             "Confirm Calibration",
             f"{config.name} calibrated!\n\n{status_msg}\n\n"
-            "Is the full-grid preview correct? Calibration will only be saved if you choose Yes.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            "Is the highlighted preview correct? Calibration will only be saved if you choose Yes.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
-        
-        # Clear preview
+
         self.overlay.clear_calibration_preview()
         self.overlay.finish_calibration()
-        
+
         if reply == QMessageBox.StandardButton.Yes:
-            # Confirm and save
-            self.calibration_manager.confirm_calibration(result)
-            self.status_label.setText(f"Calibrated: {config.name}")
+            if self.calibration_manager.confirm_calibration(result):
+                self.status_label.setText(f"Calibrated: {config.name}")
+                for tool in self.tools:
+                    refresh = getattr(getattr(tool, "widget", None), "refresh_calibration", None)
+                    if callable(refresh):
+                        refresh()
+            else:
+                self.status_label.setStyleSheet("color: #ff6666;")
+                self.status_label.setText(
+                    "Calibration save failed; previous calibration preserved"
+                )
         else:
-            # Cancel
             self.calibration_manager.cancel()
             self.status_label.setText("Calibration cancelled")
-            
+
         try:
             self.overlay.calibration_clicked.disconnect(self.on_calibration_click)
         except TypeError:
             pass
-    
+
     def show_calibration_status(self):
         """Show current calibration status for all regions."""
         status = get_calibration_status_text(self.calibration_manager)
@@ -825,8 +968,8 @@ class MainWindow(QMainWindow):
         return self._persist_config()
 
     def _persist_config_callback(self):
-        """Calibration callback adapter, whose contract has no return value."""
-        self._persist_config()
+        """Persist calibration and return success for transactional confirmation."""
+        return self._persist_config()
 
     def _persist_config(self):
         """Persist shared config and expose failures through the main status UI."""
@@ -858,6 +1001,10 @@ class MainWindow(QMainWindow):
             return
 
         if not self.price_service.close(timeout_ms=20_000):
+            event.ignore()
+            return
+
+        if not self.game_input_service.close():
             event.ignore()
             return
 

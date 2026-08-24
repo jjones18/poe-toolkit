@@ -13,9 +13,10 @@ class CalibrationOverlay(BaseOverlay):
         self.message = ""
         self.preview_rects = None # For showing grid preview
         self.region_preview = None # For showing simple region (Rect)
+        self.point_previews = [] # Labeled derived/override crafting points
 
     def has_visible_content(self) -> bool:
-        return bool(self.message or self.preview_rects or self.region_preview)
+        return bool(self.message or self.preview_rects or self.region_preview or self.point_previews)
 
     def set_mode(self, active: bool, message: str = ""):
         self.message = message if active else ""
@@ -28,6 +29,10 @@ class CalibrationOverlay(BaseOverlay):
 
     def set_preview(self, rects: dict):
         self.preview_rects = rects
+        self.update()
+
+    def set_point_previews(self, points: list):
+        self.point_previews = list(points or [])
         self.update()
 
     def mousePressEvent(self, event):
@@ -51,6 +56,23 @@ class CalibrationOverlay(BaseOverlay):
             painter.setPen(pen)
             painter.setBrush(brush)
             painter.drawRect(self.region_preview)
+
+        if self.point_previews:
+            painter.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+            for point in self.point_previews:
+                x = int(point.get("x", 0))
+                y = int(point.get("y", 0))
+                color = QColor(point.get("color", "#ffffff"))
+                color.setAlpha(235)
+                pen = QPen(color)
+                pen.setWidth(3)
+                painter.setPen(pen)
+                painter.setBrush(QColor(color.red(), color.green(), color.blue(), 80))
+                painter.drawEllipse(x - 10, y - 10, 20, 20)
+                painter.drawLine(x - 15, y, x + 15, y)
+                painter.drawLine(x, y - 15, x, y + 15)
+                painter.setPen(QColor(255, 255, 255, 245))
+                painter.drawText(x + 14, y - 10, str(point.get("label", "Point")))
 
         if self.preview_rects:
             grid = self.preview_rects.get('grid')

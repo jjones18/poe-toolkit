@@ -4,8 +4,10 @@ Calibration system for POE Toolkit.
 Supports calibrating active screen regions:
 - Stash grid (explicit Standard 12x12 or Quad 24x24 profiles)
 - Tab bar (for OCR tab detection)
+- Versioned currency-tab bounds and optional per-point overrides
 """
 
+import copy
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Optional, Callable
@@ -15,6 +17,8 @@ class CalibrationType(Enum):
     """Types of calibration supported."""
     STASH_GRID = auto()           # 2 points: top-left, bottom-right
     TAB_BAR = auto()              # 2 points: region to OCR for tab names
+    CURRENCY_TAB_BOUNDS = auto()  # 2 points: outer currency-tab content bounds
+    CRAFTING_POINT = auto()       # 1 point: optional override for a derived point
 
 
 class StashGridProfile(Enum):
@@ -65,6 +69,20 @@ CALIBRATION_CONFIGS = {
         step2_msg="Click BOTTOM-RIGHT of the tab bar region",
         config_key="tab_bar",
     ),
+    CalibrationType.CURRENCY_TAB_BOUNDS: CalibrationConfig(
+        name="Currency Tab Bounds",
+        description="Calibrate outer content bounds used to derive currency crafting points",
+        step1_msg="Click TOP-LEFT of the yellow outer Currency-tab content bounds",
+        step2_msg="Click BOTTOM-RIGHT of the yellow outer Currency-tab content bounds",
+        config_key="currency_tab_profiles",
+    ),
+    CalibrationType.CRAFTING_POINT: CalibrationConfig(
+        name="Crafting Point Override",
+        description="Fine-tune one derived currency-tab point",
+        step1_msg="Click the center of {point_label}",
+        step2_msg="",
+        config_key="currency_tab_profiles",
+    ),
 }
 
 
@@ -104,13 +122,16 @@ def calculate_stash_grid_calibration(p1: tuple, p2: tuple, profile: StashGridPro
 class CalibrationManager:
     """Manages calibration workflows for different screen regions."""
 
-    def __init__(self, config: dict, save_callback: Callable[[], None] = None):
+    def __init__(self, config: dict, save_callback: Callable[[], bool | None] = None):
         self.config = config
         self.save_callback = save_callback
         self.active_type: Optional[CalibrationType] = None
         self.active_stash_profile: StashGridProfile = StashGridProfile.STANDARD
         self.step: int = 0
         self.point1: Optional[tuple] = None
+        self.active_game_id: str = "poe1"
+        self.active_point_role: Optional[str] = None
+        self.active_point_label: str = "crafting point"
         self.on_complete: Optional[Callable[[CalibrationType, dict], None]] = None
         self.on_message: Optional[Callable[[str], None]] = None
 
@@ -118,9 +139,16 @@ class CalibrationManager:
         self,
         cal_type: CalibrationType,
         stash_profile: StashGridProfile | str = StashGridProfile.STANDARD,
+        *,
+        game_id: str = "poe1",
+        point_role: str | None = None,
+        point_label: str | None = None,
     ) -> str:
         self.active_type = cal_type
         self.active_stash_profile = StashGridProfile.from_value(stash_profile)
+        self.active_game_id = str(game_id or "poe1")
+        self.active_point_role = point_role
+        self.active_point_label = str(point_label or "crafting point")
         self.step = 1
         self.point1 = None
         config = CALIBRATION_CONFIGS[cal_type]
@@ -131,6 +159,21 @@ class CalibrationManager:
             return None
         config = CALIBRATION_CONFIGS[self.active_type]
         if self.step == 1:
+            if self.active_type == CalibrationType.CRAFTING_POINT:
+                result = {
+                    "x": int(x),
+                    "y": int(y),
+                    "x2": int(x),
+                    "y2": int(y),
+                    "width": 0,
+                    "height": 0,
+                    "game_id": self.active_game_id,
+                    "point_role": self.active_point_role,
+                    "point_label": self.active_point_label,
+                }
+                if self.on_complete:
+                    self.on_complete(self.active_type, result)
+                return None
             self.point1 = (x, y)
             self.step = 2
             return self._format_step(config.step2_msg)
@@ -143,19 +186,35 @@ class CalibrationManager:
 
     def confirm_calibration(self, result: dict):
         """Confirm and save the pending calibration after UI preview confirmation."""
-        self._save_calibration(result)
+        previous = copy.deepcopy(self.config)
+        try:
+            saved = self._save_calibration(result)
+        except Exception:
+            self.config.clear()
+            self.config.update(previous)
+            self.cancel()
+            raise
+        if not saved:
+            self.config.clear()
+            self.config.update(previous)
         self.cancel()
+        return saved
 
     def cancel(self):
         self.active_type = None
         self.step = 0
         self.point1 = None
+        self.active_point_role = None
+        self.active_point_label = "crafting point"
 
     def is_active(self) -> bool:
         return self.active_type is not None
 
     def _format_step(self, message: str) -> str:
-        return message.format(profile_label=self.active_stash_profile.label)
+        return message.format(
+            profile_label=self.active_stash_profile.label,
+            point_label=self.active_point_label,
+        )
 
     def _calculate_calibration(self, p1: tuple, p2: tuple) -> dict:
         x1, y1 = p1
@@ -176,6 +235,9 @@ class CalibrationManager:
         }
         if self.active_type == CalibrationType.STASH_GRID:
             return calculate_stash_grid_calibration(p1, p2, self.active_stash_profile)
+        if self.active_type == CalibrationType.CURRENCY_TAB_BOUNDS:
+            result["game_id"] = self.active_game_id
+            result["layout_id"] = "poe1_currency_general_v1"
         return result
 
     def _ensure_legacy_stash_profile_migrated(self):
@@ -230,16 +292,76 @@ class CalibrationManager:
             overlay["y_offset"] = saved["y_offset"]
             overlay["cell_size"] = saved["cell_size"]
             overlay["is_quad_calibrated"] = profile is StashGridProfile.QUAD
+        elif self.active_type == CalibrationType.CURRENCY_TAB_BOUNDS:
+            calibration = self.config.setdefault("calibration", {})
+            profiles = calibration.setdefault("currency_tab_profiles", {})
+            currency_profile = profiles.setdefault(self.active_game_id, {})
+            window_rect = result.get("window_rect")
+            if not isinstance(window_rect, dict):
+                raise ValueError("Currency calibration is missing the game-window reference")
+            left = int(window_rect["left"])
+            top = int(window_rect["top"])
+            reference_width = int(window_rect["width"])
+            reference_height = int(window_rect["height"])
+            if reference_width <= 0 or reference_height <= 0:
+                raise ValueError("Currency calibration has an invalid game-window reference")
+            saved = {
+                "x": int(result["x"]) - left,
+                "y": int(result["y"]) - top,
+                "x2": int(result["x2"]) - left,
+                "y2": int(result["y2"]) - top,
+                "width": int(result["width"]),
+                "height": int(result["height"]),
+            }
+            currency_profile["bounds"] = saved
+            currency_profile["layout_id"] = result.get(
+                "layout_id", "poe1_currency_general_v1"
+            )
+            currency_profile["coordinate_space"] = "game_window"
+            currency_profile["reference_window"] = {
+                "width": reference_width,
+                "height": reference_height,
+            }
+            # Recalibration invalidates any prior fine-tuned points.
+            currency_profile["overrides"] = {}
+        elif self.active_type == CalibrationType.CRAFTING_POINT:
+            if not self.active_point_role:
+                raise ValueError("Crafting point calibration has no role")
+            calibration = self.config.setdefault("calibration", {})
+            profiles = calibration.setdefault("currency_tab_profiles", {})
+            currency_profile = profiles.setdefault(self.active_game_id, {})
+            window_rect = result.get("window_rect")
+            reference = currency_profile.get("reference_window")
+            if (
+                currency_profile.get("coordinate_space") != "game_window"
+                or not isinstance(window_rect, dict)
+                or not isinstance(reference, dict)
+            ):
+                raise ValueError("Calibrate Currency-tab bounds before fine-tuning points")
+            if (
+                int(window_rect.get("width", 0)) != int(reference.get("width", -1))
+                or int(window_rect.get("height", 0)) != int(reference.get("height", -1))
+            ):
+                raise ValueError("Game window size changed; recalibrate Currency-tab bounds")
+            overrides = currency_profile.setdefault("overrides", {})
+            overrides[self.active_point_role] = {
+                "x": int(result["x"]) - int(window_rect["left"]),
+                "y": int(result["y"]) - int(window_rect["top"]),
+            }
         else:
             calibration = self.config.setdefault("calibration", {})
             calibration[key] = result
         if self.save_callback:
-            self.save_callback()
+            return self.save_callback() is not False
+        return True
 
     def get_calibration(
         self,
         cal_type: CalibrationType,
         stash_profile: StashGridProfile | str | None = None,
+        *,
+        game_id: str = "poe1",
+        point_role: str | None = None,
     ) -> Optional[dict]:
         config_info = CALIBRATION_CONFIGS[cal_type]
         key = config_info.config_key
@@ -258,6 +380,21 @@ class CalibrationManager:
                 if legacy == profile:
                     return self.config.get("calibration", {}).get("stash_grid_profiles", {}).get(profile.value)
             return None
+        if cal_type == CalibrationType.CURRENCY_TAB_BOUNDS:
+            return (
+                self.config.get("calibration", {})
+                .get("currency_tab_profiles", {})
+                .get(game_id, {})
+                .get("bounds")
+            )
+        if cal_type == CalibrationType.CRAFTING_POINT:
+            return (
+                self.config.get("calibration", {})
+                .get("currency_tab_profiles", {})
+                .get(game_id, {})
+                .get("overrides", {})
+                .get(point_role)
+            )
         return self.config.get("calibration", {}).get(key)
 
     def is_calibrated(

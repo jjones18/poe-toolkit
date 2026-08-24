@@ -1,6 +1,7 @@
 from .overlays.highlight_overlay import HighlightOverlay
 from .overlays.debug_overlay import DebugOverlay
 from .overlays.calibration_overlay import CalibrationOverlay
+from .overlays.target_preview_overlay import TargetPreviewOverlay
 from .overlays.alert_overlay import AlertOverlay
 from .overlay import BlockerWindow # Reuse existing blocker window logic
 from PyQt6.QtCore import QObject, QPoint, QRect, QTimer, pyqtSignal
@@ -17,9 +18,11 @@ class OverlayManager(QObject):
         super().__init__()
         self.overlay_enabled = False
         self.calibration_target_geometry = None
+        self.target_preview_geometry = None
         self.highlight_layer = HighlightOverlay()
         self.debug_layer = DebugOverlay()
         self.calibration_layer = CalibrationOverlay()
+        self.target_preview_layer = TargetPreviewOverlay()
         self.alert_layer = AlertOverlay()
         self._alert_timer = QTimer(self)
         self._alert_timer.setSingleShot(True)
@@ -30,6 +33,7 @@ class OverlayManager(QObject):
             self.highlight_layer,
             self.debug_layer,
             self.calibration_layer,
+            self.target_preview_layer,
             self.alert_layer,
         ]
         self._sync_layer_geometries()
@@ -44,8 +48,10 @@ class OverlayManager(QObject):
         if geometry:
             for layer in self._all_layers:
                 layer.setGeometry(geometry)
-        if self.calibration_target_geometry:
+        if self.calibration_target_geometry is not None:
             self.calibration_layer.setGeometry(self.calibration_target_geometry)
+        if self.target_preview_geometry is not None:
+            self.target_preview_layer.setGeometry(self.target_preview_geometry)
 
     def _hide_all_layers(self):
         for layer in self._all_layers:
@@ -56,6 +62,7 @@ class OverlayManager(QObject):
     def _raise_visible_layers(self):
         self.debug_layer.raise_()
         self.calibration_layer.raise_()
+        self.target_preview_layer.raise_()
         self.alert_layer.raise_()
 
     def _apply_visibility(self):
@@ -74,6 +81,10 @@ class OverlayManager(QObject):
             self.calibration_layer.show()
         else:
             self.calibration_layer.hide()
+        if self.target_preview_layer.has_visible_content():
+            self.target_preview_layer.show()
+        else:
+            self.target_preview_layer.hide()
         if self.alert_layer.has_visible_content():
             self.alert_layer.show()
         else:
@@ -96,6 +107,25 @@ class OverlayManager(QObject):
         """Release the game-window target after preview confirmation/cancellation."""
         self.calibration_target_geometry = None
         self._sync_layer_geometries()
+
+    def enable_target_preview(self, target_geometry: QRect, targets):
+        """Show labeled global targets over one exact game window without input."""
+        self.target_preview_geometry = QRect(target_geometry)
+        self._sync_layer_geometries()
+        local_targets = []
+        for target in targets or []:
+            local = dict(target)
+            local["x"] = int(target["x"]) - self.target_preview_geometry.x()
+            local["y"] = int(target["y"]) - self.target_preview_geometry.y()
+            local_targets.append(local)
+        self.target_preview_layer.set_targets(local_targets)
+        self.set_overlay_enabled(True)
+
+    def clear_target_preview(self):
+        self.target_preview_layer.clear()
+        self.target_preview_geometry = None
+        self._sync_layer_geometries()
+        self._apply_visibility()
 
     def create_blocker(self, rect: dict, message: str = "UNSAFE"):
         if rect.get('w', 0) <= 0 or rect.get('h', 0) <= 0:
@@ -207,9 +237,22 @@ class OverlayManager(QObject):
         self.calibration_layer.set_region_preview(QRect(x - geometry.x(), y - geometry.y(), w, h))
         self._apply_visibility()
 
+    def set_calibration_point_previews(self, points):
+        """Preview labeled global crafting points in calibration-local coordinates."""
+        geometry = self.calibration_layer.geometry()
+        local_points = []
+        for point in points or []:
+            local = dict(point)
+            local["x"] = int(point["x"]) - geometry.x()
+            local["y"] = int(point["y"]) - geometry.y()
+            local_points.append(local)
+        self.calibration_layer.set_point_previews(local_points)
+        self._apply_visibility()
+
     def clear_calibration_preview(self):
         self.calibration_layer.set_preview(None)
         self.calibration_layer.set_region_preview(None)
+        self.calibration_layer.set_point_previews([])
         self._apply_visibility()
 
     def close(self):

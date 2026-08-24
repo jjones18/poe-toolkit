@@ -61,6 +61,7 @@ from ui.geometry_utils import RectSpec, clamp_window_geometry
 from ui.main_window import MainWindow
 from ui.overlay_manager import OverlayManager
 from ui.overlays.calibration_overlay import CalibrationOverlay
+from ui.overlays.target_preview_overlay import TargetPreviewOverlay
 from utils.config import ConfigManager
 
 
@@ -277,6 +278,55 @@ class CalibrationOverlayInputTests(unittest.TestCase):
         self.assertEqual(received, [(2010, 320)])
 
 
+class TargetPreviewOverlayTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QApplication.instance() or QApplication([])
+
+    def test_target_preview_is_permanently_click_through(self):
+        overlay = TargetPreviewOverlay()
+        self.addCleanup(overlay.close)
+        overlay.set_targets([{"x": 80, "y": 90, "label": "Currency"}])
+
+        self.assertTrue(
+            bool(overlay.windowFlags() & Qt.WindowType.WindowTransparentForInput)
+        )
+        self.assertTrue(
+            bool(overlay.windowFlags() & Qt.WindowType.WindowDoesNotAcceptFocus)
+        )
+        self.assertTrue(
+            bool(overlay.windowFlags() & Qt.WindowType.X11BypassWindowManagerHint)
+        )
+        self.assertTrue(overlay.has_visible_content())
+
+    def test_manager_translates_global_targets_into_exact_game_window(self):
+        manager = OverlayManager()
+        self.addCleanup(manager.close)
+        target = QRect(1440, 1595, 3440, 1440)
+
+        manager.enable_target_preview(
+            target,
+            [{"x": 1540, "y": 1795, "label": "Crafting Item"}],
+        )
+
+        self.assertEqual(manager.target_preview_layer.geometry(), target)
+        self.assertEqual(
+            manager.target_preview_layer.targets[0]["x"], 100
+        )
+        self.assertEqual(
+            manager.target_preview_layer.targets[0]["y"], 200
+        )
+        self.assertTrue(
+            bool(
+                manager.target_preview_layer.windowFlags()
+                & Qt.WindowType.WindowTransparentForInput
+            )
+        )
+
+        manager.clear_target_preview()
+        self.assertFalse(manager.target_preview_layer.has_visible_content())
+
+
 class FakeScannerWorker(QObject):
     debug_rect_signal = pyqtSignal(int, int, int, int, str)
     debug_box_signal = pyqtSignal(int, int, int, int, str)
@@ -382,6 +432,11 @@ class MainWindowCalibrationUiTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
+    @staticmethod
+    def _close_without_persisting(window):
+        with patch.object(ConfigManager, "save", return_value=True):
+            window.close()
+
 
     def test_overlay_updates_do_not_force_show_overlay_on(self):
         config = copy.deepcopy(ConfigManager.DEFAULTS)
@@ -395,7 +450,7 @@ class MainWindowCalibrationUiTests(unittest.TestCase):
             patch("tools.trade_sniper.tool.TradeSniperWidget.check_brave_status"),
         ):
             window = MainWindow(trade_service=service)
-        self.addCleanup(window.close)
+        self.addCleanup(self._close_without_persisting, window)
 
         window.on_overlay_update([{"x": 0, "y": 0, "w": 1, "h": 1}])
         QApplication.processEvents()
@@ -416,7 +471,7 @@ class MainWindowCalibrationUiTests(unittest.TestCase):
             patch("tools.trade_sniper.tool.TradeSniperWidget.check_brave_status"),
         ):
             window = MainWindow(trade_service=service)
-        self.addCleanup(window.close)
+        self.addCleanup(self._close_without_persisting, window)
 
         game_rect = {"left": 1920, "top": 100, "width": 1280, "height": 720}
         with patch("ui.main_window.platform_utils.find_window_rect", return_value=game_rect) as find_window:
@@ -447,7 +502,7 @@ class MainWindowCalibrationUiTests(unittest.TestCase):
             patch("tools.trade_sniper.tool.TradeSniperWidget.check_brave_status"),
         ):
             window = MainWindow(trade_service=service)
-        self.addCleanup(window.close)
+        self.addCleanup(self._close_without_persisting, window)
 
         with (
             patch("ui.main_window.platform_utils.find_window_rect", return_value=None),
@@ -482,7 +537,7 @@ class MainWindowCalibrationUiTests(unittest.TestCase):
             with patch.object(QMessageBox, "question", return_value=QMessageBox.StandardButton.Yes):
                 window.on_calibration_click(0, 0)
                 window.on_calibration_click(120, 120)
-        self.addCleanup(window.close)
+        self.addCleanup(self._close_without_persisting, window)
 
         self.assertIn("standard", window.config["calibration"]["stash_grid_profiles"])
         self.assertGreaterEqual(save.call_count, 1)
