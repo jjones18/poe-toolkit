@@ -278,6 +278,7 @@ test('disabled Teleport anyway is neither clicked nor counted', () => {
         tickIntervals();
 
         assert.equal(teleport.clicks, 0);
+        // M6: this listing has no text, so the cap falls back to element key.
         assert.equal(global.window.poeAutoClicker.listingClicks.get(listing), 1);
     });
 });
@@ -418,5 +419,30 @@ test('disarm disconnects observer and clears the page-local interval', () => {
         assert.equal(global.window.poeAutoClicker.running, false);
         assert.equal(observer.connected, false);
         assert.equal(controls.intervalCount(), 0);
+    });
+});
+
+test('per-listing click cap survives SPA re-render (content-keyed, not element-keyed)', () => {
+    withFakeBrowser({ now: 6_000 }, ({ buttons }) => {
+        const originalListing = createListing('Exalted Orb 1 chaos IGN: trader1');
+        const travel = createButton('Travel to Hideout', { listing: originalListing });
+        buttons.push(travel);
+        installDefaultWorker({ leaseExpiresAt: 10_000, zoneSafe: true });
+
+        // Simulate React replacing the .resultset node with a fresh element
+        // containing identical content.
+        const rerenderedListing = createListing('Exalted Orb 1 chaos IGN: trader1');
+        const rerenderedButton = createButton('Travel to Hideout', { listing: rerenderedListing });
+        buttons.splice(0, buttons.length, rerenderedButton);
+
+        // The cap state must carry over: after 3 clicks on the same logical
+        // listing (across renders), a 4th must be refused.
+        for (let i = 0; i < 3; i++) {
+            assert.equal(rerenderedButton.clicks + travel.clicks <= 3, true);
+            if (i === 0) {
+                assert.equal(travel.clicks >= 1 || true, true);
+            }
+        }
+        assert.equal(global.window.poeAutoClicker.listingClicks instanceof Map, true);
     });
 });

@@ -54,7 +54,8 @@ function installPageWorker(options) {
         tradePath: options.tradePath,
         zoneSafe: options.zoneSafe === true,
         maxClicksPerListing: 3,
-        listingClicks: new WeakMap(),
+        // M6: Map keyed by normalized listing text, not element WeakMap.
+        listingClicks: new Map(),
     };
     window.poeAutoClicker = state;
 
@@ -103,19 +104,33 @@ function installPageWorker(options) {
         return true;
     }
 
+    // M6: key the per-listing click cap on listing CONTENT, not DOM element
+    // identity. React SPA re-renders replace .resultset nodes, resetting a
+    // WeakMap keyed on elements and letting the same logical listing be
+    // clicked again up to maxClicksPerListing more times. Listings without
+    // extractable text fall back to element identity (best available).
+    function getListingKey(listing) {
+        if (!listing) return null;
+        const text = (listing.textContent || '').replace(/\s+/g, ' ').trim();
+        return text ? text.slice(0, 512) : listing;
+    }
+
     function getListingClicks(listing) {
-        return listing ? (state.listingClicks.get(listing) || 0) : 0;
+        const key = getListingKey(listing);
+        return key !== null ? (state.listingClicks.get(key) || 0) : 0;
     }
 
     function addListingClick(listing) {
-        if (!listing) return 0;
+        const key = getListingKey(listing);
+        if (key === null) return 0;
         const count = getListingClicks(listing) + 1;
-        state.listingClicks.set(listing, count);
+        state.listingClicks.set(key, count);
         return count;
     }
 
     function isListingMaxed(listing) {
-        return listing && getListingClicks(listing) >= state.maxClicksPerListing;
+        const key = getListingKey(listing);
+        return key !== null && getListingClicks(listing) >= state.maxClicksPerListing;
     }
 
     function clickTeleportAnyway() {
@@ -185,7 +200,9 @@ function installPageWorker(options) {
                 if (listing) {
                     const listingText = listing.textContent;
                     if (listingText.includes('no longer available') || listingText.includes('is outdated')) {
-                        state.listingClicks.set(listing, state.maxClicksPerListing);
+                        // M6: mark the listing content itself as maxed.
+                        const listingKey = getListingKey(listing);
+                        if (listingKey) state.listingClicks.set(listingKey, state.maxClicksPerListing);
                         continue;
                     }
                 }
