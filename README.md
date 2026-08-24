@@ -202,6 +202,18 @@ python src/main.py
    - Open your live search tabs
    - Click "Start Service"
 
+4. **PoE 1 Basic Crafting**:
+   - Open the PoE 1 Currency stash tab on its General layout.
+   - Open Crafting and select **Calibrate Outer Bounds**.
+   - Click the top-left and bottom-right corners of the yellow outer Currency-tab content border, then confirm the derived Jeweller's Orb, Orb of Fusing, and central crafting-item markers.
+   - Use **Preview Targets — no input** to verify the click-through overlay before any input. Use a Fine-tune button only when one derived marker is off. Recalibrating the outer bounds intentionally clears all old window-local point overrides.
+   - Leave **Verification only** enabled, return to the exact PoE 1 game window, and press **Numpad Plus**. This probes the currency and item through Ctrl+C without spending currency.
+   - After a successful probe, disable Verification only for an explicitly approved bounded run. Set a small attempt budget for the first live acceptance test; each unsuccessful attempt must also prove that the currency stack decreased by exactly one before another attempt is allowed. Numpad Minus or the in-page Stop button stops the run.
+   - Verification-only resets on every launch. A run also stops on focus loss, clipboard/identity mismatch, insufficient sockets for a link target, attempt/currency exhaustion, or an unsupported game mode.
+   - KDE Wayland input uses KWin EIS/libei and fails closed rather than falling back to XTest, pynput, xdotool, or ydotool. See [`docs/GAME_INPUT_DEBUGGING.md`](docs/GAME_INPUT_DEBUGGING.md) for shared input, preview, and agent-debug workflows.
+
+See `docs/POE1_CRAFTING.md` for layout assumptions, safety behavior, and test status.
+
 ---
 
 ## ⚙️ Configuration
