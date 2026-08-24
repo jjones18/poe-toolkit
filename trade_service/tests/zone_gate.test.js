@@ -200,3 +200,12 @@ test('removeArea immediately blocks a current custom area again', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('disabled gate fails closed: reports unsafe so workers install click-blocked', () => {
+  const gate = new ZoneGate({ enabled: false, logPath: '', gameId: 'poe1' });
+  assert.deepEqual(gate.getState(), {
+    safe: false,
+    areaId: '',
+    kind: 'disabled',
+  });
+});

@@ -233,10 +233,20 @@ class TradeSniperWidget(QWidget):
         self.chk_zone_gate.setChecked(self.trade_config.get("zone_gate_enabled", True))
         self.chk_zone_gate.setToolTip(
             "Uses the selected game's Client.txt. Unknown areas or a missing log "
-            "block Travel and Teleport anyway clicks."
+            "block Travel and Teleport anyway clicks.\n\n"
+            "When unchecked, Trade Sniper still monitors and logs new listings, "
+            "but auto-clicking is disabled - clicks require zone verification."
         )
         self.chk_zone_gate.toggled.connect(self.on_zone_gate_toggled)
         config_layout.addWidget(self.chk_zone_gate)
+
+        self.zone_gate_warning = QLabel(
+            "⚠ Zone verification is OFF - monitoring only, auto-clicking disabled."
+        )
+        self.zone_gate_warning.setStyleSheet("color: #ffaa66; font-weight: bold;")
+        self.zone_gate_warning.setVisible(not self.trade_config.get("zone_gate_enabled", True))
+        self.chk_zone_gate.toggled.connect(self.zone_gate_warning.setVisible)
+        config_layout.addWidget(self.zone_gate_warning)
 
         zone_row = QHBoxLayout()
         self.current_zone_label = QLabel("Current zone: Unknown")

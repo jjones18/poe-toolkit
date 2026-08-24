@@ -127,7 +127,11 @@ class ZoneGate extends EventEmitter {
     this.pollIntervalMs = pollIntervalMs;
     this.state = this.enabled
       ? { safe: false, areaId: '', kind: logPath ? 'unknown' : 'missing-log' }
-      : { safe: true, areaId: '', kind: 'disabled' };
+      // M1 monitor-only mode: a disabled gate reports UNSAFE so page workers
+      // install blocked from clicking. Monitoring/logging continues; auto-
+      // clicking requires the zone gate to be enabled. This keeps the
+      // fail-closed invariant: no zone verification, no clicks.
+      : { safe: false, areaId: '', kind: 'disabled' };
     this.offset = 0;
     this.inode = null;
     this.partial = '';
