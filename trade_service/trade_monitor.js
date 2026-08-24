@@ -789,23 +789,35 @@ async function startMonitoring(browser, gameConfig) {
             leaseRenewalInProgress = true;
             try {
                 for (const page of tradePages) {
-                    if (page.isClosed()) continue;
-                    try {
-                        const searchId = tabLabels.get(page);
-                        const result = await renewOrRepairMonitoredPageWorker(
-                            page,
-                            searchId,
-                            runId,
-                            createWorkerOptions(searchId),
-                            () => isMonitoringRunActive(runId, generation),
-                        );
-                        if (result.repaired) {
-                            console.log(`🔧 ${searchId} - worker restored after page reload`);
+                            if (page.isClosed()) continue;
+                            try {
+                                const searchId = tabLabels.get(page);
+                                const result = await renewOrRepairMonitoredPageWorker(
+                                    page,
+                                    searchId,
+                                    runId,
+                                    createWorkerOptions(searchId),
+                                    () => isMonitoringRunActive(runId, generation),
+                                );
+                                if (result.repaired) {
+                                    console.log(`🔧 ${searchId} - worker restored after page reload`);
+                                } else if (
+                                    result.reason === 'page-unavailable' ||
+                                    result.reason === 'route-mismatch'
+                                ) {
+                                    // M2 proportional response: a tab that cannot be
+                                    // renewed (mid-navigation/CDP hiccup) does NOT get
+                                    // its lease extended. Its worker hits lease expiry
+                                    // within CONTROLLER_LEASE_MS and fails closed on
+                                    // its own, without interrupting the other tabs.
+                                    // Once the page settles, the next heartbeat repairs
+                                    // it with fresh, current gate state.
+                                    console.log(`⚠ ${searchId} - renewal skipped (${result.reason}); lease will expire and fail closed`);
+                                }
+                            } catch (err) {
+                                // Navigation or CDP loss: the existing lease expires and fails closed.
+                            }
                         }
-                    } catch (err) {
-                        // Navigation or CDP loss: the existing lease expires and fails closed.
-                    }
-                }
             } finally {
                 leaseRenewalInProgress = false;
             }
@@ -973,8 +985,13 @@ async function startMonitoring(browser, gameConfig) {
                                     if (window.poeAutoClicker?.runId === expectedRunId) {
                                         window.poeAutoClicker.paused = false;
                                         window.poeAutoClicker.isClicking = false;
-                                        window.poeAutoClicker.pendingConfirmation = false;
-                                        window.poeAutoClicker.pendingListing = null;
+                                        // M3: do NOT clear pendingConfirmation /
+                                        // pendingListing here. If auto-resume fires
+                                        // while a "Teleport anyway" confirmation is
+                                        // pending, wiping it abandons a travel that
+                                        // was already initiated. The confirmation
+                                        // flow is lease- and zone-gated, so letting
+                                        // it finish stays fail-closed.
                                     }
                                 }, runId);
                             }
